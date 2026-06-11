@@ -1,0 +1,34 @@
+app:
+  metadata:
+    project-name: LLM Vectorless RAG
+    description: Vector-free document intelligence using BM25 retrieval and Spring AI
+    group-id: com.rag.vectorless
+    artifact-id: llm-vectorless-rag
+    project-version: 0.0.1-SNAPSHOT
+    spring-ai-version: 2.0.0-M8
+    ai-provider: Anthropic Claude (claude-opus-4-8)
+    rag-strategy: BM25 (No Vector Store)
+
+spring:
+  application:
+    name: llm-vectorless-rag
+  threads:
+    virtual:
+      enabled: true
+  docker:
+    compose:
+      enabled: false
+  ai:
+    anthropic:
+      api-key: ${ANTHROPIC_API_KEY}
+      chat:
+        options:
+          model: claude-opus-4-8
+          max-tokens: 1024
+rag:
+  chunk-size: 500
+  chunk-overlap: 100
+  top-k: 5
+  pageindex:
+    enabled: ${RAG_PAGEINDEX_ENABLED:false}
+    api-key: ${PAGEINDEX_API_KEY:}

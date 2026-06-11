@@ -1,0 +1,56 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: spring-ai
+    environment:
+      POSTGRES_DB: llm-rag
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql   # PG18+ stores data in a versioned subdir; mount the parent, not /data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d llm-rag"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  opensearch:
+    image: opensearchproject/opensearch:2.17.1
+    container_name: llm-rag-opensearch
+    environment:
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+      - DISABLE_SECURITY_PLUGIN=true          # dev only — no TLS/auth
+      - DISABLE_INSTALL_DEMO_CONFIG=true
+    ulimits:
+      memlock: { soft: -1, hard: -1 }
+      nofile: { soft: 65536, hard: 65536 }
+    ports:
+      - "9200:9200"   # REST API ← app connects here
+      - "9600:9600"   # performance analyzer
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+  opensearch-dashboards: # http://localhost:5601 — inspect the nexacorp_index
+    image: opensearchproject/opensearch-dashboards:2.17.1
+    container_name: llm-rag-opensearch-dashboards
+    environment:
+      - 'OPENSEARCH_HOSTS=["http://opensearch:9200"]'
+      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
+    ports:
+      - "5601:5601"
+    depends_on:
+      - opensearch
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  opensearch_data:

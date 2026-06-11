@@ -1,0 +1,91 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-06-06T00:00:00.000Z",
+  "__export_source": "llm-vectorless-rag",
+  "resources": [
+    {
+      "_id": "wrk_llm_vectorless_rag",
+      "_type": "workspace",
+      "name": "LLM Vectorless RAG",
+      "description": "Vector-free document intelligence using BM25 retrieval and Spring AI (Anthropic Claude)",
+      "scope": "collection"
+    },
+    {
+      "_id": "env_base",
+      "_type": "environment",
+      "parentId": "wrk_llm_vectorless_rag",
+      "name": "Base Environment",
+      "data": {
+        "base_url": "http://localhost:8080"
+      }
+    },
+    {
+      "_id": "fld_rag",
+      "_type": "request_group",
+      "parentId": "wrk_llm_vectorless_rag",
+      "name": "RAG",
+      "description": "Vectorless Retrieval-Augmented Generation endpoints"
+    },
+    {
+      "_id": "req_chat_bm25",
+      "_type": "request",
+      "parentId": "fld_rag",
+      "name": "Chat — BM25 Retrieval",
+      "description": "Query the knowledge base using BM25 keyword search. Retrieved chunks are sent as context to Claude for answer generation.",
+      "method": "POST",
+      "url": "{{ base_url }}/api/rag/chat",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"question\": \"What are the key features of Java 21?\"\n}"
+      }
+    },
+    {
+      "_id": "req_chat_pageindex",
+      "_type": "request",
+      "parentId": "fld_rag",
+      "name": "Chat — PageIndex Retrieval",
+      "description": "Query using PageIndex tree-reasoning retrieval. Requires RAG_PAGEINDEX_ENABLED=true and PAGEINDEX_API_KEY set.",
+      "method": "POST",
+      "url": "{{ base_url }}/api/rag/chat-pageindex",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"question\": \"Explain vectorless RAG and how BM25 works.\"\n}"
+      }
+    },
+    {
+      "_id": "req_documents",
+      "_type": "request",
+      "parentId": "fld_rag",
+      "name": "List Documents",
+      "description": "Returns the list of indexed document sources and total chunk count.",
+      "method": "GET",
+      "url": "{{ base_url }}/api/rag/documents",
+      "headers": [],
+      "body": {}
+    },
+    {
+      "_id": "req_health",
+      "_type": "request",
+      "parentId": "fld_rag",
+      "name": "Health Check",
+      "description": "Returns service health: number of loaded chunks and PageIndex status.",
+      "method": "GET",
+      "url": "{{ base_url }}/api/rag/health",
+      "headers": [],
+      "body": {}
+    }
+  ]
+}

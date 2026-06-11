@@ -1,0 +1,42 @@
+spring:
+  application:
+    name: llm-rag-graph
+  neo4j:
+    uri: bolt://localhost:7687
+    authentication:
+      username: neo4j
+      password: ${NEO4J_PASSWORD:password}
+
+app:
+  meta:
+    name: LLM RAG Graph
+    version: 0.0.1-SNAPSHOT
+    description: Graph RAG pipeline — Neo4j relationships + Anthropic Claude
+    author: Himansu Nayak
+    java-version: "21"
+    spring-boot-version: "4.1.0"
+    neo4j-version: "5.x"
+    llm-model: claude-opus-4-8
+    github: https://github.com/himansu/llm-rag-graph
+  anthropic:
+    api-key: ${ANTHROPIC_API_KEY:}
+    model: claude-opus-4-8
+    max-tokens: 4096
+  graph:
+    seed-data: true
+    context-depth: 4
+    max-context-nodes: 20
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.org.llm: DEBUG
+    org.springframework.data.neo4j: INFO

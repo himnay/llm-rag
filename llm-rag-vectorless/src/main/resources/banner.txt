@@ -1,0 +1,19 @@
+ _      _      __  __  __   __          _               _                   ____      _      ____
+| |    | |    |  \/  | \ \ / /___  ___| |_ ___  _ __  | |    ___  ___ ___  |  _ \    / \    / ___|
+| |    | |    | |\/| |  \ V / _ \/ __| __/ _ \| '__| | |   / _ \/ __/ __|  | |_) |  / _ \  | |  _
+| |___ | |___ | |  | |   | |  __/ (__| || (_) | |    | |__|  __/\__ \__ \  |  _ <  / ___ \ | |_| |
+|_____||_____||_|  |_|   |_|\___|\___|\__\___/|_|    |_____\___||___/___/  |_| \_\/_/   \_\ \____|
+
+LLM Vectorless RAG — Vector-Free Document Intelligence
+
+:: Project Metadata ::
+- Project Name      : ${app.metadata.project-name}
+- Description       : ${app.metadata.description}
+- Group Id          : ${app.metadata.group-id}
+- Artifact Id       : ${app.metadata.artifact-id}
+- Project Version   : ${app.metadata.project-version}
+- Spring Boot       : ${spring-boot.version}
+- Spring AI         : ${app.metadata.spring-ai-version}
+- Java Version      : ${java.version}
+- AI Provider       : ${app.metadata.ai-provider}
+- RAG Strategy      : ${app.metadata.rag-strategy}

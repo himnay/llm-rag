@@ -1,0 +1,131 @@
+openapi: 3.0.3
+info:
+  title: LLM RAG Pipeline API
+  version: 0.0.1-SNAPSHOT
+  description: >
+    Document ingestion + vector retrieval service. Generation (chat) is out of scope and is
+    delegated to a downstream consumer (e.g. llm-gateway). Served statically at /openapi.yaml —
+    import into Swagger UI or Insomnia.
+servers:
+  - url: http://localhost:8081
+    description: Local
+paths:
+  /api/v1/retrieve:
+    post:
+      summary: Retrieve the most relevant chunks for a query
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [query]
+              properties:
+                query: { type: string, example: "What is the leave policy?" }
+                topK: { type: integer, minimum: 1, example: 10 }
+      responses:
+        '200':
+          description: Ranked chunks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  chunks:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        source: { type: string }
+                        content: { type: string }
+                        chunkIndex: { type: integer }
+                        metadata: { type: object, additionalProperties: true }
+        '400': { description: Validation error, content: { application/json: { schema: { $ref: '#/components/schemas/ApiError' } } } }
+  /api/v1/admin/lifecycle/upload:
+    post:
+      summary: Upload a file (pdf/md/txt/json/docx/...) and ingest it through the pipeline
+      description: Requires X-API-Key when admin auth is enabled.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200': { description: Ingested }
+        '400': { description: Unsupported file type }
+        '401': { description: Unauthorized }
+  /api/v1/admin/lifecycle/ingest:
+    post:
+      summary: Ingest a single knowledge source
+      description: Requires X-API-Key when admin auth is enabled.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/KnowledgeRequest' }
+      responses:
+        '200': { description: Ingested }
+        '400': { description: Validation error }
+        '401': { description: Unauthorized }
+  /api/v1/admin/lifecycle/ingest-all:
+    post:
+      summary: Ingest all bundled sources
+      responses:
+        '200': { description: Ingested }
+  /api/v1/admin/lifecycle/delete:
+    delete:
+      summary: Delete a single knowledge source
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/KnowledgeRequest' }
+      responses:
+        '200': { description: Deleted }
+  /api/v1/admin/lifecycle/delete-all:
+    delete:
+      summary: Delete all knowledge
+      responses:
+        '200': { description: Deleted }
+  /api/v1/admin/eval/run:
+    post:
+      summary: Run retrieval-quality evaluation (MRR, context precision, P@k, R@k)
+      parameters:
+        - in: query
+          name: k
+          schema: { type: integer, default: 10 }
+      responses:
+        '200':
+          description: Evaluation report
+  /actuator/prometheus:
+    get:
+      summary: Prometheus metrics scrape endpoint
+      responses:
+        '200': { description: Metrics in Prometheus exposition format }
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Required on /api/** when app.security.auth-enabled=true (always in prod).
+  schemas:
+    KnowledgeRequest:
+      type: object
+      required: [sourceType, name]
+      properties:
+        sourceType: { type: string, enum: [PDF, WIKI, DATABASE] }
+        name: { type: string, example: "HR_Leave_Policy.pdf" }
+    ApiError:
+      type: object
+      properties:
+        timestamp: { type: string, format: date-time }
+        status: { type: integer }
+        error: { type: string }
+        message: { type: string }
+        fieldErrors: { type: object, additionalProperties: { type: string } }

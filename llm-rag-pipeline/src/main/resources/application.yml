@@ -1,0 +1,149 @@
+server:
+  port: ${SERVER_PORT:8081}
+  shutdown: graceful   # drain in-flight requests on SIGTERM (rolling deploys)
+
+spring:
+  application:
+    name: llm-rag-pipeline
+  lifecycle:
+    timeout-per-shutdown-phase: 30s   # bound graceful-shutdown drain time
+  docker: # Containers are started via docker-compose; disable Boot's auto-management.
+    compose:
+      enabled: false
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:sk-placeholder}
+      embedding:
+        options:
+          model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
+    vectorstore:
+      opensearch:
+        aws:
+          enabled: false             # AWS SDK is on the classpath (transitive); force plain HTTP transport, not SigV4
+        uris: ${OPENSEARCH_URIS:http://localhost:9200}
+        index-name: ${OPENSEARCH_INDEX:nexacorp_index}
+        username: ${OPENSEARCH_USERNAME:}
+        password: ${OPENSEARCH_PASSWORD:}
+        dimensions: 1536                # must match the embedding model (text-embedding-3-small)
+        initialize-schema: true         # create the knn index on startup if absent
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:llm-rag}
+    username: ${POSTGRES_USER:postgres}
+    password: ${POSTGRES_PASSWORD:postgres}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  servlet:
+    multipart: # allow reasonably large document uploads
+      max-file-size: 25MB
+      max-request-size: 25MB
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      # Only expose component details to authorized callers — avoids leaking DB/OpenSearch
+      # internals to anonymous clients. With no security configured this hides details.
+      show-details: when-authorized
+      probes:
+        enabled: true   # exposes /actuator/health/{liveness,readiness} for K8s
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/traces
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        rag.retrieval: true
+      slo:
+        http.server.requests: 50ms,100ms,200ms,300ms,500ms,1s,2s,5s
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{traceId}/%X{spanId}] %-5level %logger{36} - %msg%n"
+  level:
+    root: INFO
+    com.org: INFO
+    org.springframework.ai: INFO
+    org.springframework.web: INFO
+
+app:
+  metadata:
+    project-name: LLM RAG Pipeline
+    description: Production-grade Spring AI RAG backend — document ingestion + vector retrieval.
+    group-id: com.org
+    artifact-id: llm-rag-pipeline
+    project-version: 0.0.1-SNAPSHOT
+    spring-ai-version: 2.0.0-M8
+    database: PostgreSQL 17
+  ingestion:
+    pdf-location: classpath:data/pdfs/
+    wiki-location: classpath:data/wiki/
+    pdf-reader: ${PDF_READER:page}          # page | paragraph
+    inbox: # drop-folder watcher (hybrid with the REST API)
+      enabled: ${INBOX_ENABLED:false}
+      path: ${INBOX_PATH:./ingest-inbox}
+      poll-interval: 30s
+      min-age: 5s
+    ocr: # OCR for scanned/image PDF pages — opt-in (needs the native tesseract library)
+      enabled: ${OCR_ENABLED:false}
+      language: ${OCR_LANGUAGE:eng}
+      data-path: ${OCR_DATAPATH:}
+      min-chars-per-page: 40
+      dpi: 300
+  chunking:
+    strategy: ${CHUNKING_STRATEGY:auto}      # auto | fixed | recursive | token | semantic | markdown | llm
+    max-chars: 1000
+    overlap: 150
+    token:
+      chunk-size: 800                        # tokens
+    semantic:
+      threshold: 0.8
+      max-chars: 1500
+  enrichment:
+    enabled: ${ENRICHMENT_ENABLED:false}
+    keywords: true
+    summary: false
+    keyword-count: 5
+  retrieval:
+    default-top-k: 10
+    over-fetch-factor: 3            # fetch topK*factor candidates before post-filtering
+    similarity-threshold: 0.0       # drop hits below this cosine score (0 = off); pushed down
+    length:
+      min-chars: 0                  # 0 = unbounded
+      max-chars: 0
+    dedup:
+      enabled: true                 # collapse near-duplicate chunks at retrieval time
+      threshold: 0.95
+    mmr:
+      enabled: false                # Maximal Marginal Relevance diversity
+      lambda: 0.7
+    rerank:
+      enabled: ${RERANK_ENABLED:false}        # external cross-encoder (Cohere-compatible)
+      base-url: ${RERANK_BASE_URL:https://api.cohere.ai}
+      model: ${RERANK_MODEL:rerank-english-v3.0}
+      api-key: ${RERANK_API_KEY:}
+      top-n: 0
+  vectorstore:
+    write:
+      batch-size: 50
+      concurrency: 4
+      queue-capacity: 64           # bounded backlog for the shared write executor (back-pressure)
+  # ── API-key security ──────────────────────────────────────────────────────────
+  security:
+    auth-enabled: ${API_AUTH_ENABLED:false}   # dev default: open. Set true in prod.
+    header: X-API-Key
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:}  # comma-separated; empty = no cross-origin browser access
+    rate-limit:
+      enabled: ${RATE_LIMIT_ENABLED:true}      # token bucket per API key (or client IP) on /api/**
+      capacity: 120                            # burst size
+      refill-per-minute: 120                   # sustained requests/min

@@ -1,0 +1,29 @@
+package com.org.web.validation;
+
+import jakarta.validation.Constraint;
+import jakarta.validation.Payload;
+
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+/**
+ * Validates that an uploaded {@code MultipartFile} is a non-empty document whose extension is
+ * supported by the ingestion pipeline. Keeps file-type validation declarative (handled by the
+ * Bean Validation provider + {@code GlobalExceptionHandler}) rather than imperative in a controller
+ * or service.
+ */
+@Documented
+@Constraint(validatedBy = SupportedDocumentValidator.class)
+@Target({ElementType.PARAMETER, ElementType.FIELD})
+@Retention(RetentionPolicy.RUNTIME)
+public @interface SupportedDocument {
+
+    String message() default "Unsupported or empty document (allowed: pdf, md, txt, json, docx, pptx, xlsx, html)";
+
+    Class<?>[] groups() default {};
+
+    Class<? extends Payload>[] payload() default {};
+}

@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/himansu/llm-gateway/**)",
+      "Read(//Users/himansu/**)",
+      "Bash(./mvnw test *)",
+      "Bash(mvn -v)",
+      "Bash(./mvnw -q -o compile)",
+      "Bash(mvn -q -o compile)",
+      "Bash(mvn -q compile)",
+      "Bash(grep -viE \"\\\\$\\\\{|header|name:\")",
+      "Bash(sed -n '1,60p' src/main/java/com/org/controller/RetrievalController.java)",
+      "Bash(sed -n '1,40p' src/main/java/com/org/controller/EvaluationController.java)",
+      "Bash(sed -n '1,40p' src/main/java/com/org/controller/HealthController.java)",
+      "Bash(mvn -q dependency:tree -Dincludes=org.apache.pdfbox)",
+      "Bash(mvn -q dependency:tree)",
+      "Bash(mvn dependency:tree -Dincludes=org.apache.pdfbox)",
+      "Bash(mvn -q dependency:resolve)",
+      "Bash(mvn -q test-compile)",
+      "Bash(docker info *)",
+      "Bash(mvn -q -Dtest=RagPipelineApplicationTests test)",
+      "Bash(mvn -q -Dtest=OpenApiContractTest,RetrievalServiceUnitTest test)",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(mvn -q -Dtest=OpenApiContractTest test)",
+      "Bash(mvn -q -Dtest=RetrievalServiceUnitTest,OpenApiContractTest test)",
+      "Bash(mvn -q dependency:list)",
+      "Bash(mvn dependency:list)",
+      "Bash(mvn -q verify)",
+      "Bash(sed -n '51,182p' README.md)",
+      "Bash(sed -n '41,70p' ARCHITECTURE.md)",
+      "Bash(awk -F, 'NR>1{cov+=$4; mis+=$5} END{printf \"instructions covered=%d missed=%d => %.1f%%\\\\n\", cov, mis, 100*cov/\\(cov+mis\\)}' target/site/jacoco/jacoco.csv)",
+      "Bash(awk -F, 'NR>1{c+=$4; m+=$5} END{printf \"instruction coverage: %.1f%% \\(gate 70%%\\)\\\\n\", 100*c/\\(c+m\\)}' target/site/jacoco/jacoco.csv)",
+      "Bash(mvn -q -Dtest='ApiKeyServiceTest,CrossEncoderRerankerTest,OcrServiceTest,OpenApiContractTest,RetrievalServiceUnitTest,ExcelDocumentReaderTest' test)",
+      "Bash(awk -F, 'NR>1{c+=$4; m+=$5} END{printf \"instructions: %.1f%% \\(gate 70%%\\)\\\\n\", 100*c/\\(c+m\\)}' target/site/jacoco/jacoco.csv)",
+      "Bash(docker system *)",
+      "WebSearch",
+      "Bash(docker compose *)",
+      "Bash(docker exec *)",
+      "Bash(nc -z localhost 5432)",
+      "Bash(curl -sf http://localhost:9200/_cluster/health)"
+    ]
+  }
+}

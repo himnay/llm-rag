@@ -1,0 +1,31 @@
+Java 21 Key Features
+
+Java 21 is a Long-Term Support (LTS) release with significant language and runtime improvements. It became generally available in September 2023 and is the recommended Java version for new Spring Boot 4.x projects.
+
+Virtual Threads (Project Loom)
+
+Virtual threads are lightweight threads managed by the JVM rather than the operating system. Unlike platform threads, which map 1:1 to OS threads, virtual threads are cheap to create and block. You can create millions of virtual threads without exhausting system resources. Virtual threads are created with Thread.ofVirtual().start(runnable) or via an executor: Executors.newVirtualThreadPerTaskExecutor(). Spring Boot 4.x automatically uses virtual threads for web request handling when spring.threads.virtual.enabled=true, dramatically improving throughput for I/O-bound workloads like REST APIs calling external services.
+
+Record Classes
+
+Records are immutable data carriers declared with the record keyword. A record automatically generates constructor, getters, equals, hashCode, and toString. Example: public record ChatRequest(String question) {} creates an immutable object with a question() accessor. Records are ideal for DTOs, value objects, and API request/response models. They work well with Java's pattern matching features.
+
+Sealed Classes and Pattern Matching
+
+Sealed classes restrict which classes can extend or implement them using the sealed and permits keywords. Combined with pattern matching in switch expressions, they enable exhaustive case handling. Pattern matching for instanceof was finalized: if (obj instanceof String s) { ... } eliminates explicit casting. Switch expressions with pattern matching allow: return switch (shape) { case Circle c -> c.area(); case Rectangle r -> r.area(); }.
+
+Text Blocks
+
+Text blocks (triple-quoted strings) allow multi-line string literals without escape sequences. Introduced in Java 15 and commonly used in Java 21 for SQL queries, JSON templates, HTML, and system prompts: String prompt = """ Answer the question: %s """.formatted(question);. Text blocks automatically handle indentation stripping.
+
+SequencedCollections
+
+Java 21 adds SequencedCollection, SequencedSet, and SequencedMap interfaces with methods for accessing first and last elements: getFirst(), getLast(), addFirst(), addLast(), reversed(). These methods are now available on List, Deque, LinkedHashMap, and LinkedHashSet.
+
+String Enhancements
+
+String gained several useful methods: String.formatted(args) as a replacement for String.format, stripLeading() and stripTrailing() for whitespace removal, indent(n) for adding indentation, and lines() for streaming lines. The repeat(n) method duplicates a string n times.
+
+Spring Boot 4 and Java 21
+
+Spring Boot 4.0 requires Java 17 minimum and is optimized for Java 21. It leverages virtual threads for embedded Tomcat and Netty. The framework uses records for configuration properties and takes advantage of sealed classes in its internal APIs. GraalVM native image support is improved for faster startup times. Jakarta EE 10 namespace (jakarta.* instead of javax.*) is required in Spring Boot 4.x.

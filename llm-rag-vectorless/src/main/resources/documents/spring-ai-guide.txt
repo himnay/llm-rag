@@ -1,0 +1,29 @@
+Spring AI Overview
+
+Spring AI is an application framework for Java developers that simplifies the development of AI-powered applications. It provides a Spring-friendly API for interacting with large language models (LLMs) and other AI services.
+
+Key Features of Spring AI
+
+ChatClient is the central abstraction in Spring AI. It provides a fluent API for building prompts and invoking AI models. The ChatClient.Builder bean is auto-configured when you add a provider starter (e.g., spring-ai-anthropic-spring-boot-starter). You build a ChatClient using the builder and then call .prompt().user("...").call().content() to get a response.
+
+Spring AI Advisors are interceptors that wrap ChatClient calls. The RetrievalAugmentationAdvisor is a built-in advisor that implements the RAG pattern. It accepts a DocumentRetriever which fetches relevant documents and injects them into the prompt context automatically.
+
+Document is the core data structure in Spring AI's RAG pipeline. A Document holds text content and a metadata map (key-value pairs like source filename, page number, score). Documents are retrieved by a DocumentRetriever and used to augment prompts with relevant context.
+
+DocumentRetriever is a functional interface in org.springframework.ai.rag.retrieval.search. It takes a query string and returns a list of relevant Documents. Implementations include VectorStoreDocumentRetriever (semantic search) and custom retrievers like BM25-based keyword retrievers for vectorless RAG.
+
+Spring AI Supported Providers
+
+Spring AI supports multiple LLM providers through starter dependencies: Anthropic Claude (spring-ai-anthropic-spring-boot-starter), OpenAI (spring-ai-openai-spring-boot-starter), Ollama for local models (spring-ai-ollama-spring-boot-starter), and others. Each provider auto-configures a ChatModel and ChatClient.Builder bean.
+
+Spring AI Document Reading
+
+Spring AI provides document readers for loading content from various sources. TextReader reads plain text files, TikaDocumentReader reads PDFs and office documents, and TokenTextSplitter splits large documents into chunks suitable for RAG pipelines. The PathMatchingResourcePatternResolver can be used to load documents from classpath patterns like classpath:documents/*.txt.
+
+Spring AI 2.0.0 Improvements
+
+Spring AI 2.0.0 introduced a modular RAG pipeline with composable components: QueryTransformers for rewriting queries, DocumentRetrievers for fetching documents, DocumentPostProcessors for re-ranking results, and the RetrievalAugmentationAdvisor that orchestrates the full pipeline. This version also improved ChatClient's fluent API and added better support for structured outputs.
+
+Configuration
+
+Spring AI properties are configured under the spring.ai prefix. For Anthropic, set spring.ai.anthropic.api-key and spring.ai.anthropic.chat.options.model. The API key can be set as an environment variable ANTHROPIC_API_KEY. Available Claude models include claude-opus-4-8 (most capable), claude-sonnet-4-6 (balanced), and claude-haiku-4-5 (fastest).

@@ -1,0 +1,40 @@
+# Production profile — activate with SPRING_PROFILES_ACTIVE=prod
+spring:
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}   # no placeholder default — fail fast if unset
+    vectorstore:
+      opensearch:
+        uris: ${OPENSEARCH_URIS}            # MUST be https in prod, e.g. https://opensearch.internal:9200
+        username: ${OPENSEARCH_USERNAME}
+        password: ${OPENSEARCH_PASSWORD}
+        # The security plugin must be ENABLED on the cluster (unlike the dev docker-compose).
+        # With a public-CA cert the default JVM truststore suffices. For a private CA, uncomment
+        # the ssl-bundle reference + the spring.ssl.bundle block below.
+        # ssl-bundle: opensearch
+
+# Example private-CA truststore wiring — uncomment together with the ssl-bundle above:
+#  ssl:
+#    bundle:
+#      jks:
+#        opensearch:
+#          truststore:
+#            location: ${OPENSEARCH_TRUSTSTORE:file:/etc/ssl/opensearch/truststore.p12}
+#            password: ${OPENSEARCH_TRUSTSTORE_PASSWORD}
+
+logging:
+  level:
+    root: INFO
+    com.org: INFO
+
+management:
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLE_RATE:0.1}   # sample 10% in prod
+
+# Require a valid X-API-Key on /api/** in production. Keys live in the api_keys table
+# (SHA-256 hashed); provision them via the snippet in V3__api_keys.sql.
+app:
+  security:
+    auth-enabled: true
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:}

@@ -1,0 +1,37 @@
+Vectorless RAG: Retrieval-Augmented Generation Without Embeddings
+
+What is RAG?
+
+Retrieval-Augmented Generation (RAG) is a technique for grounding LLM responses with factual, up-to-date information. Instead of relying purely on what the model learned during training, RAG retrieves relevant documents from a knowledge base and injects them into the prompt. This reduces hallucinations and allows the model to answer questions about domain-specific or recent information.
+
+Traditional Vector-Based RAG
+
+The classic RAG pipeline uses vector embeddings: documents are chunked and converted to numeric vectors using an embedding model, stored in a vector database (Pinecone, Weaviate, Chroma, pgvector), and retrieved at query time by comparing the query's embedding to stored vectors with cosine similarity. This approach captures semantic similarity but requires embedding infrastructure, adds latency, and has costs.
+
+What is Vectorless RAG?
+
+Vectorless RAG achieves the same goal of grounding LLM responses without vector embeddings or vector databases. Instead, retrieval is done using classic information retrieval techniques or structural approaches.
+
+BM25 Keyword Retrieval
+
+BM25 (Best Match 25) is a probabilistic ranking function from information retrieval. It ranks documents by their relevance to a query using term frequency and inverse document frequency. BM25 computes a score for each document: score = sum over query terms t of IDF(t) times (tf(t,d) times (k1+1)) divided by (tf(t,d) + k1 times (1 - b + b times docLen / avgDocLen)). Parameters k1 (default 1.2) controls term frequency saturation and b (default 0.75) controls document length normalization.
+
+IDF (Inverse Document Frequency) gives higher weight to rare terms: IDF(t) = log((N - df(t) + 0.5) / (df(t) + 0.5) + 1), where N is total documents and df(t) is number of documents containing term t.
+
+BM25 works well for structured data, technical documentation, and queries with specific keywords. It requires no GPU, no embedding model, and runs in memory. The main limitation is that it cannot capture semantic similarity (synonyms, paraphrasing).
+
+Other Vectorless Approaches
+
+Full-text search with TF-IDF is similar to BM25 but without length normalization. Elasticsearch and SQLite FTS use TF-IDF style scoring. SQL metadata filtering works well when documents have structured attributes. Context stuffing puts all documents directly in the LLM's context window — practical with models that support 200K+ token contexts like Claude Opus 4.8. Knowledge graph traversal follows entity relationships instead of similarity scores.
+
+When to Use Vectorless RAG
+
+Vectorless RAG is best when: your data is structured or technical with specific keywords, your corpus is small enough to fit in memory or a context window, you want simpler infrastructure with no embedding service or vector database, your queries are precise keyword-based questions, or you need exact string matching rather than semantic similarity. It is less suitable when queries are phrased differently from document text, when semantic paraphrase matching is important, or when dealing with very large unstructured corpora.
+
+Chunking Strategy
+
+Effective vectorless RAG requires good chunking. Documents should be split into chunks of 300-800 tokens with 50-150 token overlap between adjacent chunks. Breaking at sentence boundaries rather than arbitrary character positions preserves context. Each chunk should be associated with metadata like the source filename and chunk index for citation purposes.
+
+Stop Word Removal
+
+Removing common stop words (a, the, is, are, of, in, etc.) improves BM25 retrieval quality by focusing scoring on meaningful content words. Stop words appear in almost every document and have near-zero IDF values, contributing little to ranking.
