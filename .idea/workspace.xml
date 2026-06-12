@@ -5,13 +5,18 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="b97604ab-b7d5-4cdf-9e3e-355fa25a2397" name="Changes" comment="llm rag - initial draft">
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/easycode.ignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/encodings.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/jarRepositories.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/git_toolbox_prj.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-graph/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-graph/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/config/ChatClientConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/config/ChatClientConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/retrieval/RetrievalProperties.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/retrieval/RetrievalProperties.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/retrieval/RetrievalService.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/retrieval/RetrievalService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/retrieval/postprocess/CrossEncoderReranker.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/resources/application.yml" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/resources/application.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/retrieval/RetrievalServiceUnitTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/retrieval/RetrievalServiceUnitTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/retrieval/postprocess/CrossEncoderRerankerTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-vectorless/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-vectorless/README.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -24,14 +29,14 @@
     </persistenceIdMap>
   </component>
   <component name="Git.Settings">
-    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/llm-rag-vectorless" />
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "himnay"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;himnay&quot;
   }
-}]]></component>
+}</component>
   <component name="GitToolBoxStore">
     <option name="recentBranches">
       <RecentBranches>
@@ -57,12 +62,12 @@
       </RecentBranches>
     </option>
   </component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/himnay/llm-rag.git",
-    "accountId": "7c4aed13-a17d-407b-95ae-e7d2abbb3a5b"
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/himnay/llm-rag.git&quot;,
+    &quot;accountId&quot;: &quot;7c4aed13-a17d-407b-95ae-e7d2abbb3a5b&quot;
   }
-}]]></component>
+}</component>
   <component name="MavenImportPreferences">
     <option name="generalSettings">
       <MavenGeneralSettings>
@@ -70,10 +75,10 @@
       </MavenGeneralSettings>
     </option>
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 7,
-  "fromUser": false
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 7,
+  &quot;fromUser&quot;: false
+}</component>
   <component name="ProjectId" id="3F0UlSHxc7lJ3d0LMz5v8HDxdcz" />
   <component name="ProjectViewState">
     <option name="autoscrollFromSource" value="true" />
@@ -87,6 +92,8 @@
   "keyToString": {
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "kotlin-language-version-configured": "true",
     "last_opened_file_path": "/Users/himansu/LLM/llm-rag",
     "run.configurations.included.in.services": "true"
@@ -139,6 +146,7 @@
       <option name="presentableId" value="Default" />
       <updated>1781211631051</updated>
       <workItem from="1781211632074" duration="451000" />
+      <workItem from="1781212093714" duration="3575000" />
     </task>
     <task id="LOCAL-00001" summary="llm rag - initial draft">
       <option name="closed" value="true" />
@@ -148,7 +156,15 @@
       <option name="project" value="LOCAL" />
       <updated>1781211905308</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="llm rag - initial draft">
+      <option name="closed" value="true" />
+      <created>1781212175345</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1781212175345</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">

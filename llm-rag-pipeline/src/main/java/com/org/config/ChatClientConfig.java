@@ -8,8 +8,9 @@ import org.springframework.context.annotation.Configuration;
 /**
  * Exposes a {@link ChatClient} backed by the auto-configured OpenAI {@link ChatModel}.
  *
- * <p>Used by the in-pipeline LLM features (LLM-based chunking and metadata enrichment). This is the
- * only direct LLM usage in the service and is invoked only when those features are enabled.</p>
+ * <p>Used by the in-pipeline LLM features (LLM-based chunking, metadata enrichment, and the
+ * {@code llm-pointwise}/{@code llm-listwise} rerankers). This is the only direct LLM usage in the
+ * service and is invoked only when those features are enabled.</p>
  */
 @Configuration
 class ChatClientConfig {

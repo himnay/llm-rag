@@ -7,7 +7,8 @@ searchable vectors) and **retrieval** (returning the most relevant, ranked chunk
 > **Answer generation is out of scope here.** This service does **no chat/LLM generation** — a
 > downstream consumer (e.g. [`llm-gateway`](../llm-gateway)) takes the retrieved chunks and produces
 > the answer. The only always-on LLM interaction here is **embeddings** (local `EmbeddingModel`);
-> **semantic/LLM chunking**, **metadata enrichment**, and the **cross-encoder reranker** are opt-in.
+> **semantic/LLM chunking**, **metadata enrichment**, and **reranking** (cross-encoder / LLM-based
+> / local strategies — see [Reranking](#-reranking-second-stage-retrieval)) are opt-in.
 
 ## 🛠️ Technology Stack
 
@@ -33,9 +34,12 @@ searchable vectors) and **retrieval** (returning the most relevant, ranked chunk
 
                  ┌─────────────────────────── RETRIEVAL ───────────────────────────┐
  POST /api/v1/retrieve │  RetrievalController → RetrievalService                    │
-        ───►           │   → OpenSearch kNN (over-fetch topK*factor, threshold)     │
+        ───►           │   → SearchStrategy (vector kNN | keyword BM25 | hybrid RRF)│
+                       │      over-fetch topK*factor, threshold pushed down         │
                        │   → post-processor chain: business rules → length → dedup  │
-                       │     → rerank (opt-in) → score-aware rank → MMR (opt-in)     │
+                       │     → rerank (opt-in: cross-encoder | bi-encoder |          │
+                       │        llm-pointwise | llm-listwise | bm25 | rrf)           │
+                       │     → score-aware rank → MMR (opt-in)                       │
                        │  ◄── RetrievalResult { chunks[], citations[] }             │
                        └──────────────────────────────────────────────────────────────┘
 ```
@@ -47,8 +51,17 @@ searchable vectors) and **retrieval** (returning the most relevant, ranked chunk
 - `security/` — API-key auth: `ApiKeyService` (SHA-256 hashes in the `api_keys` table),
   `ApiKeyAuthFilter`, `SecurityConfig` (headers + CORS), `RestAuthenticationEntryPoint` (401 JSON).
 - `retrieval/` — `RetrievalService` + the composable `postprocess/` chain (`BusinessRuleFilter`,
-  `LengthFilter`, `NearDuplicateFilter`, `CrossEncoderReranker`, `ScoreAwareRanker`,
+  `LengthFilter`, `NearDuplicateFilter`, `RerankingPostProcessor`, `ScoreAwareRanker`,
   `MmrDiversityProcessor`) and `model/Citation`.
+- `retrieval/search/` — pluggable first-stage search strategies behind the `SearchStrategy`
+  interface: `VectorSearchStrategy` (cosine kNN), `KeywordSearchStrategy` (BM25 full-text),
+  `HybridSearchStrategy` (RRF fusion of both).
+- `retrieval/rerank/` — pluggable second-stage reranking strategies (`CrossEncoderReranker`,
+  `BiEncoderReranker`, `LlmPointwiseReranker`, `LlmListwiseReranker`, `Bm25Reranker`,
+  `RrfFusionReranker`) behind the `Reranker` interface, orchestrated by `RerankingPostProcessor`
+  (score cache, circuit breaker, metrics, relevance floor).
+- `common/` — dependency-free `Resilience` (retry + backoff) and `CircuitBreaker` helpers for
+  outbound calls.
 - `ingestion/` — readers (`reader/`, `excel/`, `ocr/`), `TextNormalizer`, orchestrators; PDF / Wiki
   / Database ingestion services.
 - `lifecycle/` — knowledge ingest/delete with content-hash dedup (`IngestionLogRepository`).
@@ -127,21 +140,125 @@ echo "X-API-Key: $raw"
 
 ## 🔎 Retrieval pipeline & filtering
 
-Candidates are over-fetched (`app.retrieval.over-fetch-factor`) with the similarity threshold pushed
-down, then run through an ordered, composable post-processor chain — each technique is an
-independently testable Spring bean:
+Candidates are over-fetched (`app.retrieval.over-fetch-factor`) by the configured
+[search mode](#-search-modes-first-stage-retrieval), then run through an ordered, composable
+post-processor chain — each technique is an independently testable Spring bean:
 
 | Stage | Property | Default |
 |-------|----------|---------|
 | Business-rule visibility (DB ACL / announcement window) | — | on |
 | Length filter | `app.retrieval.length.{min,max}-chars` | off (0) |
 | Near-duplicate collapse | `app.retrieval.dedup.*` | on |
-| Cross-encoder rerank (Cohere-compatible) | `app.retrieval.rerank.*` | off |
+| Reranking — 6 pluggable strategies (see below) | `app.retrieval.rerank.*` | off |
 | Score-aware ranking (relevance first, business priority as tie-break) | — | on |
 | MMR diversity | `app.retrieval.mmr.*` | off |
 
 Each retrieved chunk is returned with a `Citation` (source, fileName, identity, page, chunkIndex,
 score) for traceability.
+
+## 🔍 Search modes (first-stage retrieval)
+
+How candidates are fetched is a pluggable `SearchStrategy` (`com.org.retrieval.search`), selected
+by `app.retrieval.search.mode`:
+
+| `mode` | Technique | Extra cost | Best for |
+|--------|-----------|-----------|----------|
+| `vector` *(default)* | Cosine-similarity kNN over embeddings (OpenSearch knn index); `similarity-threshold` pushed down | 1 embedding call | Semantic / paraphrased queries |
+| `keyword` | Lexical BM25 full-text match on the chunk `content` field of the same index | none | Exact terms: error codes, IDs, names |
+| `hybrid` | Runs both, fuses rankings with Reciprocal Rank Fusion (dedup by id); a failing side degrades to the other | 1 embedding call | Mixed queries ("how do I fix E1234") |
+
+```yaml
+app:
+  retrieval:
+    search:
+      mode: hybrid   # vector | keyword | hybrid   (env: SEARCH_MODE)
+```
+
+Keyword and hybrid scores are max-normalized to 0..1, so the post-processing chain (thresholds,
+rerankers, MMR) behaves identically whichever mode produced the candidates.
+
+## 🔁 Reranking (second-stage retrieval)
+
+First-stage vector search optimizes for recall; the opt-in **rerank stage**
+(`com.org.retrieval.rerank`) re-scores the top candidates for precision before they are trimmed to
+`topK`. All techniques implement the `Reranker` strategy interface and plug into the chain via
+`RerankingPostProcessor`; pick one with `app.retrieval.rerank.strategy`:
+
+| `strategy` | Type | How it works | Extra cost | Best for |
+|------------|------|--------------|-----------|----------|
+| `cross-encoder` | Pointwise, neural | External Cohere-compatible `/v1/rerank` API reads query + document together | API $$ + latency | Highest quality; needs `api-key` |
+| `bi-encoder` | Pointwise, embedding | Re-embeds query + candidates with the local `EmbeddingModel`, exact cosine re-score | 1 embedding call | Fixing approximate ANN scores; merged candidate sets |
+| `llm-pointwise` | Pointwise, LLM-as-judge | Chat LLM grades each candidate 0–100 independently | 1 LLM call **per candidate** | Zero-shot quality without a rerank vendor; cap with `top-n` |
+| `llm-listwise` | Listwise, LLM (RankGPT-style) | Chat LLM sees all candidates and returns a permutation | 1 LLM call total | Comparative ranking; cheaper than pointwise |
+| `bm25` | Lexical | Okapi BM25 over the candidate set, in-process | none | Exact keywords, error codes, IDs, names |
+| `rrf` | Hybrid, rank fusion | Reciprocal Rank Fusion of the dense (vector) and BM25 rankings | none | General hybrid boost without comparing score scales |
+
+```yaml
+app:
+  retrieval:
+    rerank:
+      enabled: true
+      strategy: rrf            # cross-encoder | bi-encoder | llm-pointwise | llm-listwise | bm25 | rrf
+      top-n: 20                # re-score only the top 20 candidates (cost cap); 0 = all
+      min-score: 0.0           # drop re-scored chunks below this relevance (0 = off)
+      cache:                   # per-chunk score cache (costly strategies only)
+        enabled: true
+        max-size: 1000
+        ttl: 10m
+      breaker:                 # skip reranking while the vendor/model keeps failing
+        failure-threshold: 3
+        cooldown: 30s
+      # cross-encoder only:
+      base-url: https://api.cohere.ai
+      model: rerank-english-v3.0
+      api-key: ${RERANK_API_KEY}
+      timeout: 10s             # HTTP read timeout — fail-open on expiry
+```
+
+Safety rails (production best practices, applied centrally in `RerankingPostProcessor`):
+
+- **Fail-open** — any reranker failure (vendor down, timeout, unparseable LLM reply) logs a warning
+  and passes the vector-ranked candidates through unchanged; reranking never breaks retrieval.
+- **Circuit breaker** — after `failure-threshold` consecutive failures the breaker opens for
+  `cooldown`: a down vendor is skipped instead of paying its timeout on every request, then probed
+  half-open (`com.org.common.CircuitBreaker`).
+- **Cost cap** — `top-n` limits how many candidates are re-scored; the tail keeps its vector order.
+- **Score cache** — per-chunk scores from the costly strategies (API / LLM / embedding) are cached
+  (TTL + LRU) keyed by `strategy|query|sha256(content)`; a repeated query re-ranks for free.
+- **Relevance floor** — `min-score` drops re-scored chunks the reranker judged irrelevant,
+  improving context precision for the downstream LLM. Note the scale differs per strategy.
+- **Bounded prompts/calls** — LLM rerankers truncate documents (1 500 chars) before prompting;
+  `llm-pointwise` grades candidates **in parallel on virtual threads** (latency ≈ one LLM
+  round-trip instead of N); the cross-encoder HTTP call has a read timeout.
+- **Metrics** — Micrometer timer `rag_rerank_duration` plus counters `rag_rerank_failures`,
+  `rag_rerank_cache_hits`, `rag_rerank_breaker_rejected`, all tagged by strategy (charted via the
+  existing Prometheus/Grafana stack).
+- **Score transparency** — every strategy writes its relevance into the chunk's `score` metadata,
+  which flows into the returned `Citation`s, so reranked results stay explainable.
+
+## 🧩 Design patterns (GoF)
+
+The variation points of the pipeline are modelled with classic Gang-of-Four patterns — each
+technique is a small, independently testable class, and adding a new one never means editing a
+`switch`:
+
+| Pattern | Where | Role |
+|---------|-------|------|
+| **Strategy** | `SearchStrategy` (`retrieval/search/`: vector / keyword / hybrid) · `Reranker` (`retrieval/rerank/`: 6 strategies) · `ChunkingStrategy` (`chunking/strategy/`: token / recursive / semantic / markdown / fixed / llm) | Interchangeable algorithms behind one interface, selected by configuration at runtime |
+| **Chain of Responsibility** | `RetrievalPostProcessor` chain (`retrieval/postprocess/`), applied in `Ordered` order by `RetrievalService` | Each stage (filter / dedup / rerank / rank / diversify) handles the candidate list and passes it on |
+| **Factory** | `ChunkingStrategyFactory` (name → `ChunkingStrategy`) · `DocumentReaderFactory` (file extension → reader) | Centralised creation/resolution so callers never bind to concrete classes |
+| **Template Method** | `AbstractChunkingStrategy` | Shared chunk-building skeleton (metadata, indexing, blank-skipping); subclasses supply only the splitting step |
+| **Composite** | `HybridSearchStrategy` | A `SearchStrategy` composed of the vector + keyword strategies, fused with RRF |
+| **Proxy (protection)** | `RerankingPostProcessor` wrapping the selected `Reranker` | Adds the cross-cutting rails — circuit breaker, score cache, cost cap, relevance floor, metrics, fail-open — without touching any strategy |
+| **Facade** | `IngestionOrchestrator` / `ChunkingOrchestrator` · `GraphRAGService` (llm-rag-graph) | One entry point over the multi-step read→clean→chunk→enrich→store (and graph-RAG) flows |
+| **Adapter** | `ExcelDocumentReader` (Apache POI workbook → Markdown-table `Document`s) · OCR `OcrPdfAugmentor` (Tesseract → page text) | Bridge third-party APIs into the pipeline's document model |
+| **Builder / Singleton** | Spring AI `SearchRequest.builder()` / `Document.builder()`; Spring beans are container-managed singletons | Used via the frameworks rather than hand-rolled |
+
+> **Where patterns are deliberately *not* used:** `llm-rag-vectorless` exposes its two retrieval
+> paths (local BM25, remote PageIndex) as separate endpoints with different shapes, and
+> `llm-rag-graph` has a single LLM provider — introducing a Strategy interface for a single
+> implementation would be speculative abstraction, not good GoF usage. The pattern earns its place
+> only where a real variation point exists.
 
 ## 📥 Ingestion pipeline
 
@@ -245,7 +362,7 @@ enforces a minimum instruction coverage.
 ├── observability/              # Prometheus, Tempo, Loki + Grafana provisioning
 ├── PROMETHEUS_GRAFANA_SETUP.md # Observability runbook
 ├── src/main/java/com/org/
-│   ├── controller/  security/  retrieval/{postprocess}  ingestion/{reader,excel,ocr}
+│   ├── controller/  security/  retrieval/{postprocess,rerank,search}  ingestion/{reader,excel,ocr}
 │   ├── chunking/    lifecycle/  vectorstore/  eval/  enrichment/  config/  web/
 └── src/main/resources/
     ├── db/migration/      # Flyway (schema, api_keys, ingestion_log)

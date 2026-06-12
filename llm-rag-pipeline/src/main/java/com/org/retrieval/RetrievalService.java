@@ -1,18 +1,18 @@
 package com.org.retrieval;
 
 import com.org.chunking.model.Chunk;
-import com.org.common.Resilience;
 import com.org.retrieval.model.Citation;
 import com.org.retrieval.model.RetrievalResult;
 import com.org.retrieval.postprocess.RetrievalPostProcessor;
+import com.org.retrieval.search.SearchMode;
+import com.org.retrieval.search.SearchStrategy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
-import org.springframework.ai.vectorstore.SearchRequest;
-import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -21,23 +21,24 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * Retrieval API — the "R" of this RAG service. Over-fetches candidates from the vector store
- * (with the similarity threshold pushed down), runs them through the ordered
- * {@link RetrievalPostProcessor} chain (business rules → length → dedup → rerank → score-aware
- * ranking → MMR), trims to {@code topK}, and attaches {@link Citation}s for provenance.
+ * Retrieval API — the "R" of this RAG service. Over-fetches candidates via the configured
+ * {@link SearchStrategy} (vector kNN, keyword BM25, or hybrid RRF — {@code app.retrieval.search.mode}),
+ * runs them through the ordered {@link RetrievalPostProcessor} chain (business rules → length →
+ * dedup → rerank → score-aware ranking → MMR), trims to {@code topK}, and attaches
+ * {@link Citation}s for provenance.
  */
 @Slf4j
 @Service
 public class RetrievalService {
 
-    private final VectorStore vectorStore;
     private final RetrievalProperties properties;
+    private final Map<SearchMode, SearchStrategy> searchStrategies = new EnumMap<>(SearchMode.class);
     private final List<RetrievalPostProcessor> postProcessors;
 
-    public RetrievalService(VectorStore vectorStore, RetrievalProperties properties,
+    public RetrievalService(RetrievalProperties properties, List<SearchStrategy> searchStrategies,
                             List<RetrievalPostProcessor> postProcessors) {
-        this.vectorStore = vectorStore;
         this.properties = properties;
+        searchStrategies.forEach(s -> this.searchStrategies.put(s.mode(), s));
         this.postProcessors = postProcessors.stream()
                 .sorted(Comparator.comparingInt(RetrievalPostProcessor::getOrder))
                 .toList();
@@ -52,18 +53,15 @@ public class RetrievalService {
     public RetrievalResult retrieve(String query, int topK) {
         int k = topK > 0 ? topK : properties.getDefaultTopK();
         int fetch = k * Math.max(1, properties.getOverFetchFactor());
-        log.info("Retrieval requested | query='{}' | topK={} | fetch={}", query, k, fetch);
+        SearchMode mode = properties.getSearch().getMode();
+        log.info("Retrieval requested | query='{}' | topK={} | fetch={} | mode={}", query, k, fetch, mode);
 
-        SearchRequest.Builder builder = SearchRequest.builder().query(query).topK(fetch);
-        if (properties.getSimilarityThreshold() > 0) {
-            builder.similarityThreshold(properties.getSimilarityThreshold());
+        SearchStrategy strategy = searchStrategies.get(mode);
+        if (strategy == null) {
+            throw new IllegalStateException("No search strategy registered for mode " + mode);
         }
-        SearchRequest searchRequest = builder.build();
-
-        // Embedding + vector search is a network round-trip; retry transient blips before failing.
-        List<Document> documents = Resilience.withRetry(
-                "vector similaritySearch", 3, 200L, () -> vectorStore.similaritySearch(searchRequest));
-        log.info("Vector store returned {} candidate document(s)", documents.size());
+        List<Document> documents = strategy.search(query, fetch);
+        log.info("{} search returned {} candidate document(s)", mode, documents.size());
 
         List<Chunk> chunks = documents.stream().map(this::toChunk).collect(Collectors.toList());
         for (RetrievalPostProcessor processor : postProcessors) {

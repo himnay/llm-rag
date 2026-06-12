@@ -269,3 +269,13 @@ app:
    - Cross-department collaboration: `Department -[:COLLABORATES_WITH]-> Department`
 4. **Deduplication and capping** — results are deduplicated and capped at `maxContextNodes × 3` lines.
 5. **Prompt injection** — the formatted context block is prepended to the LLM prompt so Claude reasons over graph facts, not its training weights.
+
+## 🧩 Design patterns
+
+This module stays deliberately small: `GraphRAGService` is a **Facade** over the multi-step
+keyword-extraction → graph-traversal → prompt-assembly → LLM flow, and the Spring Data Neo4j
+repositories follow the Repository pattern. There is a single LLM provider
+(`AnthropicLLMService`), so no Strategy interface is introduced — see the
+[Design patterns section](../llm-rag-pipeline/README.md#-design-patterns-gof) in
+`llm-rag-pipeline` for the GoF patterns used across the llm-rag modules and the reasoning about
+where patterns are deliberately not applied.

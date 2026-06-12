@@ -241,3 +241,12 @@ Sources:
 - [PageIndex documentation](https://docs.pageindex.ai/)
 - [PageIndex GitHub (VectifyAI/PageIndex)](https://github.com/VectifyAI/PageIndex)
 - [Vectorless RAG cookbook](https://docs.pageindex.ai/cookbook/vectorless-rag-pageindex)
+
+## 🧩 Design patterns
+
+The two retrieval paths (local **BM25** and remote **PageIndex**) are exposed as separate
+endpoints with different response shapes, so they are deliberately *not* forced behind a common
+Strategy interface — that would be speculative abstraction for a variation point that doesn't
+exist (PageIndex is toggled by `@ConditionalOnProperty`, not selected per request). See the
+[Design patterns section](../llm-rag-pipeline/README.md#-design-patterns-gof) in
+`llm-rag-pipeline` for the GoF patterns used across the llm-rag modules.

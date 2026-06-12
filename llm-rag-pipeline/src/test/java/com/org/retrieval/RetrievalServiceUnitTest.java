@@ -3,6 +3,7 @@ package com.org.retrieval;
 import com.org.retrieval.model.RetrievalResult;
 import com.org.retrieval.postprocess.BusinessRuleFilter;
 import com.org.retrieval.postprocess.ScoreAwareRanker;
+import com.org.retrieval.search.VectorSearchStrategy;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
@@ -17,16 +18,18 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Pure unit tests for {@link RetrievalService} wired with a mocked {@link VectorStore} and the
- * real post-processor chain (business-rule visibility filter + score-aware ranker) — no Spring
- * context or infrastructure required.
+ * Pure unit tests for {@link RetrievalService} wired with a mocked {@link VectorStore} (behind the
+ * real vector search strategy) and the real post-processor chain (business-rule visibility filter +
+ * score-aware ranker) — no Spring context or infrastructure required.
  */
 class RetrievalServiceUnitTest {
 
     private RetrievalService newService(List<Document> docs) {
         VectorStore vectorStore = mock(VectorStore.class);
         when(vectorStore.similaritySearch(any(SearchRequest.class))).thenReturn(docs);
-        return new RetrievalService(vectorStore, new RetrievalProperties(),
+        RetrievalProperties properties = new RetrievalProperties();
+        return new RetrievalService(properties,
+                List.of(new VectorSearchStrategy(vectorStore, properties)),
                 List.of(new BusinessRuleFilter(), new ScoreAwareRanker()));
     }
 

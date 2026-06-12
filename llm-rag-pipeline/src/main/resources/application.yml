@@ -117,7 +117,9 @@ app:
   retrieval:
     default-top-k: 10
     over-fetch-factor: 3            # fetch topK*factor candidates before post-filtering
-    similarity-threshold: 0.0       # drop hits below this cosine score (0 = off); pushed down
+    similarity-threshold: 0.0       # drop hits below this cosine score (0 = off); pushed down (vector mode)
+    search:
+      mode: ${SEARCH_MODE:vector}   # vector (cosine kNN) | keyword (BM25 full-text) | hybrid (RRF fusion)
     length:
       min-chars: 0                  # 0 = unbounded
       max-chars: 0
@@ -128,11 +130,21 @@ app:
       enabled: false                # Maximal Marginal Relevance diversity
       lambda: 0.7
     rerank:
-      enabled: ${RERANK_ENABLED:false}        # external cross-encoder (Cohere-compatible)
-      base-url: ${RERANK_BASE_URL:https://api.cohere.ai}
-      model: ${RERANK_MODEL:rerank-english-v3.0}
-      api-key: ${RERANK_API_KEY:}
-      top-n: 0
+      enabled: ${RERANK_ENABLED:false}        # second-stage reranking (opt-in, fail-open)
+      strategy: ${RERANK_STRATEGY:cross-encoder}  # cross-encoder | bi-encoder | llm-pointwise | llm-listwise | bm25 | rrf
+      base-url: ${RERANK_BASE_URL:https://api.cohere.ai}   # cross-encoder only
+      model: ${RERANK_MODEL:rerank-english-v3.0}           # cross-encoder only
+      api-key: ${RERANK_API_KEY:}                          # cross-encoder only
+      top-n: 0                                # re-score at most N candidates (cost cap); 0 = all
+      timeout: 10s                            # cross-encoder HTTP read timeout
+      min-score: 0.0                          # drop re-scored chunks below this relevance (0 = off)
+      cache: # per-chunk score cache (costly strategies only)
+        enabled: true
+        max-size: 1000
+        ttl: 10m
+      breaker: # skip reranking while the vendor/model keeps failing
+        failure-threshold: 3
+        cooldown: 30s
   vectorstore:
     write:
       batch-size: 50
