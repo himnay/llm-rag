@@ -279,3 +279,15 @@ repositories follow the Repository pattern. There is a single LLM provider
 [Design patterns section](../llm-rag-pipeline/README.md#-design-patterns-gof) in
 `llm-rag-pipeline` for the GoF patterns used across the llm-rag modules and the reasoning about
 where patterns are deliberately not applied.
+
+## 🏗️ Build & test
+
+```bash
+mvn test
+```
+
+Tests run **offline** — the `test` profile disables graph seeding and supplies a dummy Anthropic
+key, so no running Neo4j instance or real API key is needed. `GraphRAGServiceTest` unit-tests the
+RAG orchestration (context extraction → LLM answer → response assembly) and the graph-stats
+aggregation with mocked collaborators; `LlmRagGraphApplicationTests` verifies the Spring context
+assembles.

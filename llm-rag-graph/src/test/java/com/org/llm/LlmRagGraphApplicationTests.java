@@ -10,8 +10,8 @@ class LlmRagGraphApplicationTests {
 
     @Test
     void contextLoads() {
-        // Verifies the Spring context can be assembled.
-        // Requires a running Neo4j instance; run with -Dspring.profiles.active=test
-        // and set NEO4J_PASSWORD / ANTHROPIC_API_KEY in the environment.
+        // Verifies the Spring context can be assembled. The test profile disables
+        // graph seeding and supplies a dummy Anthropic key, so no running Neo4j
+        // instance or real API key is required.
     }
 }

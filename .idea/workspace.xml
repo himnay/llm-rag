@@ -4,18 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b97604ab-b7d5-4cdf-9e3e-355fa25a2397" name="Changes" comment="llm rag - initial draft">
-      <change afterPath="$PROJECT_DIR$/.idea/git_toolbox_prj.xml" afterDir="false" />
+    <list default="true" id="b97604ab-b7d5-4cdf-9e3e-355fa25a2397" name="Changes" comment="llm rag - best practises">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/llm-rag-graph/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-graph/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/config/ChatClientConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/config/ChatClientConfig.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/retrieval/RetrievalProperties.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/retrieval/RetrievalProperties.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/retrieval/RetrievalService.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/retrieval/RetrievalService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/retrieval/postprocess/CrossEncoderReranker.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/resources/application.yml" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/resources/application.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/retrieval/RetrievalServiceUnitTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/retrieval/RetrievalServiceUnitTest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/retrieval/postprocess/CrossEncoderRerankerTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-graph/src/main/java/com/org/llm/service/GraphDataSeeder.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-graph/src/main/java/com/org/llm/service/GraphDataSeeder.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-graph/src/test/java/com/org/llm/LlmRagGraphApplicationTests.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-graph/src/test/java/com/org/llm/LlmRagGraphApplicationTests.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/llm-rag-vectorless/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-vectorless/README.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -88,17 +81,17 @@
     <option name="showLibraryContents" value="true" />
     <option name="showVisibilityIcons" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "/Users/himansu/LLM/llm-rag",
-    "run.configurations.included.in.services": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/himansu/LLM/llm-rag&quot;,
+    &quot;run.configurations.included.in.services&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RunDashboard">
     <option name="configurationTypes">
       <set>
@@ -146,7 +139,8 @@
       <option name="presentableId" value="Default" />
       <updated>1781211631051</updated>
       <workItem from="1781211632074" duration="451000" />
-      <workItem from="1781212093714" duration="3575000" />
+      <workItem from="1781212093714" duration="4271000" />
+      <workItem from="1781243159411" duration="1334000" />
     </task>
     <task id="LOCAL-00001" summary="llm rag - initial draft">
       <option name="closed" value="true" />
@@ -164,11 +158,20 @@
       <option name="project" value="LOCAL" />
       <updated>1781212175345</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="llm rag - best practises">
+      <option name="closed" value="true" />
+      <created>1781236558036</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1781236558036</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="llm rag - initial draft" />
-    <option name="LAST_COMMIT_MESSAGE" value="llm rag - initial draft" />
+    <MESSAGE value="llm rag - best practises" />
+    <option name="LAST_COMMIT_MESSAGE" value="llm rag - best practises" />
   </component>
 </project>

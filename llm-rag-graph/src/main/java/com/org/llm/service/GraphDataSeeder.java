@@ -5,7 +5,7 @@ import com.org.llm.domain.*;
 import com.org.llm.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.neo4j.core.Neo4jClient;
@@ -28,6 +28,7 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "app.graph.seed-data", havingValue = "true", matchIfMissing = true)
 public class GraphDataSeeder {
 
     private final CompanyRepository     companyRepo;
@@ -38,14 +39,11 @@ public class GraphDataSeeder {
     private final TechnologyRepository  techRepo;
     private final Neo4jClient           neo4jClient;
 
-    @Value("${app.graph.seed-data:true}")
-    private boolean seedData;
-
     @EventListener(ApplicationReadyEvent.class)
     @Transactional
     public void seed() {
-        if (!seedData || companyRepo.count() > 0) {
-            log.info("Graph data already present or seeding disabled — skipping");
+        if (companyRepo.count() > 0) {
+            log.info("Graph data already present — skipping seeding");
             return;
         }
         log.info("Seeding Neo4j knowledge graph …");

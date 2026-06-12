@@ -250,3 +250,14 @@ Strategy interface — that would be speculative abstraction for a variation poi
 exist (PageIndex is toggled by `@ConditionalOnProperty`, not selected per request). See the
 [Design patterns section](../llm-rag-pipeline/README.md#-design-patterns-gof) in
 `llm-rag-pipeline` for the GoF patterns used across the llm-rag modules.
+
+## 🏗️ Build & test
+
+```bash
+mvn test
+```
+
+Tests run **offline** with no API keys: `BM25RetrieverTest` covers the ranking behaviour
+(keyword-matching chunks ranked first, stop-word/no-match queries return empty), and
+`LlmVectorlessRagApplicationTests` verifies the Spring context assembles with a dummy Anthropic
+key from the `test` profile.

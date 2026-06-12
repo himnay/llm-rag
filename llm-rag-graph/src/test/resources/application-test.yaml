@@ -1,0 +1,5 @@
+app:
+  graph:
+    seed-data: false          # don't touch Neo4j during context-load tests
+  anthropic:
+    api-key: test-key-not-real
