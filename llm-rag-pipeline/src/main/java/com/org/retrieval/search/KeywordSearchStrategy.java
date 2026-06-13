@@ -1,12 +1,12 @@
 package com.org.retrieval.search;
 
 import com.org.common.Resilience;
+import com.org.config.OpenSearchProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.opensearch.core.SearchResponse;
 import org.opensearch.client.opensearch.core.search.Hit;
 import org.springframework.ai.document.Document;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -29,10 +29,9 @@ public class KeywordSearchStrategy implements SearchStrategy {
     private final OpenSearchClient client;
     private final String indexName;
 
-    public KeywordSearchStrategy(OpenSearchClient client,
-                                 @Value("${spring.ai.vectorstore.opensearch.index-name:nexacorp_index}") String indexName) {
+    public KeywordSearchStrategy(OpenSearchClient client, OpenSearchProperties openSearchProperties) {
         this.client = client;
-        this.indexName = indexName;
+        this.indexName = openSearchProperties.getIndexName();
     }
 
     @Override

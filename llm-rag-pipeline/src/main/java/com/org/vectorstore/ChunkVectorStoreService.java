@@ -7,7 +7,6 @@ import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.vectorstore.filter.Filter;
 import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -30,16 +29,14 @@ public class ChunkVectorStoreService {
 
     private final VectorStore vectorStore;
     private final ExecutorService writeExecutor;
+    private final VectorStoreWriteProperties props;
 
-    @Value("${app.vectorstore.write.batch-size:50}")
-    private int batchSize;
-
-    @Value("${app.vectorstore.write.concurrency:4}")
-    private int concurrency;
-
-    public ChunkVectorStoreService(VectorStore vectorStore, ExecutorService vectorStoreWriteExecutor) {
+    public ChunkVectorStoreService(VectorStore vectorStore,
+                                   ExecutorService vectorStoreWriteExecutor,
+                                   VectorStoreWriteProperties props) {
         this.vectorStore = vectorStore;
         this.writeExecutor = vectorStoreWriteExecutor;
+        this.props = props;
     }
 
     public void store(List<Chunk> chunks) {
@@ -54,12 +51,12 @@ public class ChunkVectorStoreService {
         }).collect(Collectors.toList());
 
         // Small input → single synchronous write.
-        if (documents.size() <= batchSize || concurrency <= 1) {
+        if (documents.size() <= props.getBatchSize() || props.getConcurrency() <= 1) {
             add(documents);
             return;
         }
 
-        List<List<Document>> batches = partition(documents, batchSize);
+        List<List<Document>> batches = partition(documents, props.getBatchSize());
         CompletableFuture<?>[] futures = batches.stream()
                 .map(batch -> CompletableFuture.runAsync(() -> add(batch), writeExecutor))
                 .toArray(CompletableFuture[]::new);

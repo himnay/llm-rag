@@ -3,16 +3,23 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <parent>
+        <groupId>com.org.llm</groupId>
+        <artifactId>super-pom</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
     <groupId>com.org.llm</groupId>
     <artifactId>llm-rag</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>llm-rag</name>
-    <description>Aggregator for the LLM RAG projects</description>
+    <description>Aggregator / parent for the LLM RAG multi-module project</description>
 
     <modules>
         <module>llm-rag-pipeline</module>
         <module>llm-rag-vectorless</module>
         <module>llm-rag-graph</module>
     </modules>
+
 </project>

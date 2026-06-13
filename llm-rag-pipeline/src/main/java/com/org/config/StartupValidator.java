@@ -3,7 +3,6 @@ package com.org.config;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.embedding.EmbeddingModel;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
@@ -22,21 +21,19 @@ import org.springframework.stereotype.Component;
 public class StartupValidator implements ApplicationRunner {
 
     private final EmbeddingModel embeddingModel;
-
-    @Value("${spring.ai.openai.api-key:}")
-    private String openAiApiKey;
-
-    @Value("${spring.ai.vectorstore.opensearch.dimensions:0}")
-    private int configuredDimensions;
+    private final OpenAiProperties openAiProperties;
+    private final OpenSearchProperties openSearchProperties;
 
     @Override
     public void run(ApplicationArguments args) {
+        String openAiApiKey = openAiProperties.getApiKey();
         if (openAiApiKey == null || openAiApiKey.isBlank() || openAiApiKey.startsWith("sk-placeholder")) {
             log.warn("CONFIG | OPENAI_API_KEY is unset or a placeholder — embeddings will fail at runtime. "
                     + "Set a real key (no default is provided in the prod profile).");
         }
         try {
             int actual = embeddingModel.dimensions();
+            int configuredDimensions = openSearchProperties.getDimensions();
             if (configuredDimensions > 0 && actual != configuredDimensions) {
                 throw new IllegalStateException("Embedding dimension mismatch: model reports " + actual
                         + " but spring.ai.vectorstore.opensearch.dimensions=" + configuredDimensions

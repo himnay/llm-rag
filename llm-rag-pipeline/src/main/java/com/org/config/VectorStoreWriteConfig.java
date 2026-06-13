@@ -1,6 +1,6 @@
 package com.org.config;
 
-import org.springframework.beans.factory.annotation.Value;
+import com.org.vectorstore.VectorStoreWriteProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -20,15 +20,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 class VectorStoreWriteConfig {
 
     @Bean(destroyMethod = "shutdown")
-    ExecutorService vectorStoreWriteExecutor(
-            @Value("${app.vectorstore.write.concurrency:4}") int concurrency,
-            @Value("${app.vectorstore.write.queue-capacity:64}") int queueCapacity) {
-        int threads = Math.max(1, concurrency);
+    ExecutorService vectorStoreWriteExecutor(VectorStoreWriteProperties props) {
+        int threads = Math.max(1, props.getConcurrency());
         AtomicInteger counter = new AtomicInteger();
         ThreadPoolExecutor executor = new ThreadPoolExecutor(
                 threads, threads,
                 60L, TimeUnit.SECONDS,
-                new ArrayBlockingQueue<>(Math.max(threads, queueCapacity)),
+                new ArrayBlockingQueue<>(Math.max(threads, props.getQueueCapacity())),
                 r -> {
                     Thread t = new Thread(r, "vstore-write-" + counter.incrementAndGet());
                     t.setDaemon(true);

@@ -4,8 +4,7 @@ import com.org.chunking.model.Chunk;
 import com.org.ingestion.model.IngestedDocument;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.Resource;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StreamUtils;
 
@@ -28,11 +27,11 @@ public class LlmChunkingStrategy extends AbstractChunkingStrategy {
     private final ChatClient chatClient;
     private final String systemPrompt;
 
-    public LlmChunkingStrategy(ChatClient chatClient,
-                               @Value("classpath:prompts/chunking-system.st") Resource promptResource) {
+    public LlmChunkingStrategy(ChatClient chatClient) {
         this.chatClient = chatClient;
         try {
-            this.systemPrompt = StreamUtils.copyToString(promptResource.getInputStream(), StandardCharsets.UTF_8);
+            this.systemPrompt = StreamUtils.copyToString(
+                    new ClassPathResource("prompts/chunking-system.st").getInputStream(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new UncheckedIOException("Could not load chunking-system.st", e);
         }
