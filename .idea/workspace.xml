@@ -4,22 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b97604ab-b7d5-4cdf-9e3e-355fa25a2397" name="Changes" comment="llm rag - design patterns">
-      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/encodings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
+    <list default="true" id="b97604ab-b7d5-4cdf-9e3e-355fa25a2397" name="Changes" comment="tidy code, parent pom, update readme doc">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/llm-rag-graph/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-graph/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm-rag-graph/src/main/resources/application.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-graph/src/main/resources/application.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/chunking/strategy/LlmChunkingStrategy.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/chunking/strategy/LlmChunkingStrategy.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/config/StartupValidator.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/config/StartupValidator.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/config/VectorStoreWriteConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/config/VectorStoreWriteConfig.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/retrieval/search/KeywordSearchStrategy.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/retrieval/search/KeywordSearchStrategy.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/vectorstore/ChunkVectorStoreService.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/vectorstore/ChunkVectorStoreService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/resources/application.yml" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/resources/application.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm-rag-vectorless/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-vectorless/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-graph/src/test/java/com/org/llm/LlmRagGraphApplicationTests.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-graph/src/test/java/com/org/llm/LlmRagGraphApplicationTests.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/META-INF/build-info.properties" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/META-INF/build-info.properties" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -94,6 +83,7 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "JUnit.java in llm-rag-pipeline.executor": "Run",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
@@ -111,7 +101,15 @@
       </set>
     </option>
   </component>
-  <component name="RunManager" selected="Spring Boot.LlmRagGraphApplication">
+  <component name="RunManager" selected="JUnit.java in llm-rag-pipeline">
+    <configuration name="java in llm-rag-pipeline" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="llm-rag-pipeline" />
+      <option name="TEST_OBJECT" value="directory" />
+      <dir value="$PROJECT_DIR$/llm-rag-pipeline/src/test/java" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="LlmRagGraphApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
       <module name="llm-rag-graph" />
       <option name="SPRING_BOOT_MAIN_CLASS" value="com.org.llm.LlmRagGraphApplication" />
@@ -135,6 +133,11 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="JUnit.java in llm-rag-pipeline" />
+      </list>
+    </recent_temporary>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
@@ -153,7 +156,7 @@
       <workItem from="1781211632074" duration="451000" />
       <workItem from="1781212093714" duration="4271000" />
       <workItem from="1781243159411" duration="1380000" />
-      <workItem from="1781340324243" duration="4077000" />
+      <workItem from="1781340324243" duration="5774000" />
     </task>
     <task id="LOCAL-00001" summary="llm rag - initial draft">
       <option name="closed" value="true" />
@@ -187,13 +190,22 @@
       <option name="project" value="LOCAL" />
       <updated>1781265491110</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="tidy code, parent pom, update readme doc">
+      <option name="closed" value="true" />
+      <created>1781345689962</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1781345689962</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="llm rag - initial draft" />
     <MESSAGE value="llm rag - best practises" />
     <MESSAGE value="llm rag - design patterns" />
-    <option name="LAST_COMMIT_MESSAGE" value="llm rag - design patterns" />
+    <MESSAGE value="tidy code, parent pom, update readme doc" />
+    <option name="LAST_COMMIT_MESSAGE" value="tidy code, parent pom, update readme doc" />
   </component>
 </project>

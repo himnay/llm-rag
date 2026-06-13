@@ -2,16 +2,17 @@ package com.org.llm;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 @SpringBootTest
 @ActiveProfiles("test")
+@Import(TestcontainersConfiguration.class)
+@Testcontainers(disabledWithoutDocker = true)
 class LlmRagGraphApplicationTests {
 
     @Test
     void contextLoads() {
-        // Verifies the Spring context can be assembled. The test profile disables
-        // graph seeding and supplies a dummy Anthropic key, so no running Neo4j
-        // instance or real API key is required.
     }
 }
