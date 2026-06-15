@@ -4,6 +4,7 @@ import com.org.retrieval.model.RetrievalResult;
 import com.org.retrieval.postprocess.BusinessRuleFilter;
 import com.org.retrieval.postprocess.ScoreAwareRanker;
 import com.org.retrieval.search.VectorSearchStrategy;
+import com.org.retrieval.transform.QueryTransformationService;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
@@ -30,7 +31,8 @@ class RetrievalServiceUnitTest {
         RetrievalProperties properties = new RetrievalProperties();
         return new RetrievalService(properties,
                 List.of(new VectorSearchStrategy(vectorStore, properties)),
-                List.of(new BusinessRuleFilter(), new ScoreAwareRanker()));
+                List.of(new BusinessRuleFilter(), new ScoreAwareRanker()),
+                new QueryTransformationService(List.of()));
     }
 
     @Test

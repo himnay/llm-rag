@@ -65,6 +65,34 @@ class RetrievalMetricsTest {
         assertThat(RetrievalMetrics.mean(List.of())).isZero();
     }
 
+    @Test
+    void hitRate() {
+        assertThat(RetrievalMetrics.hitRate(REL, 1)).isCloseTo(1.0, within()); // first result is relevant
+        assertThat(RetrievalMetrics.hitRate(List.of(false, false, true), 2)).isZero(); // relevant only at rank 3
+        assertThat(RetrievalMetrics.hitRate(List.of(false, false, true), 3)).isCloseTo(1.0, within());
+        assertThat(RetrievalMetrics.hitRate(List.of(), 5)).isZero();
+        assertThat(RetrievalMetrics.hitRate(List.of(false, false), 5)).isZero();
+    }
+
+    @Test
+    void nDcg() {
+        // Single relevant hit at rank 1: DCG = 1/log2(2) = 1, IDCG = 1, nDCG = 1.0
+        assertThat(RetrievalMetrics.nDcg(List.of(true, false, false), 3)).isCloseTo(1.0, within());
+
+        // Relevant at rank 1 and 3 (0-based 0 and 2), k=3
+        // DCG = 1/log2(2) + 1/log2(4) = 1 + 0.5 = 1.5; IDCG = 1/log2(2) + 1/log2(3)
+        double idcg = 1.0 + 1.0 / (Math.log(3) / Math.log(2));
+        assertThat(RetrievalMetrics.nDcg(REL, 3)).isCloseTo(1.5 / idcg, within());
+
+        // No relevant results → 0
+        assertThat(RetrievalMetrics.nDcg(List.of(false, false, false), 3)).isZero();
+
+        // Result further down ranks lower than result at top
+        double topRank = RetrievalMetrics.nDcg(List.of(true, false), 2);
+        double lowerRank = RetrievalMetrics.nDcg(List.of(false, true), 2);
+        assertThat(topRank).isGreaterThan(lowerRank);
+    }
+
     private static org.assertj.core.data.Offset<Double> within() {
         return org.assertj.core.data.Offset.offset(EPS);
     }

@@ -157,11 +157,16 @@ app:
       breaker: # skip reranking while the vendor/model keeps failing
         failure-threshold: 3
         cooldown: 30s
+    query-transform:
+      mode: ${QUERY_TRANSFORM_MODE:NONE}   # NONE | REWRITE | MULTI_QUERY | HYDE | STEP_BACK
+      multi-query-count: 3                 # number of variant queries for MULTI_QUERY mode
   vectorstore:
     write:
       batch-size: 50
       concurrency: 4
       queue-capacity: 64           # bounded backlog for the shared write executor (back-pressure)
+      embedding-model-id: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}  # stamped into every chunk's metadata
+      embedding-dimension: 1536    # must match the model above; changing model requires full re-ingestion
   # ── API-key security ──────────────────────────────────────────────────────────
   security:
     auth-enabled: ${API_AUTH_ENABLED:false}   # dev default: open. Set true in prod.
@@ -171,3 +176,26 @@ app:
       enabled: ${RATE_LIMIT_ENABLED:true}      # token bucket per API key (or client IP) on /api/**
       capacity: 120                            # burst size
       refill-per-minute: 120                   # sustained requests/min
+    pii:
+      enabled: ${PII_REDACTION_ENABLED:false}  # redact PII (email, phone, SSN, CC, IP) before embedding
+      replacement: "[REDACTED]"
+  # ── Generation layer (opt-in — disabled by default) ───────────────────────────
+  generation:
+    enabled: ${GENERATION_ENABLED:false}  # expose POST /api/v1/generate
+    mode: ${GENERATION_MODE:manual}       # manual (Section 7 pattern) | advisor (Section 12 pattern)
+    top-k: 5
+    include-citations: true
+    evaluate-faithfulness: ${EVALUATE_FAITHFULNESS:false}  # adds one extra LLM call per generation
+    advisor:
+      similarity-threshold: 0.7
+  # ── Caching ───────────────────────────────────────────────────────────────────
+  cache:
+    embedding:
+      enabled: ${EMBEDDING_CACHE_ENABLED:true}   # cache text→vector to avoid re-embedding identical sentences
+      max-size: 5000
+      ttl: 24h
+    semantic:
+      enabled: ${SEMANTIC_CACHE_ENABLED:false}   # cache query→answer for FAQ-style traffic
+      max-size: 500
+      ttl: 30m
+      similarity-threshold: 0.95

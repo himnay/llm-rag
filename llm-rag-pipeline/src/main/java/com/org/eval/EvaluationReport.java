@@ -5,13 +5,15 @@ import java.util.List;
 /**
  * Aggregate retrieval-quality report produced by {@link RetrievalEvaluator}.
  *
- * @param k               cut-off used for precision@k / recall@k
- * @param queries         number of evaluated queries
- * @param mrr             mean reciprocal rank
+ * @param k                    cut-off used for precision@k / recall@k / hit-rate@k / nDCG@k
+ * @param queries              number of evaluated queries
+ * @param mrr                  mean reciprocal rank
  * @param meanContextPrecision mean RAGAS-style context precision (a.k.a. MAP)
  * @param meanPrecisionAtK     mean precision@k
  * @param meanRecallAtK        mean (source-level) recall@k
- * @param perQuery        per-query breakdown
+ * @param meanHitRate          mean hit rate@k — fraction of queries where at least one relevant chunk was retrieved
+ * @param meanNdcg             mean nDCG@k
+ * @param perQuery             per-query breakdown
  */
 public record EvaluationReport(
         int k,
@@ -20,6 +22,8 @@ public record EvaluationReport(
         double meanContextPrecision,
         double meanPrecisionAtK,
         double meanRecallAtK,
+        double meanHitRate,
+        double meanNdcg,
         List<QueryResult> perQuery) {
 
     /** Per-query metrics. */
@@ -31,6 +35,8 @@ public record EvaluationReport(
             double precisionAtK,
             double recallAtK,
             double reciprocalRank,
-            double contextPrecision) {
+            double contextPrecision,
+            double hitRate,
+            double ndcg) {
     }
 }

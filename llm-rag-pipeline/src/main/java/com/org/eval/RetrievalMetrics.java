@@ -63,6 +63,37 @@ public final class RetrievalMetrics {
         return sum / totalRelevant;
     }
 
+    /** Hit Rate@k — 1.0 if at least one relevant chunk appears in the top-k results, else 0.0. */
+    public static double hitRate(List<Boolean> rel, int k) {
+        int n = Math.min(k, rel.size());
+        for (int i = 0; i < n; i++) {
+            if (rel.get(i)) return 1.0;
+        }
+        return 0.0;
+    }
+
+    /**
+     * nDCG@k (Normalized Discounted Cumulative Gain) with binary relevance.
+     * DCG = Σ rel(i) / log2(i+2); normalized by the ideal DCG (relevant docs placed first).
+     */
+    public static double nDcg(List<Boolean> rel, int k) {
+        int n = Math.min(k, rel.size());
+        long totalRelevant = rel.stream().filter(Boolean::booleanValue).count();
+        if (totalRelevant == 0) return 0.0;
+
+        double dcg = 0.0;
+        for (int i = 0; i < n; i++) {
+            if (rel.get(i)) dcg += 1.0 / (Math.log(i + 2) / Math.log(2));
+        }
+
+        double idcg = 0.0;
+        long idealHits = Math.min(totalRelevant, k);
+        for (long i = 0; i < idealHits; i++) {
+            idcg += 1.0 / (Math.log(i + 2) / Math.log(2));
+        }
+        return idcg == 0.0 ? 0.0 : dcg / idcg;
+    }
+
     /** Mean of a list of per-query metric values; 0 for an empty list. */
     public static double mean(List<Double> values) {
         if (values.isEmpty()) {

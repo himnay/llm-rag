@@ -53,6 +53,8 @@ public class RetrievalEvaluator {
         Gauge.builder("rag.eval.context_precision", gauges, g -> g.contextPrecision).register(meterRegistry);
         Gauge.builder("rag.eval.precision_at_k", gauges, g -> g.precisionAtK).register(meterRegistry);
         Gauge.builder("rag.eval.recall_at_k", gauges, g -> g.recallAtK).register(meterRegistry);
+        Gauge.builder("rag.eval.hit_rate", gauges, g -> g.hitRate).register(meterRegistry);
+        Gauge.builder("rag.eval.ndcg", gauges, g -> g.ndcg).register(meterRegistry);
     }
 
     @PostConstruct
@@ -85,6 +87,8 @@ public class RetrievalEvaluator {
         List<Double> cps = new ArrayList<>();
         List<Double> ps = new ArrayList<>();
         List<Double> rs = new ArrayList<>();
+        List<Double> hrs = new ArrayList<>();
+        List<Double> ndcgs = new ArrayList<>();
 
         for (QueryRelevance gold : goldSet) {
             List<Chunk> chunks = retrievalService.retrieve(gold.query()).chunks();
@@ -107,17 +111,21 @@ public class RetrievalEvaluator {
                     ? 0.0 : (double) relevantSourcesFound.size() / expectedSources;
             double rr = RetrievalMetrics.reciprocalRank(rel);
             double cp = RetrievalMetrics.contextPrecision(rel, totalRelevantChunks);
+            double hr = RetrievalMetrics.hitRate(rel, k);
+            double ndcg = RetrievalMetrics.nDcg(rel, k);
 
             rrs.add(rr);
             cps.add(cp);
             ps.add(precision);
             rs.add(recall);
+            hrs.add(hr);
+            ndcgs.add(ndcg);
 
             perQuery.add(new EvaluationReport.QueryResult(
                     gold.query(), chunks.size(), relevantSourcesFound.size(), expectedSources,
-                    precision, recall, rr, cp));
-            log.info("EVAL | q='{}' | retrieved={} | P@{}={} | R@{}={} | RR={} | ctxPrec={}",
-                    gold.query(), chunks.size(), k, precision, k, recall, rr, cp);
+                    precision, recall, rr, cp, hr, ndcg));
+            log.info("EVAL | q='{}' | retrieved={} | P@{}={} | R@{}={} | RR={} | ctxPrec={} | HR@{}={} | nDCG@{}={}",
+                    gold.query(), chunks.size(), k, precision, k, recall, rr, cp, k, hr, k, ndcg);
         }
 
         EvaluationReport report = new EvaluationReport(
@@ -126,12 +134,15 @@ public class RetrievalEvaluator {
                 RetrievalMetrics.mean(cps),
                 RetrievalMetrics.mean(ps),
                 RetrievalMetrics.mean(rs),
+                RetrievalMetrics.mean(hrs),
+                RetrievalMetrics.mean(ndcgs),
                 perQuery);
 
         gauges.update(report);
-        log.info("EVAL | aggregate | queries={} | MRR={} | ctxPrec={} | P@{}={} | R@{}={}",
+        log.info("EVAL | aggregate | queries={} | MRR={} | ctxPrec={} | P@{}={} | R@{}={} | HR@{}={} | nDCG@{}={}",
                 report.queries(), report.mrr(), report.meanContextPrecision(),
-                k, report.meanPrecisionAtK(), k, report.meanRecallAtK());
+                k, report.meanPrecisionAtK(), k, report.meanRecallAtK(),
+                k, report.meanHitRate(), k, report.meanNdcg());
         return report;
     }
 
@@ -155,12 +166,16 @@ public class RetrievalEvaluator {
         volatile double contextPrecision;
         volatile double precisionAtK;
         volatile double recallAtK;
+        volatile double hitRate;
+        volatile double ndcg;
 
         void update(EvaluationReport r) {
             this.mrr = r.mrr();
             this.contextPrecision = r.meanContextPrecision();
             this.precisionAtK = r.meanPrecisionAtK();
             this.recallAtK = r.meanRecallAtK();
+            this.hitRate = r.meanHitRate();
+            this.ndcg = r.meanNdcg();
         }
     }
 }

@@ -1,10 +1,10 @@
 package com.org.chunking.strategy;
 
+import com.org.cache.EmbeddingCacheService;
 import com.org.chunking.model.Chunk;
 import com.org.ingestion.model.IngestedDocument;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -14,6 +14,7 @@ import java.util.List;
  * Embedding-based semantic chunking: splits text into sentences, embeds them, and starts a new
  * chunk whenever the cosine similarity between consecutive sentences drops below a threshold
  * (or the running chunk exceeds a character cap). Keeps semantically-coherent passages together.
+ * Uses {@link EmbeddingCacheService} to avoid re-embedding identical sentences across runs.
  */
 @Slf4j
 @Component
@@ -21,7 +22,7 @@ import java.util.List;
 public class SemanticChunkingStrategy extends AbstractChunkingStrategy {
 
     private final ChunkingProperties properties;
-    private final EmbeddingModel embeddingModel;
+    private final EmbeddingCacheService embeddingCacheService;
 
     @Override
     public String name() {
@@ -35,7 +36,7 @@ public class SemanticChunkingStrategy extends AbstractChunkingStrategy {
             return toChunks(document, sentences);
         }
 
-        List<float[]> embeddings = embeddingModel.embed(sentences);
+        List<float[]> embeddings = embeddingCacheService.embed(sentences);
         double threshold = properties.getSemantic().getThreshold();
         int maxChars = properties.getSemantic().getMaxChars();
 

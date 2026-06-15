@@ -6,6 +6,8 @@ import com.org.retrieval.model.RetrievalResult;
 import com.org.retrieval.postprocess.RetrievalPostProcessor;
 import com.org.retrieval.search.SearchMode;
 import com.org.retrieval.search.SearchStrategy;
+import com.org.retrieval.transform.QueryTransformMode;
+import com.org.retrieval.transform.QueryTransformationService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
 import org.springframework.stereotype.Service;
@@ -21,11 +23,14 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * Retrieval API — the "R" of this RAG service. Over-fetches candidates via the configured
- * {@link SearchStrategy} (vector kNN, keyword BM25, or hybrid RRF — {@code app.retrieval.search.mode}),
- * runs them through the ordered {@link RetrievalPostProcessor} chain (business rules → length →
- * dedup → rerank → score-aware ranking → MMR), trims to {@code topK}, and attaches
- * {@link Citation}s for provenance.
+ * Retrieval API — the "R" of this RAG service. Optionally transforms the query (rewrite, HyDE,
+ * multi-query, step-back) via {@link QueryTransformationService}, over-fetches candidates via the
+ * configured {@link SearchStrategy} (vector kNN, keyword BM25, or hybrid RRF), runs them through
+ * the ordered {@link RetrievalPostProcessor} chain (business rules → length → dedup → rerank →
+ * score-aware ranking → MMR), trims to {@code topK}, and attaches {@link Citation}s for provenance.
+ *
+ * <p>For multi-query mode, each variant query produces its own candidate set; the sets are merged
+ * and deduplicated by document ID before post-processing.</p>
  */
 @Slf4j
 @Service
@@ -34,14 +39,18 @@ public class RetrievalService {
     private final RetrievalProperties properties;
     private final Map<SearchMode, SearchStrategy> searchStrategies = new EnumMap<>(SearchMode.class);
     private final List<RetrievalPostProcessor> postProcessors;
+    private final QueryTransformationService queryTransformationService;
 
-    public RetrievalService(RetrievalProperties properties, List<SearchStrategy> searchStrategies,
-                            List<RetrievalPostProcessor> postProcessors) {
+    public RetrievalService(RetrievalProperties properties,
+                            List<SearchStrategy> searchStrategies,
+                            List<RetrievalPostProcessor> postProcessors,
+                            QueryTransformationService queryTransformationService) {
         this.properties = properties;
         searchStrategies.forEach(s -> this.searchStrategies.put(s.mode(), s));
         this.postProcessors = postProcessors.stream()
                 .sorted(Comparator.comparingInt(RetrievalPostProcessor::getOrder))
                 .toList();
+        this.queryTransformationService = queryTransformationService;
     }
 
     /** Retrieve using the configured default {@code topK}. */
@@ -54,14 +63,21 @@ public class RetrievalService {
         int k = topK > 0 ? topK : properties.getDefaultTopK();
         int fetch = k * Math.max(1, properties.getOverFetchFactor());
         SearchMode mode = properties.getSearch().getMode();
-        log.info("Retrieval requested | query='{}' | topK={} | fetch={} | mode={}", query, k, fetch, mode);
+        QueryTransformMode transformMode = properties.getQueryTransform().getMode();
+
+        log.info("Retrieval requested | query='{}' | topK={} | fetch={} | search={} | transform={}",
+                query, k, fetch, mode, transformMode);
+
+        List<String> queries = queryTransformationService.transform(query, transformMode);
+        log.info("Query transform produced {} query/queries", queries.size());
 
         SearchStrategy strategy = searchStrategies.get(mode);
         if (strategy == null) {
             throw new IllegalStateException("No search strategy registered for mode " + mode);
         }
-        List<Document> documents = strategy.search(query, fetch);
-        log.info("{} search returned {} candidate document(s)", mode, documents.size());
+
+        List<Document> documents = searchAndMerge(strategy, queries, fetch);
+        log.info("{} search returned {} candidate document(s) (after merge)", mode, documents.size());
 
         List<Chunk> chunks = documents.stream().map(this::toChunk).collect(Collectors.toList());
         for (RetrievalPostProcessor processor : postProcessors) {
@@ -71,6 +87,22 @@ public class RetrievalService {
             chunks = new ArrayList<>(chunks.subList(0, k));
         }
         return new RetrievalResult(chunks, toCitations(chunks));
+    }
+
+    /** Search for each query variant and merge results, deduplicating by document ID. */
+    private List<Document> searchAndMerge(SearchStrategy strategy, List<String> queries, int fetch) {
+        if (queries.size() == 1) {
+            return strategy.search(queries.get(0), fetch);
+        }
+        LinkedHashMap<String, Document> seen = new LinkedHashMap<>();
+        for (String q : queries) {
+            for (Document doc : strategy.search(q, fetch)) {
+                String key = doc.getId() != null && !doc.getId().isBlank()
+                        ? doc.getId() : doc.getText();
+                seen.putIfAbsent(key, doc);
+            }
+        }
+        return new ArrayList<>(seen.values());
     }
 
     private Chunk toChunk(Document document) {

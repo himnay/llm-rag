@@ -26,6 +26,7 @@ public class RetrievalProperties {
     private final Dedup dedup = new Dedup();
     private final Mmr mmr = new Mmr();
     private final Rerank rerank = new Rerank();
+    private final QueryTransform queryTransform = new QueryTransform();
 
     /** First-stage candidate search ({@code com.org.retrieval.search}). */
     public static class Search {
@@ -136,6 +137,21 @@ public class RetrievalProperties {
         public void setTopN(int topN) { this.topN = topN; }
     }
 
+    /** Pre-retrieval query transformation. */
+    public static class QueryTransform {
+        /** Transformation to apply before retrieval. NONE = pass-through (no LLM call). */
+        private com.org.retrieval.transform.QueryTransformMode mode =
+                com.org.retrieval.transform.QueryTransformMode.NONE;
+
+        /** Number of variant queries for MULTI_QUERY mode. */
+        private int multiQueryCount = 3;
+
+        public com.org.retrieval.transform.QueryTransformMode getMode() { return mode; }
+        public void setMode(com.org.retrieval.transform.QueryTransformMode mode) { this.mode = mode; }
+        public int getMultiQueryCount() { return multiQueryCount; }
+        public void setMultiQueryCount(int multiQueryCount) { this.multiQueryCount = multiQueryCount; }
+    }
+
     public int getDefaultTopK() { return defaultTopK; }
     public void setDefaultTopK(int defaultTopK) { this.defaultTopK = defaultTopK; }
     public int getOverFetchFactor() { return overFetchFactor; }
@@ -147,4 +163,5 @@ public class RetrievalProperties {
     public Dedup getDedup() { return dedup; }
     public Mmr getMmr() { return mmr; }
     public Rerank getRerank() { return rerank; }
+    public QueryTransform getQueryTransform() { return queryTransform; }
 }

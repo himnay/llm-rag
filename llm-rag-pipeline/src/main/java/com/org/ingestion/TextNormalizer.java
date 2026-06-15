@@ -1,6 +1,8 @@
 package com.org.ingestion;
 
 import com.org.ingestion.model.IngestedDocument;
+import com.org.security.pii.PiiRedactor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.text.Normalizer;
@@ -13,9 +15,10 @@ import java.util.regex.Pattern;
  *
  * <p>Steps: Unicode NFKC normalization → unify line endings → drop control chars (keep tab/newline)
  * → normalize exotic spaces → collapse intra-line whitespace → trim trailing line spaces →
- * collapse 3+ blank lines to one → trim. Case is preserved (matters for retrieval).</p>
+ * collapse 3+ blank lines to one → PII redaction → trim. Case is preserved (matters for retrieval).</p>
  */
 @Component
+@RequiredArgsConstructor
 public class TextNormalizer {
 
     private static final Pattern CONTROL_CHARS =
@@ -25,6 +28,8 @@ public class TextNormalizer {
     private static final Pattern INTRA_LINE_WS = Pattern.compile("[ \\t]{2,}");
     private static final Pattern TRAILING_WS = Pattern.compile("[ \\t]+\\n");
     private static final Pattern MANY_BLANK_LINES = Pattern.compile("\\n{3,}");
+
+    private final PiiRedactor piiRedactor;
 
     public String normalize(String text) {
         if (text == null || text.isBlank()) {
@@ -37,6 +42,7 @@ public class TextNormalizer {
         out = INTRA_LINE_WS.matcher(out).replaceAll(" ");
         out = TRAILING_WS.matcher(out).replaceAll("\n");
         out = MANY_BLANK_LINES.matcher(out).replaceAll("\n\n");
+        out = piiRedactor.redact(out);
         return out.strip();
     }
 

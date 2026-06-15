@@ -43,10 +43,14 @@ public class ChunkVectorStoreService {
         if (chunks.isEmpty()) {
             return;
         }
+        String modelId = props.getEmbeddingModelId();
+        int dimension = props.getEmbeddingDimension();
         List<Document> documents = chunks.stream().map(chunk -> {
             Map<String, Object> metadata = new HashMap<>(chunk.metadata());
             metadata.put("source", chunk.source());
             metadata.put("chunkIndex", chunk.chunkIndex());
+            metadata.put("embeddingModel", modelId);
+            metadata.put("embeddingDimension", dimension);
             return new Document(chunk.content(), metadata);
         }).collect(Collectors.toList());
 

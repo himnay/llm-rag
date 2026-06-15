@@ -4,11 +4,25 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b97604ab-b7d5-4cdf-9e3e-355fa25a2397" name="Changes" comment="tidy code, parent pom, update readme doc">
+    <list default="true" id="b97604ab-b7d5-4cdf-9e3e-355fa25a2397" name="Changes" comment="test containers">
+      <change beforePath="$PROJECT_DIR$/.idea/jarRepositories.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/jarRepositories.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm-rag-graph/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-graph/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm-rag-graph/src/test/java/com/org/llm/LlmRagGraphApplicationTests.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-graph/src/test/java/com/org/llm/LlmRagGraphApplicationTests.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/META-INF/build-info.properties" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/META-INF/build-info.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/chunking/strategy/SemanticChunkingStrategy.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/chunking/strategy/SemanticChunkingStrategy.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/controller/EvaluationController.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/controller/EvaluationController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/eval/EvaluationReport.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/eval/EvaluationReport.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/eval/RetrievalEvaluator.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/eval/RetrievalEvaluator.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/eval/RetrievalMetrics.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/eval/RetrievalMetrics.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/ingestion/TextNormalizer.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/ingestion/TextNormalizer.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/retrieval/RetrievalProperties.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/retrieval/RetrievalProperties.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/retrieval/RetrievalService.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/retrieval/RetrievalService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/vectorstore/ChunkVectorStoreService.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/vectorstore/ChunkVectorStoreService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/vectorstore/VectorStoreWriteProperties.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/vectorstore/VectorStoreWriteProperties.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/resources/application.yml" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/resources/application.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/eval/RetrievalMetricsTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/eval/RetrievalMetricsTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/ingestion/TextNormalizerTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/ingestion/TextNormalizerTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/retrieval/RetrievalServiceUnitTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/retrieval/RetrievalServiceUnitTest.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -81,19 +95,19 @@
     <option name="showLibraryContents" value="true" />
     <option name="showVisibilityIcons" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "JUnit.java in llm-rag-pipeline.executor": "Run",
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "/Users/himansu/REPOS/LLM/llm-rag",
-    "run.configurations.included.in.services": "true",
-    "settings.editor.selected.configurable": "terminal"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;JUnit.java in llm-rag-pipeline.executor&quot;: &quot;Run&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/himansu/REPOS/LLM/llm-rag&quot;,
+    &quot;run.configurations.included.in.services&quot;: &quot;true&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;terminal&quot;
   }
-}]]></component>
+}</component>
   <component name="RunDashboard">
     <option name="configurationTypes">
       <set>
@@ -156,7 +170,9 @@
       <workItem from="1781211632074" duration="451000" />
       <workItem from="1781212093714" duration="4271000" />
       <workItem from="1781243159411" duration="1380000" />
-      <workItem from="1781340324243" duration="5774000" />
+      <workItem from="1781340324243" duration="5899000" />
+      <workItem from="1781554528317" duration="3747000" />
+      <workItem from="1781559154653" duration="3057000" />
     </task>
     <task id="LOCAL-00001" summary="llm rag - initial draft">
       <option name="closed" value="true" />
@@ -198,7 +214,15 @@
       <option name="project" value="LOCAL" />
       <updated>1781345689962</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="test containers">
+      <option name="closed" value="true" />
+      <created>1781348325911</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1781348325911</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -206,6 +230,7 @@
     <MESSAGE value="llm rag - best practises" />
     <MESSAGE value="llm rag - design patterns" />
     <MESSAGE value="tidy code, parent pom, update readme doc" />
-    <option name="LAST_COMMIT_MESSAGE" value="tidy code, parent pom, update readme doc" />
+    <MESSAGE value="test containers" />
+    <option name="LAST_COMMIT_MESSAGE" value="test containers" />
   </component>
 </project>
