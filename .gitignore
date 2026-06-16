@@ -1,0 +1,7 @@
+.idea
+.mvn
+target
+**/.mvn
+**/.claude
+**/.github
+**/target
