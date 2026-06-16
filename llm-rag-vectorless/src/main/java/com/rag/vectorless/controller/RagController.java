@@ -3,13 +3,15 @@ package com.rag.vectorless.controller;
 import com.rag.vectorless.dto.ChatRequest;
 import com.rag.vectorless.dto.ChatResponse;
 import com.rag.vectorless.dto.Chunk;
-import com.rag.vectorless.rag.*;
+import com.rag.vectorless.rag.BM25Retriever;
+import com.rag.vectorless.rag.DocumentLoader;
+import com.rag.vectorless.rag.PageIndexClient;
+import com.rag.vectorless.rag.PageIndexDocumentManager;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.document.Document;
 import org.springframework.web.bind.annotation.*;
-
-import jakarta.validation.Valid;
 
 import java.util.ArrayList;
 import java.util.List;

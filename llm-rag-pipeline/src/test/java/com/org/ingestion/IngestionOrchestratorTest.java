@@ -1,7 +1,7 @@
 package com.org.ingestion;
-import com.org.support.IntegrationTest;
 
 import com.org.ingestion.model.IngestedDocument;
+import com.org.support.IntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 

@@ -1,7 +1,10 @@
 package com.org.llm.service;
 
 import com.anthropic.client.AnthropicClient;
-import com.anthropic.models.messages.*;
+import com.anthropic.models.messages.ContentBlock;
+import com.anthropic.models.messages.Message;
+import com.anthropic.models.messages.MessageCreateParams;
+import com.anthropic.models.messages.ThinkingConfigAdaptive;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

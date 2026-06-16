@@ -1,10 +1,10 @@
 package com.org.vectorstore;
-import com.org.support.IntegrationTest;
 
 import com.org.chunking.ChunkingOrchestrator;
 import com.org.chunking.model.Chunk;
 import com.org.ingestion.IngestionOrchestrator;
 import com.org.ingestion.model.IngestedDocument;
+import com.org.support.IntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 

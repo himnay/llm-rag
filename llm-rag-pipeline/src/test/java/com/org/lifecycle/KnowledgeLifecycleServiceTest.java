@@ -1,8 +1,8 @@
 package com.org.lifecycle;
-import com.org.support.IntegrationTest;
 
 import com.org.lifecycle.model.KnowledgeRequest;
 import com.org.lifecycle.model.SourceType;
+import com.org.support.IntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 

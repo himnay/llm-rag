@@ -4,25 +4,42 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b97604ab-b7d5-4cdf-9e3e-355fa25a2397" name="Changes" comment="test containers">
-      <change beforePath="$PROJECT_DIR$/.idea/jarRepositories.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/jarRepositories.xml" afterDir="false" />
+    <list default="true" id="b97604ab-b7d5-4cdf-9e3e-355fa25a2397" name="Changes" comment="update readme">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/chunking/strategy/SemanticChunkingStrategy.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/chunking/strategy/SemanticChunkingStrategy.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/controller/EvaluationController.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/controller/EvaluationController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/eval/EvaluationReport.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/eval/EvaluationReport.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-graph/src/main/java/com/org/llm/controller/GraphController.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-graph/src/main/java/com/org/llm/controller/GraphController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-graph/src/main/java/com/org/llm/controller/RagController.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-graph/src/main/java/com/org/llm/controller/RagController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-graph/src/main/java/com/org/llm/service/AnthropicLLMService.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-graph/src/main/java/com/org/llm/service/AnthropicLLMService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/cache/EmbeddingCacheService.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/cache/EmbeddingCacheService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/eval/RetrievalEvaluator.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/eval/RetrievalEvaluator.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/eval/RetrievalMetrics.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/eval/RetrievalMetrics.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/ingestion/TextNormalizer.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/ingestion/TextNormalizer.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/retrieval/RetrievalProperties.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/retrieval/RetrievalProperties.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/ingestion/FileIngestionService.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/ingestion/FileIngestionService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/ingestion/db/DatabaseIngestionService.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/ingestion/db/DatabaseIngestionService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/ingestion/excel/ExcelDocumentReader.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/ingestion/excel/ExcelDocumentReader.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/lifecycle/KnowledgeLifecycleService.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/lifecycle/KnowledgeLifecycleService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/retrieval/RetrievalService.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/retrieval/RetrievalService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/vectorstore/ChunkVectorStoreService.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/vectorstore/ChunkVectorStoreService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/vectorstore/VectorStoreWriteProperties.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/vectorstore/VectorStoreWriteProperties.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/resources/application.yml" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/resources/application.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/eval/RetrievalMetricsTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/eval/RetrievalMetricsTest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/ingestion/TextNormalizerTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/ingestion/TextNormalizerTest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/retrieval/RetrievalServiceUnitTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/retrieval/RetrievalServiceUnitTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/retrieval/postprocess/TextSimilarity.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/retrieval/postprocess/TextSimilarity.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/retrieval/rerank/RerankingPostProcessor.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/retrieval/rerank/RerankingPostProcessor.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/web/validation/SupportedDocument.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/main/java/com/org/web/validation/SupportedDocument.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/chunking/ChunkingOrchestratorTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/chunking/ChunkingOrchestratorTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/chunking/DatabaseChunkerTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/chunking/DatabaseChunkerTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/chunking/FixedSizeChunkerTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/chunking/FixedSizeChunkerTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/chunking/PdfPragmaticChunkerTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/chunking/PdfPragmaticChunkerTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/chunking/WikiSemanticChunkerTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/chunking/WikiSemanticChunkerTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/generation/GenerationServiceTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/generation/GenerationServiceTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/ingestion/IngestionOrchestratorTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/ingestion/IngestionOrchestratorTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/lifecycle/KnowledgeIdentityTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/lifecycle/KnowledgeIdentityTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/lifecycle/KnowledgeLifecycleServiceTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/lifecycle/KnowledgeLifecycleServiceTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/retrieval/RetrievalServiceTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/retrieval/RetrievalServiceTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/retrieval/rerank/LlmListwiseRerankerTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/retrieval/rerank/LlmListwiseRerankerTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/retrieval/transform/HydeQueryTransformerTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/retrieval/transform/HydeQueryTransformerTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/retrieval/transform/MultiQueryExpanderImplTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/retrieval/transform/MultiQueryExpanderImplTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/retrieval/transform/RewriteQueryTransformerImplTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/retrieval/transform/RewriteQueryTransformerImplTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/retrieval/transform/StepBackQueryTransformerTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/retrieval/transform/StepBackQueryTransformerTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/security/ApiKeyServiceTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/security/ApiKeyServiceTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/security/SecurityIntegrationTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/security/SecurityIntegrationTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/support/FakeEmbeddingConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/support/FakeEmbeddingConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/vectorstore/ChunkVectorStoreServiceTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-pipeline/src/test/java/com/org/vectorstore/ChunkVectorStoreServiceTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-vectorless/src/main/java/com/rag/vectorless/controller/RagController.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-vectorless/src/main/java/com/rag/vectorless/controller/RagController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm-rag-vectorless/src/main/java/com/rag/vectorless/rag/PageIndexDocumentManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/llm-rag-vectorless/src/main/java/com/rag/vectorless/rag/PageIndexDocumentManager.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -172,7 +189,10 @@
       <workItem from="1781243159411" duration="1380000" />
       <workItem from="1781340324243" duration="5899000" />
       <workItem from="1781554528317" duration="3747000" />
-      <workItem from="1781559154653" duration="3057000" />
+      <workItem from="1781559154653" duration="3412000" />
+      <workItem from="1781585771500" duration="9000" />
+      <workItem from="1781586678537" duration="420000" />
+      <workItem from="1781587316223" duration="764000" />
     </task>
     <task id="LOCAL-00001" summary="llm rag - initial draft">
       <option name="closed" value="true" />
@@ -222,7 +242,23 @@
       <option name="project" value="LOCAL" />
       <updated>1781348325911</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="included best practise">
+      <option name="closed" value="true" />
+      <created>1781562600866</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1781562600866</updated>
+    </task>
+    <task id="LOCAL-00008" summary="update readme">
+      <option name="closed" value="true" />
+      <created>1781562624397</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1781562624397</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -231,6 +267,8 @@
     <MESSAGE value="llm rag - design patterns" />
     <MESSAGE value="tidy code, parent pom, update readme doc" />
     <MESSAGE value="test containers" />
-    <option name="LAST_COMMIT_MESSAGE" value="test containers" />
+    <MESSAGE value="included best practise" />
+    <MESSAGE value="update readme" />
+    <option name="LAST_COMMIT_MESSAGE" value="update readme" />
   </component>
 </project>
