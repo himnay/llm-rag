@@ -8,7 +8,7 @@ package com.org.lifecycle.command;
 @FunctionalInterface
 public interface IngestionCommand {
 
-    void execute() throws Exception;
+    void execute() throws java.io.IOException;
 
     /**
      * Human-readable description used in audit logs and error messages.

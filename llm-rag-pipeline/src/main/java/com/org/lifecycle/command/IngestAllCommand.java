@@ -9,7 +9,7 @@ public class IngestAllCommand implements IngestionCommand {
     private final KnowledgeLifecycleService service;
 
     @Override
-    public void execute() throws Exception {
+    public void execute() throws java.io.IOException {
         service.ingestAll();
     }
 

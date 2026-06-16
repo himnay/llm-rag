@@ -11,8 +11,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ChunkingStrategyFactoryTest {
 
-    private final ChunkingStrategyFactory factory =
-            new ChunkingStrategyFactory(List.of(named("recursive"), named("token")));
+    private final ChunkingStrategyFactory factory = buildFactory();
+
+    private static ChunkingStrategyFactory buildFactory() {
+        ChunkingStrategyFactory f = new ChunkingStrategyFactory(List.of(named("recursive"), named("token")));
+        f.init();
+        return f;
+    }
 
     private static ChunkingStrategy named(String name) {
         return new ChunkingStrategy() {
@@ -38,7 +43,7 @@ class ChunkingStrategyFactoryTest {
     @Test
     void unknownStrategyThrows() {
         assertThatThrownBy(() -> factory.get("nope"))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(UnknownChunkingStrategyException.class)
                 .hasMessageContaining("Unknown chunking strategy");
     }
 }

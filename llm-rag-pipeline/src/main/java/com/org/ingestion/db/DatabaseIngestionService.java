@@ -39,9 +39,7 @@ public class DatabaseIngestionService {
             case "faqs" -> ingestFaqs();
             case "release_notes" -> ingestReleaseNotes();
             case "announcements" -> ingestAnnouncements();
-            default -> throw new IllegalArgumentException(
-                    "Unknown database table for ingestion: '" + tableName
-                            + "'. Supported tables: faqs, release_notes, announcements.");
+            default -> throw new UnknownIngestionTableException(tableName, "faqs, release_notes, announcements");
         };
     }
 

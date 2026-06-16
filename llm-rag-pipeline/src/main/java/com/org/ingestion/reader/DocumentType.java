@@ -3,7 +3,7 @@ package com.org.ingestion.reader;
 import java.util.*;
 
 /**
- * Canonical document types recognised by the ingestion pipeline.
+ * Canonical document types recognized by the ingestion pipeline.
  * Each entry owns its supported file extensions and the source label
  * used to tag chunks for chunking-strategy selection and retrieval filtering.
  */

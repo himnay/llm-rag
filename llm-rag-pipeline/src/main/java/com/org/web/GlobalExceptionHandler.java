@@ -1,5 +1,7 @@
 package com.org.web;
 
+import com.org.chunking.strategy.UnknownChunkingStrategyException;
+import com.org.ingestion.db.UnknownIngestionTableException;
 import com.org.ingestion.reader.UnsupportedDocumentTypeException;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
@@ -55,8 +57,18 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Unsupported file type", ex.getMessage(), null);
     }
 
+    @ExceptionHandler(UnknownChunkingStrategyException.class)
+    public ResponseEntity<ApiError> handleUnknownChunkingStrategy(UnknownChunkingStrategyException ex) {
+        return build(HttpStatus.BAD_REQUEST, "Unknown chunking strategy", ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(UnknownIngestionTableException.class)
+    public ResponseEntity<ApiError> handleUnknownIngestionTable(UnknownIngestionTableException ex) {
+        return build(HttpStatus.BAD_REQUEST, "Unknown ingestion table", ex.getMessage(), null);
+    }
+
     /**
-     * Bad arguments — e.g. unsupported source type from the chunking/ingestion orchestrators.
+     * Catch-all for bad arguments not covered by a more specific handler.
      */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex) {

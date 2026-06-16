@@ -1,11 +1,12 @@
 # LLM RAG Pipeline — Spring AI Production-Grade Backend
 
-A production-grade **Retrieval-Augmented Generation** backend built with Spring AI. It owns all
-three phases of RAG: **ingestion** (turning documents into searchable vectors), **retrieval**
-(ranking the most relevant chunks), and **generation** (assembling a grounded LLM answer with
-citations, semantic caching, and prompt-injection defence).
+A production-grade **Retrieval-Augmented Generation** backend built with Spring AI covering all three RAG phases:
 
-> **Stack**: Spring Boot 4.1 · Spring AI 2.0.0-M8 · Java 21 · OpenAI · OpenSearch · PostgreSQL 17
+- **Ingestion** — turning documents into searchable vectors
+- **Retrieval** — ranking the most relevant chunks
+- **Generation** — assembling a grounded LLM answer with citations, semantic caching, and prompt-injection defence
+
+> **Stack**: Spring Boot 4.1 · Spring AI 2.0.0 · Java 21 · OpenAI · OpenSearch · PostgreSQL 17
 
 ---
 
@@ -347,15 +348,18 @@ curl -X POST http://localhost:8081/api/v1/generate \
   -d '{"query": "What is the annual leave policy?"}'
 ```
 
-Response includes `answer`, `citations[]`, `faithful` (null unless `evaluate-faithfulness=true`),
-and `fromSemanticCache`.
+Response fields:
+
+- `answer` — the LLM-generated response
+- `citations[]` — source documents ranked by relevance
+- `faithful` — faithfulness score (null unless `evaluate-faithfulness=true`)
+- `fromSemanticCache` — true if the answer was served from cache
 
 ---
 
 ## API-key Authentication
 
-`/api/**` is protected when `app.security.auth-enabled=true`. Keys are SHA-256 digests stored in
-the `api_keys` PostgreSQL table:
+`/api/**` is protected when `app.security.auth-enabled=true`. Keys are SHA-256 digests stored in the `api_keys` PostgreSQL table:
 
 ```bash
 raw=$(openssl rand -hex 32)
@@ -376,8 +380,11 @@ mvn test -Dtest="*Test" -Djacoco.skip=true
 mvn verify
 ```
 
-Unit tests use Mockito and run fully offline. Integration tests (`@SpringBootTest`) spin up real
-Postgres + OpenSearch via Testcontainers. JaCoCo enforces ≥70% instruction coverage on `mvn verify`.
+Test infrastructure:
+
+- **Unit tests** — Mockito-based, fully offline
+- **Integration tests** (`@SpringBootTest`) — spin up real Postgres + OpenSearch via Testcontainers
+- **Coverage** — JaCoCo enforces ≥70% instruction coverage on `mvn verify`
 
 ---
 

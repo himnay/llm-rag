@@ -2,6 +2,8 @@ package com.org.chunking.strategy;
 
 import com.org.chunking.model.Chunk;
 import com.org.ingestion.model.IngestedDocument;
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.core.io.ClassPathResource;
@@ -20,17 +22,18 @@ import java.util.List;
  */
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class LlmChunkingStrategy extends AbstractChunkingStrategy {
 
     private static final String DELIMITER = "(?m)^\\s*---CHUNK---\\s*$";
 
     private final ChatClient chatClient;
-    private final String systemPrompt;
+    private String systemPrompt;
 
-    public LlmChunkingStrategy(ChatClient chatClient) {
-        this.chatClient = chatClient;
+    @PostConstruct
+    void init() {
         try {
-            this.systemPrompt = StreamUtils.copyToString(
+            systemPrompt = StreamUtils.copyToString(
                     new ClassPathResource("prompts/chunking-system.st").getInputStream(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new UncheckedIOException("Could not load chunking-system.st", e);

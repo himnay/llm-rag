@@ -11,7 +11,7 @@ public class IngestCommand implements IngestionCommand {
     private final KnowledgeRequest request;
 
     @Override
-    public void execute() throws Exception {
+    public void execute() throws java.io.IOException {
         service.ingest(request);
     }
 

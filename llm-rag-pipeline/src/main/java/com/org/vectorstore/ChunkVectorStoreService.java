@@ -2,11 +2,13 @@ package com.org.vectorstore;
 
 import com.org.chunking.model.Chunk;
 import com.org.common.Resilience;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.vectorstore.filter.Filter;
 import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -25,19 +27,13 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class ChunkVectorStoreService {
 
     private final VectorStore vectorStore;
+    @Qualifier("vectorStoreWriteExecutor")
     private final ExecutorService writeExecutor;
     private final VectorStoreWriteProperties props;
-
-    public ChunkVectorStoreService(VectorStore vectorStore,
-                                   ExecutorService vectorStoreWriteExecutor,
-                                   VectorStoreWriteProperties props) {
-        this.vectorStore = vectorStore;
-        this.writeExecutor = vectorStoreWriteExecutor;
-        this.props = props;
-    }
 
     private static List<List<Document>> partition(List<Document> documents, int size) {
         List<List<Document>> batches = new ArrayList<>();
@@ -61,6 +57,12 @@ public class ChunkVectorStoreService {
             metadata.put("embeddingDimension", dimension);
             return new Document(chunk.content(), metadata);
         }).collect(Collectors.toList());
+
+        if (log.isDebugEnabled()) {
+            documents.forEach(d -> log.debug("Persisting chunk — source='{}' chunkIndex={} embeddingModel='{}' metadataKeys={}",
+                    d.getMetadata().get("source"), d.getMetadata().get("chunkIndex"),
+                    d.getMetadata().get("embeddingModel"), d.getMetadata().keySet()));
+        }
 
         // Small input → single synchronous write.
         if (documents.size() <= props.getBatchSize() || props.getConcurrency() <= 1) {

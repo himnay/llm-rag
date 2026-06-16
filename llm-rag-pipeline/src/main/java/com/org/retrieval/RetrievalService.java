@@ -8,6 +8,8 @@ import com.org.retrieval.search.SearchMode;
 import com.org.retrieval.search.SearchStrategy;
 import com.org.retrieval.transform.QueryTransformMode;
 import com.org.retrieval.transform.QueryTransformationService;
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
 import org.springframework.stereotype.Service;
@@ -27,23 +29,23 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class RetrievalService {
 
     private final RetrievalProperties properties;
-    private final Map<SearchMode, SearchStrategy> searchStrategies = new EnumMap<>(SearchMode.class);
-    private final List<RetrievalPostProcessor> postProcessors;
+    private final List<SearchStrategy> searchStrategyList;
+    private final List<RetrievalPostProcessor> rawPostProcessors;
     private final QueryTransformationService queryTransformationService;
 
-    public RetrievalService(RetrievalProperties properties,
-                            List<SearchStrategy> searchStrategies,
-                            List<RetrievalPostProcessor> postProcessors,
-                            QueryTransformationService queryTransformationService) {
-        this.properties = properties;
-        searchStrategies.forEach(s -> this.searchStrategies.put(s.mode(), s));
-        this.postProcessors = postProcessors.stream()
+    private final Map<SearchMode, SearchStrategy> searchStrategies = new EnumMap<>(SearchMode.class);
+    private List<RetrievalPostProcessor> postProcessors;
+
+    @PostConstruct
+    void init() {
+        searchStrategyList.forEach(s -> searchStrategies.put(s.mode(), s));
+        postProcessors = rawPostProcessors.stream()
                 .sorted(Comparator.comparingInt(RetrievalPostProcessor::getOrder))
                 .toList();
-        this.queryTransformationService = queryTransformationService;
     }
 
     private static Integer pageOf(Map<String, Object> metadata) {
@@ -109,8 +111,18 @@ public class RetrievalService {
         log.info("{} search returned {} candidate document(s) (after merge)", mode, documents.size());
 
         List<Chunk> chunks = documents.stream().map(this::toChunk).collect(Collectors.toList());
+        if (log.isDebugEnabled()) {
+            log.debug("Retrieved chunks before post-processing (count={}):", chunks.size());
+            chunks.forEach(c -> log.debug("  chunk source='{}' index={} score={} textPreview='{}'",
+                    c.source(), c.chunkIndex(),
+                    c.metadata().get(RetrievalPostProcessor.SCORE_KEY),
+                    c.content().length() > 120 ? c.content().substring(0, 120) + "…" : c.content()));
+        }
         for (RetrievalPostProcessor processor : postProcessors) {
+            int before = chunks.size();
             chunks = processor.process(query, chunks);
+            log.debug("Post-processor '{}' (order {}) → {}/{} chunk(s) retained",
+                    processor.getClass().getSimpleName(), processor.getOrder(), chunks.size(), before);
         }
         if (chunks.size() > k) {
             chunks = new ArrayList<>(chunks.subList(0, k));

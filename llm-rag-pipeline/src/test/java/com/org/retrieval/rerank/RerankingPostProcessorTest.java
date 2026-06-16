@@ -32,7 +32,9 @@ class RerankingPostProcessorTest {
     }
 
     private static RerankingPostProcessor processor(RetrievalProperties props, Reranker... rerankers) {
-        return new RerankingPostProcessor(props, List.of(rerankers), new SimpleMeterRegistry());
+        RerankingPostProcessor p = new RerankingPostProcessor(props, List.of(rerankers), new SimpleMeterRegistry());
+        p.init();
+        return p;
     }
 
     @Test

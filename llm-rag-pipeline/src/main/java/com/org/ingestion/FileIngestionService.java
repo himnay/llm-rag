@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -31,7 +32,7 @@ public class FileIngestionService {
      * Ingest a multipart upload. File-type validation is declarative on the REST boundary
      * (see {@code @SupportedDocument}); the reader factory remains the final guard.
      */
-    public void ingestUpload(MultipartFile file) throws Exception {
+    public void ingestUpload(MultipartFile file) throws IOException {
         String name = StringUtils.cleanPath(
                 file.getOriginalFilename() != null ? file.getOriginalFilename() : "upload");
         Path tmp = Files.createTempFile("upload-", "-" + name);
@@ -46,7 +47,7 @@ public class FileIngestionService {
     /**
      * Ingest a file on disk, using {@code displayName} for type detection + identity metadata.
      */
-    public void ingestFile(Path path, String displayName) throws Exception {
+    public void ingestFile(Path path, String displayName) throws IOException {
         // Resource whose filename is the original name (so extension detection + metadata are correct),
         // while content is read from the actual path.
         FileSystemResource resource = new FileSystemResource(path.toFile()) {

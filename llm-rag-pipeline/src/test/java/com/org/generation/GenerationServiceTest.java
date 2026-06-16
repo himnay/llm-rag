@@ -62,6 +62,7 @@ class GenerationServiceTest {
                 properties, promptOrchestrator, contextBuilder,
                 chatClient, chatClientBuilder, vectorStore,
                 semanticCache, injectionGuard, generationEvaluator);
+        service.init();
     }
 
     // ── Semantic cache ──────────────────────────────────────────────────────────

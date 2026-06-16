@@ -6,6 +6,8 @@ import com.org.dto.GenerateResponse;
 import com.org.eval.GenerationEvaluator;
 import com.org.retrieval.model.RetrievalResult;
 import com.org.security.PromptInjectionGuard;
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
@@ -39,6 +41,7 @@ import java.util.UUID;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @ConditionalOnProperty(name = "app.generation.enabled", havingValue = "true")
 public class GenerationService {
 
@@ -46,33 +49,20 @@ public class GenerationService {
     private final PromptOrchestrator promptOrchestrator;
     private final ContextBuilder contextBuilder;
     private final ChatClient chatClient;
-    private final ChatClient advisorClient;
+    private final ChatClient.Builder chatClientBuilder;
+    private final VectorStore vectorStore;
     private final SemanticCacheService semanticCache;
     private final PromptInjectionGuard injectionGuard;
     private final GenerationEvaluator generationEvaluator;
+
     private final MessageWindowChatMemory chatMemory = MessageWindowChatMemory.builder()
             .chatMemoryRepository(new InMemoryChatMemoryRepository())
             .build();
+    private ChatClient advisorClient;
 
-    public GenerationService(GenerationProperties properties,
-                             PromptOrchestrator promptOrchestrator,
-                             ContextBuilder contextBuilder,
-                             ChatClient chatClient,
-                             ChatClient.Builder chatClientBuilder,
-                             VectorStore vectorStore,
-                             SemanticCacheService semanticCache,
-                             PromptInjectionGuard injectionGuard,
-                             GenerationEvaluator generationEvaluator) {
-        this.properties = properties;
-        this.promptOrchestrator = promptOrchestrator;
-        this.contextBuilder = contextBuilder;
-        this.chatClient = chatClient;
-        this.semanticCache = semanticCache;
-        this.injectionGuard = injectionGuard;
-        this.generationEvaluator = generationEvaluator;
-
-        // Advisor-mode client with QuestionAnswerAdvisor pre-wired (Section 12 pattern).
-        this.advisorClient = chatClientBuilder
+    @PostConstruct
+    void init() {
+        advisorClient = chatClientBuilder
                 .defaultAdvisors(
                         QuestionAnswerAdvisor.builder(vectorStore)
                                 .searchRequest(SearchRequest.builder()
@@ -86,11 +76,9 @@ public class GenerationService {
     public GenerateResponse generate(GenerateRequest request) {
         String query = request.query();
         int topK = request.topK() != null ? request.topK() : properties.getTopK();
-        // Assign a conversation ID if the caller didn't supply one (single-turn fallback).
         String conversationId = request.conversationId() != null && !request.conversationId().isBlank()
                 ? request.conversationId() : UUID.randomUUID().toString();
 
-        // Check semantic cache before spending on retrieval + generation.
         Optional<String> cached = semanticCache.get(query);
         if (cached.isPresent()) {
             log.info("SemanticCache hit for query='{}'", query);
@@ -106,18 +94,15 @@ public class GenerationService {
         PromptOrchestrator.ChatPrompt chatPrompt = promptOrchestrator.build(query, topK);
         RetrievalResult retrieval = chatPrompt.retrievalResult();
 
-        // Guard retrieved context against prompt injection before it enters the LLM.
         List<com.org.chunking.model.Chunk> safeChunks = injectionGuard.filter(retrieval.chunks());
         RetrievalResult safeRetrieval = new RetrievalResult(safeChunks, retrieval.citations());
 
-        // Rebuild the context string from the filtered chunk list.
         PromptOrchestrator.ChatPrompt safePrompt = new PromptOrchestrator.ChatPrompt(
                 chatPrompt.systemInstructions(),
                 rebuildContext(safeChunks, retrieval),
                 chatPrompt.groundingRules(),
                 safeRetrieval);
 
-        // MessageChatMemoryAdvisor injects prior turns so the model can handle follow-up questions.
         String answer = chatClient.prompt()
                 .system(safePrompt.systemInstructions())
                 .user(safePrompt.toLlmUserMessage(query))
@@ -126,6 +111,9 @@ public class GenerationService {
                         .param(ChatMemory.CONVERSATION_ID, conversationId))
                 .call()
                 .content();
+
+        log.info("LLM response generated | query='{}' | chunks={} | answerLength={}",
+                query, safeChunks.size(), answer != null ? answer.length() : 0);
 
         Boolean faithful = null;
         if (properties.isEvaluateFaithfulness() && answer != null) {

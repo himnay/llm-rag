@@ -12,13 +12,13 @@ import org.springframework.stereotype.Component;
 @Component
 public class CommandExecutor {
 
-    public void execute(IngestionCommand command) throws Exception {
+    public void execute(IngestionCommand command) throws java.io.IOException {
         long start = System.currentTimeMillis();
         log.info("Executing command: {}", command.describe());
         try {
             command.execute();
             log.info("Command {} completed in {}ms", command.describe(), System.currentTimeMillis() - start);
-        } catch (Exception e) {
+        } catch (java.io.IOException e) {
             log.error("Command {} failed after {}ms: {}", command.describe(),
                     System.currentTimeMillis() - start, e.getMessage(), e);
             throw e;

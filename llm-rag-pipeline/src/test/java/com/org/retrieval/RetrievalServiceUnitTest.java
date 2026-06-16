@@ -29,10 +29,12 @@ class RetrievalServiceUnitTest {
         VectorStore vectorStore = mock(VectorStore.class);
         when(vectorStore.similaritySearch(any(SearchRequest.class))).thenReturn(docs);
         RetrievalProperties properties = new RetrievalProperties();
-        return new RetrievalService(properties,
+        RetrievalService service = new RetrievalService(properties,
                 List.of(new VectorSearchStrategy(vectorStore, properties)),
                 List.of(new BusinessRuleFilter(), new ScoreAwareRanker()),
                 new QueryTransformationService(List.of()));
+        service.init();
+        return service;
     }
 
     @Test

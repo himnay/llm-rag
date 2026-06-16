@@ -9,6 +9,7 @@ import com.org.lifecycle.model.SourceType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -21,7 +22,7 @@ public class IngestionOrchestrator {
     private final WikiIngestionService wikiIngestionService;
     private final DatabaseIngestionService databaseIngestionService;
 
-    public List<IngestedDocument> ingest(KnowledgeRequest request) throws Exception {
+    public List<IngestedDocument> ingest(KnowledgeRequest request) throws IOException {
         SourceType source = request.sourceType();
         if (source.equals(SourceType.PDF)) {
             return pdfIngestionService.ingest(request.name());
@@ -35,7 +36,7 @@ public class IngestionOrchestrator {
         return Collections.emptyList();
     }
 
-    public List<IngestedDocument> ingestAll() throws Exception {
+    public List<IngestedDocument> ingestAll() throws IOException {
         List<IngestedDocument> docs = new ArrayList<>();
         docs.addAll(pdfIngestionService.ingestPdfs());
         docs.addAll(wikiIngestionService.ingestWikiFiles());

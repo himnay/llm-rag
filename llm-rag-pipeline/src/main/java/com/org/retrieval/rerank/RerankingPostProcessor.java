@@ -5,6 +5,8 @@ import com.org.common.CircuitBreaker;
 import com.org.retrieval.RetrievalProperties;
 import com.org.retrieval.postprocess.RetrievalPostProcessor;
 import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -34,28 +36,26 @@ import java.util.Map;
  */
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class RerankingPostProcessor implements RetrievalPostProcessor {
 
     private final RetrievalProperties properties;
+    private final List<Reranker> rawRerankers;
+    private final MeterRegistry meterRegistry;
+
     /**
      * Decorated rerankers: original → MeteredReranker → CachedReranker (for costly strategies).
      */
     private final Map<RerankStrategy, Reranker> rerankers = new EnumMap<>(RerankStrategy.class);
-    private final CircuitBreaker breaker;
-    private final MeterRegistry meterRegistry;
+    private CircuitBreaker breaker;
 
-    public RerankingPostProcessor(RetrievalProperties properties, List<Reranker> rawRerankers,
-                                  MeterRegistry meterRegistry) {
-        this.properties = properties;
-        this.meterRegistry = meterRegistry;
+    @PostConstruct
+    void init() {
         RetrievalProperties.Rerank cfg = properties.getRerank();
-        this.breaker = new CircuitBreaker(cfg.getBreaker().getFailureThreshold(), cfg.getBreaker().getCooldown());
-
+        breaker = new CircuitBreaker(cfg.getBreaker().getFailureThreshold(), cfg.getBreaker().getCooldown());
         RerankScoreCache cache = cfg.getCache().isEnabled()
                 ? new RerankScoreCache(cfg.getCache().getMaxSize(), cfg.getCache().getTtl()) : null;
-
         for (Reranker r : rawRerankers) {
-            // Apply decorators: metered first (inner), then cached (outer) for costly strategies.
             Reranker decorated = new MeteredReranker(r, meterRegistry);
             if (cache != null && r.strategy().isCostly()) {
                 decorated = new CachedReranker(decorated, cache, meterRegistry);
@@ -101,9 +101,14 @@ public class RerankingPostProcessor implements RetrievalPostProcessor {
             return chunks;
         }
         try {
+            log.debug("Reranking {} candidate(s) with strategy={} query='{}'", topN, cfg.getStrategy(), query);
             List<Chunk> reranked = reranker.rerank(query, head);
             breaker.recordSuccess();
             log.info("Reranked {}/{} candidate(s) with {}", topN, chunks.size(), cfg.getStrategy());
+            if (log.isDebugEnabled()) {
+                reranked.forEach(c -> log.debug("  reranked chunk source='{}' index={} score={}",
+                        c.source(), c.chunkIndex(), RetrievalPostProcessor.score(c)));
+            }
             return combine(cfg, reranked, tail);
         } catch (Exception e) {
             breaker.recordFailure();

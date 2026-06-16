@@ -1,12 +1,11 @@
 package com.org.cache;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -23,37 +22,19 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class EmbeddingCacheService {
 
-    /**
-     * Reuse one MessageDigest instance per thread — MessageDigest is NOT thread-safe.
-     */
-    private static final ThreadLocal<MessageDigest> SHA256 = ThreadLocal.withInitial(() -> {
-        try {
-            return MessageDigest.getInstance("SHA-256");
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 unavailable", e);
-        }
-    });
     private final EmbeddingModel embeddingModel;
     private final EmbeddingCacheProperties properties;
-    private final long maxSize;
     /**
      * LRU map guarded by its own intrinsic lock (only for eviction; writes are ConcurrentHashMap).
      */
-    private final Map<String, CachedVector> lruOrder;
+    private final Map<String, CachedVector> lruOrder = new LinkedHashMap<>(64, 0.75f, true);
     private final ConcurrentHashMap<String, CachedVector> cache = new ConcurrentHashMap<>();
-    public EmbeddingCacheService(EmbeddingModel embeddingModel, EmbeddingCacheProperties properties) {
-        this.embeddingModel = embeddingModel;
-        this.properties = properties;
-        this.maxSize = properties.getMaxSize();
-        this.lruOrder = new LinkedHashMap<>(64, 0.75f, true);
-    }
 
     private static String sha256(String text) {
-        MessageDigest md = SHA256.get();
-        md.reset();
-        return HexFormat.of().formatHex(md.digest(text.getBytes(StandardCharsets.UTF_8)));
+        return DigestUtils.sha256Hex(text);
     }
 
     /**
@@ -121,7 +102,7 @@ public class EmbeddingCacheService {
     private void evictIfNecessary(String recentKey) {
         synchronized (lruOrder) {
             lruOrder.put(recentKey, null);
-            if (lruOrder.size() > maxSize) {
+            if (lruOrder.size() > properties.getMaxSize()) {
                 String eldest = lruOrder.keySet().iterator().next();
                 lruOrder.remove(eldest);
                 cache.remove(eldest);
