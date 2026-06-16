@@ -39,7 +39,9 @@ public final class Resilience {
         throw last;
     }
 
-    /** Convenience for void actions. */
+    /**
+     * Convenience for void actions.
+     */
     public static void withRetry(String operation, int maxAttempts, long baseBackoffMillis, Runnable action) {
         withRetry(operation, maxAttempts, baseBackoffMillis, () -> {
             action.run();

@@ -17,16 +17,28 @@ import java.util.Map;
 
 /**
  * Fills in text for scanned/image PDF pages. The page reader yields (near-)empty text for such
- * pages; this augmentor rasterizes those pages with PDFBox and runs {@link OcrService} on them,
+ * pages; this augmenter rasterize those pages with PDFBox and runs {@link OcrService} on them,
  * replacing the page content with the OCR'd text. No-op when OCR is disabled, and fully guarded so
  * a render/OCR failure never breaks ingestion of the text-based pages.
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class OcrPdfAugmentor {
+public class OcrPdfAugmenter {
 
     private final OcrService ocrService;
+
+    private static Integer intMeta(Document document, String key) {
+        Object value = document.getMetadata().get(key);
+        if (value instanceof Number n) {
+            return n.intValue();
+        }
+        try {
+            return value == null ? null : Integer.valueOf(value.toString());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
 
     public List<Document> augment(Resource resource, List<Document> pages) {
         if (!ocrService.isEnabled() || pages.isEmpty()) {
@@ -63,18 +75,6 @@ public class OcrPdfAugmentor {
         } catch (Exception e) {
             log.warn("OCR augmentation failed ({}) — using text-extracted pages as-is", e.getMessage());
             return pages;
-        }
-    }
-
-    private static Integer intMeta(Document document, String key) {
-        Object value = document.getMetadata().get(key);
-        if (value instanceof Number n) {
-            return n.intValue();
-        }
-        try {
-            return value == null ? null : Integer.valueOf(value.toString());
-        } catch (NumberFormatException e) {
-            return null;
         }
     }
 }

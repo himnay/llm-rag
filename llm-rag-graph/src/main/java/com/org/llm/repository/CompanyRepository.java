@@ -13,7 +13,9 @@ public interface CompanyRepository extends Neo4jRepository<Company, Long> {
 
     Optional<Company> findByName(String name);
 
-    /** Full 4-level hierarchy: Company → Department → Team → Employee */
+    /**
+     * Full 4-level hierarchy: Company → Department → Team → Employee
+     */
     @Query("""
             MATCH (c:Company {name: $name})
             OPTIONAL MATCH (c)-[:HAS_DEPARTMENT]->(d:Department)

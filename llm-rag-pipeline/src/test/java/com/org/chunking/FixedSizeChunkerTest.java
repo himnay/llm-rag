@@ -20,6 +20,17 @@ public class FixedSizeChunkerTest extends IntegrationTest {
     @Autowired
     private FixedSizeChunker chunker;
 
+    private static void printChunks(IngestedDocument document, List<Chunk> chunks) {
+        log.info("Source: {}", document.source());
+        log.info("Original length: {}", document.content().length());
+        log.info("Total chunks: {}", chunks.size());
+
+        for (Chunk chunk : chunks) {
+            log.info("---- Chunk {} ----", chunk.chunkIndex());
+            log.info(chunk.content());
+        }
+    }
+
     @Test
     public void chunkerTest() throws Exception {
         List<IngestedDocument> documents = ingestionOrchestrator.ingestAll();
@@ -34,16 +45,5 @@ public class FixedSizeChunkerTest extends IntegrationTest {
         List<Chunk> overlapChunks = chunker.chunk(document, 500, 100);
         printChunks(document, overlapChunks);
 
-    }
-
-    private static void printChunks(IngestedDocument document, List<Chunk> chunks) {
-        log.info("Source: {}", document.source());
-        log.info("Original length: {}", document.content().length());
-        log.info("Total chunks: {}", chunks.size());
-
-        for (Chunk chunk : chunks) {
-            log.info("---- Chunk {} ----", chunk.chunkIndex());
-            log.info(chunk.content());
-        }
     }
 }

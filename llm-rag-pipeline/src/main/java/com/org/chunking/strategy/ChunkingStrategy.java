@@ -5,12 +5,18 @@ import com.org.ingestion.model.IngestedDocument;
 
 import java.util.List;
 
-/** A pluggable text-chunking algorithm. Implementations are Spring beans discovered by name. */
+/**
+ * A pluggable text-chunking algorithm. Implementations are Spring beans discovered by name.
+ */
 public interface ChunkingStrategy {
 
-    /** Lower-case strategy id used for selection (e.g. {@code recursive}, {@code token}). */
+    /**
+     * Lower-case strategy id used for selection (e.g. {@code recursive}, {@code token}).
+     */
     String name();
 
-    /** Splits a (already cleaned) document into chunks. */
+    /**
+     * Splits a (already cleaned) document into chunks.
+     */
     List<Chunk> chunk(IngestedDocument document);
 }

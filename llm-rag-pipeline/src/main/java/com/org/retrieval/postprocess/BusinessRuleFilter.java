@@ -23,6 +23,10 @@ public class BusinessRuleFilter implements RetrievalPostProcessor {
     private static final DateTimeFormatter DATE_FORMAT =
             DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH);
 
+    private static String str(Object value) {
+        return Objects.toString(value, "");
+    }
+
     @Override
     public int getOrder() {
         return 10;
@@ -64,9 +68,5 @@ public class BusinessRuleFilter implements RetrievalPostProcessor {
             log.warn("Unparseable announcement dates (from='{}', to='{}') — allowing", fromDate, tillDate);
             return true;
         }
-    }
-
-    private static String str(Object value) {
-        return Objects.toString(value, "");
     }
 }

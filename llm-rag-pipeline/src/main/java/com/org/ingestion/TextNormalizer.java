@@ -46,7 +46,9 @@ public class TextNormalizer {
         return out.strip();
     }
 
-    /** Returns a copy of the document with normalized content (metadata + source unchanged). */
+    /**
+     * Returns a copy of the document with normalized content (metadata + source unchanged).
+     */
     public IngestedDocument normalize(IngestedDocument document) {
         return new IngestedDocument(document.source(), normalize(document.content()), document.metadata());
     }

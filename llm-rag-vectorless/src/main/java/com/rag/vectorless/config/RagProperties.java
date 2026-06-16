@@ -8,4 +8,5 @@ public record RagProperties(
         @DefaultValue("500") int chunkSize,
         @DefaultValue("100") int chunkOverlap,
         @DefaultValue("5") int topK
-) {}
+) {
+}

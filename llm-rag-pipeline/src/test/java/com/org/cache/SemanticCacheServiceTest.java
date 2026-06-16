@@ -16,6 +16,14 @@ class SemanticCacheServiceTest {
     @Mock
     EmbeddingCacheService embeddingCacheService;
 
+    /**
+     * Returns a unit vector pointing in the direction (x, y).
+     */
+    private static float[] unit(float x, float y) {
+        float norm = (float) Math.sqrt(x * x + y * y);
+        return new float[]{x / norm, y / norm};
+    }
+
     private SemanticCacheProperties props(boolean enabled, double threshold, int maxSize) {
         SemanticCacheProperties p = new SemanticCacheProperties();
         p.setEnabled(enabled);
@@ -23,12 +31,6 @@ class SemanticCacheServiceTest {
         p.setMaxSize(maxSize);
         p.setTtl(Duration.ofMinutes(30));
         return p;
-    }
-
-    /** Returns a unit vector pointing in the direction (x, y). */
-    private static float[] unit(float x, float y) {
-        float norm = (float) Math.sqrt(x * x + y * y);
-        return new float[]{x / norm, y / norm};
     }
 
     @Test

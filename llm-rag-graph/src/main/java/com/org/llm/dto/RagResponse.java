@@ -12,8 +12,8 @@ public record RagResponse(
         Instant timestamp
 ) {
     public static RagResponse of(String question, String answer,
-                                  String graphContext, List<String> relevantEntities,
-                                  long processingTimeMs) {
+                                 String graphContext, List<String> relevantEntities,
+                                 long processingTimeMs) {
         return new RagResponse(question, answer, graphContext,
                 relevantEntities, processingTimeMs, Instant.now());
     }

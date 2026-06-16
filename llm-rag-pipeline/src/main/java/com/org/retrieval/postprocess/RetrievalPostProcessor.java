@@ -16,10 +16,10 @@ public interface RetrievalPostProcessor extends Ordered {
 
     String SCORE_KEY = "score";
 
-    List<Chunk> process(String query, List<Chunk> chunks);
-
     static double score(Chunk chunk) {
         Object v = chunk.metadata().get(SCORE_KEY);
         return v instanceof Number n ? n.doubleValue() : 0.0;
     }
+
+    List<Chunk> process(String query, List<Chunk> chunks);
 }

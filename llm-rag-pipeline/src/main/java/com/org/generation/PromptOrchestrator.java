@@ -33,15 +33,6 @@ public class PromptOrchestrator {
     private final GroundingPolicy groundingPolicy;
     private final String systemInstructions = loadSystemPrompt();
 
-    public ChatPrompt build(String userQuestion, int topK) {
-        RetrievalResult retrievalResult = retrievalService.retrieve(userQuestion, topK);
-        String context = contextBuilder.build(retrievalResult);
-        boolean hasContext = !contextBuilder.isEmpty(retrievalResult);
-        String rules = groundingPolicy.groundingRules(hasContext);
-        log.debug("PromptOrchestrator: retrieved {} chunk(s), hasContext={}", retrievalResult.chunks().size(), hasContext);
-        return new ChatPrompt(systemInstructions, context, rules, retrievalResult);
-    }
-
     private static String loadSystemPrompt() {
         try {
             return StreamUtils.copyToString(
@@ -52,14 +43,27 @@ public class PromptOrchestrator {
         }
     }
 
-    /** Immutable prompt assembled by the orchestrator. */
+    public ChatPrompt build(String userQuestion, int topK) {
+        RetrievalResult retrievalResult = retrievalService.retrieve(userQuestion, topK);
+        String context = contextBuilder.build(retrievalResult);
+        boolean hasContext = !contextBuilder.isEmpty(retrievalResult);
+        String rules = groundingPolicy.groundingRules(hasContext);
+        log.debug("PromptOrchestrator: retrieved {} chunk(s), hasContext={}", retrievalResult.chunks().size(), hasContext);
+        return new ChatPrompt(systemInstructions, context, rules, retrievalResult);
+    }
+
+    /**
+     * Immutable prompt assembled by the orchestrator.
+     */
     public record ChatPrompt(
             String systemInstructions,
             String context,
             String groundingRules,
             com.org.retrieval.model.RetrievalResult retrievalResult) {
 
-        /** Builds the user-turn message combining grounding rules, context, and the question. */
+        /**
+         * Builds the user-turn message combining grounding rules, context, and the question.
+         */
         public String toLlmUserMessage(String userQuestion) {
             return groundingRules + "\n\nContext:\n```\n" + context + "\n```\n\nQuestion: " + userQuestion;
         }

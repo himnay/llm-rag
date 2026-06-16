@@ -17,6 +17,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ExcelDocumentReaderTest {
 
+    private static void writeRow(Sheet sheet, int rowNum, String... values) {
+        Row row = sheet.createRow(rowNum);
+        for (int c = 0; c < values.length; c++) {
+            row.createCell(c).setCellValue(values[c]);
+        }
+    }
+
     @Test
     void rendersSheetAsMarkdownTable() throws Exception {
         Path file = Files.createTempFile("test-", ".xlsx");
@@ -38,13 +45,6 @@ class ExcelDocumentReaderTest {
             assertThat(docs.get(0).getMetadata()).containsEntry("sheet", "Leave");
         } finally {
             Files.deleteIfExists(file);
-        }
-    }
-
-    private static void writeRow(Sheet sheet, int rowNum, String... values) {
-        Row row = sheet.createRow(rowNum);
-        for (int c = 0; c < values.length; c++) {
-            row.createCell(c).setCellValue(values[c]);
         }
     }
 }

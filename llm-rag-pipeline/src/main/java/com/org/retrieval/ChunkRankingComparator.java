@@ -14,6 +14,10 @@ public class ChunkRankingComparator implements Comparator<Chunk> {
     private static final DateTimeFormatter DATE_FORMAT =
             DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH);
 
+    private static String str(Object value) {
+        return Objects.toString(value, "");
+    }
+
     @Override
     public int compare(Chunk a, Chunk b) {
 
@@ -81,9 +85,5 @@ public class ChunkRankingComparator implements Comparator<Chunk> {
             case "WIKI" -> 3;
             default -> 4;
         };
-    }
-
-    private static String str(Object value) {
-        return Objects.toString(value, "");
     }
 }

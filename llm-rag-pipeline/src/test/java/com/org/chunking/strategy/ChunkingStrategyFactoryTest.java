@@ -11,15 +11,22 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ChunkingStrategyFactoryTest {
 
-    private static ChunkingStrategy named(String name) {
-        return new ChunkingStrategy() {
-            @Override public String name() { return name; }
-            @Override public List<Chunk> chunk(IngestedDocument d) { return List.of(); }
-        };
-    }
-
     private final ChunkingStrategyFactory factory =
             new ChunkingStrategyFactory(List.of(named("recursive"), named("token")));
+
+    private static ChunkingStrategy named(String name) {
+        return new ChunkingStrategy() {
+            @Override
+            public String name() {
+                return name;
+            }
+
+            @Override
+            public List<Chunk> chunk(IngestedDocument d) {
+                return List.of();
+            }
+        };
+    }
 
     @Test
     void resolvesByNameCaseInsensitively() {

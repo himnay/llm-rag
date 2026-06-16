@@ -17,12 +17,8 @@ import java.util.Map;
  */
 final class RerankScoreCache {
 
-    private record CachedScore(double score, long expiresAtMillis) {
-    }
-
     private final Map<String, CachedScore> entries;
     private final long ttlMillis;
-
     RerankScoreCache(int maxSize, Duration ttl) {
         this.ttlMillis = ttl.toMillis();
         this.entries = new LinkedHashMap<>(64, 0.75f, true) {
@@ -33,7 +29,22 @@ final class RerankScoreCache {
         };
     }
 
-    /** The cached score, or {@code null} on miss/expiry. */
+    static String key(RerankStrategy strategy, String query, String content) {
+        return strategy + "|" + query + "|" + sha256(content);
+    }
+
+    private static String sha256(String text) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(digest.digest(text.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 unavailable", e);
+        }
+    }
+
+    /**
+     * The cached score, or {@code null} on miss/expiry.
+     */
     synchronized Double get(String key) {
         CachedScore entry = entries.get(key);
         if (entry == null) {
@@ -50,16 +61,6 @@ final class RerankScoreCache {
         entries.put(key, new CachedScore(score, System.currentTimeMillis() + ttlMillis));
     }
 
-    static String key(RerankStrategy strategy, String query, String content) {
-        return strategy + "|" + query + "|" + sha256(content);
-    }
-
-    private static String sha256(String text) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            return HexFormat.of().formatHex(digest.digest(text.getBytes(StandardCharsets.UTF_8)));
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 unavailable", e);
-        }
+    private record CachedScore(double score, long expiresAtMillis) {
     }
 }

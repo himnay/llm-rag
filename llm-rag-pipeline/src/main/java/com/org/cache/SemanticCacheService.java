@@ -1,5 +1,6 @@
 package com.org.cache;
 
+import com.org.common.VectorMath;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -21,16 +22,17 @@ import java.util.Optional;
 @Service
 public class SemanticCacheService {
 
-    private record CacheEntry(float[] queryVector, String answer, long expiresAtMillis) {}
-
     private final EmbeddingCacheService embeddingCacheService;
     private final SemanticCacheProperties properties;
     private final List<CacheEntry> entries = new ArrayList<>();
-
     public SemanticCacheService(EmbeddingCacheService embeddingCacheService,
                                 SemanticCacheProperties properties) {
         this.embeddingCacheService = embeddingCacheService;
         this.properties = properties;
+    }
+
+    private static double cosine(float[] a, float[] b) {
+        return VectorMath.cosine(a, b);
     }
 
     /**
@@ -65,7 +67,9 @@ public class SemanticCacheService {
         return Optional.empty();
     }
 
-    /** Store a query→answer pair. Evicts the oldest entry if the cache is full. */
+    /**
+     * Store a query→answer pair. Evicts the oldest entry if the cache is full.
+     */
     public void put(String query, String answer) {
         if (!properties.isEnabled()) return;
 
@@ -79,14 +83,6 @@ public class SemanticCacheService {
         }
     }
 
-    private static double cosine(float[] a, float[] b) {
-        if (a == null || b == null || a.length != b.length) return 0.0;
-        double dot = 0, na = 0, nb = 0;
-        for (int i = 0; i < a.length; i++) {
-            dot += a[i] * b[i];
-            na += a[i] * a[i];
-            nb += b[i] * b[i];
-        }
-        return (na == 0 || nb == 0) ? 0.0 : dot / (Math.sqrt(na) * Math.sqrt(nb));
+    private record CacheEntry(float[] queryVector, String answer, long expiresAtMillis) {
     }
 }

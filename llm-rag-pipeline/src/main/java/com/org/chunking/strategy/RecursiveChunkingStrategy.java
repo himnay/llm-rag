@@ -56,7 +56,9 @@ public class RecursiveChunkingStrategy extends AbstractChunkingStrategy {
         return result;
     }
 
-    /** Greedily packs pieces into <= maxChars chunks, carrying an overlap tail between chunks. */
+    /**
+     * Greedily packs pieces into <= maxChars chunks, carrying an overlap tail between chunks.
+     */
     private void mergeInto(List<String> out, List<String> pieces, int maxChars, int overlap) {
         StringBuilder current = new StringBuilder();
         for (String piece : pieces) {

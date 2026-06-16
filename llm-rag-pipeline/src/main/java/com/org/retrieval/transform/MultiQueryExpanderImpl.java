@@ -25,19 +25,23 @@ public class MultiQueryExpanderImpl implements QueryTransformer {
 
     private static final String SYSTEM_TEMPLATE =
             "You are a search query assistant. Generate %d distinct paraphrases of the user's question "
-            + "to improve retrieval coverage. Each paraphrase should capture the same intent but use "
-            + "different vocabulary or structure. Output ONLY the paraphrases, one per line, no bullets.";
+                    + "to improve retrieval coverage. Each paraphrase should capture the same intent but use "
+                    + "different vocabulary or structure. Output ONLY the paraphrases, one per line, no bullets.";
 
     private final ChatClient chatClient;
     private final int count;
 
-    /** Primary constructor used by Spring — reads count from {@code app.retrieval.query-transform.multi-query-count}. */
+    /**
+     * Primary constructor used by Spring — reads count from {@code app.retrieval.query-transform.multi-query-count}.
+     */
     @Autowired
     public MultiQueryExpanderImpl(ChatClient chatClient, RetrievalProperties properties) {
         this(chatClient, properties.getQueryTransform().getMultiQueryCount());
     }
 
-    /** Secondary constructor for tests and manual wiring. */
+    /**
+     * Secondary constructor for tests and manual wiring.
+     */
     public MultiQueryExpanderImpl(ChatClient chatClient, int count) {
         this.chatClient = chatClient;
         this.count = count;

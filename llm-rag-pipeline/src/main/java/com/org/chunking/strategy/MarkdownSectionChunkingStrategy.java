@@ -6,7 +6,9 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-/** Splits markdown by heading boundaries ({@code #}, {@code ##}, ...), keeping each section intact. */
+/**
+ * Splits markdown by heading boundaries ({@code #}, {@code ##}, ...), keeping each section intact.
+ */
 @Component
 public class MarkdownSectionChunkingStrategy extends AbstractChunkingStrategy {
 

@@ -45,11 +45,52 @@ answer, e.g. *"Who in Engineering works on ML projects and reports to the CTO?"*
 
 The variation points across the modules are modelled with classic Gang-of-Four patterns —
 Strategy, Chain of Responsibility, Factory, Template Method, Composite, Proxy, Facade, Adapter —
-and patterns are deliberately *omitted* where no real variation point exists. See the
-[Design patterns section](llm-rag-pipeline/README.md#-design-patterns-gof) in `llm-rag-pipeline`
-for the full table and the reasoning, plus the shorter notes in
-[`llm-rag-vectorless`](llm-rag-vectorless/README.md#-design-patterns) and
-[`llm-rag-graph`](llm-rag-graph/README.md#-design-patterns).
+plus several additional patterns added to improve correctness, extensibility, and observability.
+Patterns are deliberately *omitted* where no real variation point exists.
+
+| Pattern | Where | What it does |
+|---------|-------|-------------|
+| **Strategy** | `SearchStrategy`, `ChunkingStrategy`, `RetrievalPostProcessor`, `GraphExtractionStrategy`, `DocumentReaderStrategy` | Swap algorithms at runtime without touching callers |
+| **Template Method** | `DatabaseIngestionService.ingestTable()` | Shared SQL+map loop; table-specific row mapping supplied by subclass |
+| **Command** | `IngestionCommand`, `DeleteCommand`, `IngestAllCommand`, `CommandExecutor` | Lifecycle operations as first-class objects with audit logging |
+| **Observer** (Spring Events) | `IngestionCompletedEvent`, `VectorsStoredEvent` | Pipeline stages decouple via `ApplicationEventPublisher` |
+| **Decorator** | `MeteredReranker`, `CachedReranker` | Wrap any `Reranker` with metrics and cache without subclassing |
+| **Chain of Responsibility** | `RetrievalPostProcessor` chain | Filter → dedup → rerank pipeline composable at startup |
+| **Factory / Builder** | `ChatClient.Builder`, `QuestionAnswerAdvisor.Builder` | Spring AI advisor configuration |
+| **Facade** | `KnowledgeLifecycleService`, `GraphRAGService` | Hide multi-step orchestration behind a single interface |
+
+## Recent improvements
+
+### llm-rag-pipeline
+
+| Area | Change |
+|------|--------|
+| **Multi-turn conversation** | `GenerationService` now holds a `MessageWindowChatMemory` (Spring AI 2.0.0-RC2). Pass `conversationId` in `GenerateRequest` to continue a session; omit it for single-turn (UUID generated per request). Conversation ID is injected via `ChatMemory.CONVERSATION_ID` advisor param. |
+| **Streaming generation (SSE)** | `POST /api/v1/generate/stream` returns `text/event-stream` via `Flux<String>`. Same RAG pipeline as the blocking endpoint — injection guard, context rebuild, ChatMemory advisor. |
+| **Async ingestion** | `POST /api/v1/upload/async` accepts a file and immediately returns HTTP 202 with a `jobId`. The ingestion runs in a dedicated `ThreadPoolTaskExecutor`. `GET /api/v1/upload/{jobId}/status` polls the `IngestionJob` (PENDING → RUNNING → DONE / FAILED). |
+| **Command pattern for lifecycle** | `IngestCommand`, `DeleteCommand`, `IngestAllCommand` wrap each lifecycle operation. `CommandExecutor` provides audit logging at a single point. |
+| **Spring Application Events** | `KnowledgeLifecycleService` publishes `IngestionCompletedEvent` and `VectorsStoredEvent` after each stage. Listeners can react to pipeline progress without coupling to the service. |
+| **Decorator on Reranker** | Every `Reranker` is wrapped at startup by `MeteredReranker` (Micrometer `Timer` + failure counter) then `CachedReranker` (score cache to avoid re-ranking identical query+chunk pairs). |
+| **Resilience4j circuit breaker** | `RerankingPostProcessor` uses Resilience4j `CircuitBreaker` (replacing a hand-rolled state machine). Metrics integrate automatically with Micrometer. |
+| **VectorMath utility** | `com.org.common.VectorMath.cosine()` consolidates duplicate cosine-similarity implementations from `SemanticCacheService`, `SemanticChunkingStrategy`, and `TextSimilarity`. |
+| **EmbeddingCacheService** | Fixed race condition (ConcurrentHashMap replaces synchronized LinkedHashMap). SHA-256 reused per-thread via `ThreadLocal<MessageDigest>`. |
+| **RateLimitFilter** | API key is hashed with SHA-256 before bucketing (was `hashCode()`, causing collisions across different keys). |
+| **Actuator security** | Health detail and component info only exposed to callers with `ACTUATOR` role (`when-authorized`). Previously always-visible. |
+| **CORS** | `PUT` and `PATCH` added to allowed methods in `SecurityConfig`. |
+| **@Transactional guard** | `KnowledgeLifecycleService.reingest()` now deletes existing vectors only after chunking succeeds and produces a non-empty list, preventing data loss on chunking failures. |
+| **DocumentReaderFactory — Strategy pattern** | File-type dispatch extracted from a monolithic switch into per-type `DocumentReaderStrategy` `@Component` beans (`PdfReaderStrategy`, `MarkdownReaderStrategy`, `ExcelReaderStrategy`, `TikaReaderStrategy`, …). `DocumentType` enum owns the extension→source-label mapping. Adding a new file type only requires a new `@Component` — no changes to the factory. |
+| **UnsupportedDocumentTypeException** | Custom exception replaces `IllegalArgumentException` for unknown file types. `GlobalExceptionHandler` maps it to HTTP 415 Unsupported Media Type. |
+| **Lombok boilerplate removed** | 9 `@ConfigurationProperties` classes converted from manual getters/setters to `@Data`. Command classes (`IngestCommand`, `DeleteCommand`, `IngestAllCommand`) use `@RequiredArgsConstructor`. Event classes (`IngestionCompletedEvent`, `VectorsStoredEvent`) use `@Getter` in place of manual accessors. |
+
+### llm-rag-graph
+
+| Area | Change |
+|------|--------|
+| **Security layer** | API-key authentication and rate limiting added (mirrors pipeline module). Configured via `app.security.*` properties. |
+| **GlobalExceptionHandler** | `@RestControllerAdvice` returns RFC 9457 `ProblemDetail` JSON for validation errors, bad requests, and `LlmCallException`. |
+| **LLM error handling** | `AnthropicLLMService` wraps all SDK exceptions in `LlmCallException`. Callers see a typed exception instead of a raw `RuntimeException` with a raw stack trace. |
+| **Strategy pattern for graph extraction** | `GraphExtractionStrategy` interface + `PathTraversalStrategy` implementation. New traversal approaches (semantic, embedding-based) can be added without modifying `GraphContextExtractor`. |
+| **Test coverage** | `AnthropicLLMServiceTest` — network failure and auth failure scenarios. `GraphRAGServiceTest` — LLM exception propagation test. |
 
 ## Building and testing
 
@@ -458,9 +499,18 @@ annotations.
 **How it's used here:** All three modules use Lombok extensively. `@RequiredArgsConstructor`
 generates constructors that inject all `final` fields, eliminating Spring constructor-injection
 boilerplate. `@Slf4j` adds a `log` field without a `LoggerFactory.getLogger(...)` call.
-`@Getter`/`@Setter`/`@NoArgsConstructor` are used on Neo4j `@Node` domain classes in
-`llm-rag-graph`. Lombok is excluded from the final JAR (`<optional>true</optional>`) and stripped
-by the Spring Boot Maven plugin.
+`@Data` replaces all manual getters and setters on the nine `@ConfigurationProperties` classes
+(`EmbeddingCacheProperties`, `SemanticCacheProperties`, `OcrProperties`, `IngestionProperties`, etc.),
+cutting roughly 120 lines of boilerplate across the pipeline module. `@Getter` covers Spring event
+classes (`IngestionCompletedEvent`, `VectorsStoredEvent`) that extend `ApplicationEvent` and therefore
+cannot be Java records. Command classes (`IngestCommand`, `DeleteCommand`, `IngestAllCommand`) use
+`@RequiredArgsConstructor` to remove their explicit constructors. `@Getter`/`@Setter`/`@NoArgsConstructor`
+remain on Neo4j `@Node` domain classes in `llm-rag-graph`. Lombok is excluded from the final JAR
+(`<optional>true</optional>`) and stripped by the Spring Boot Maven plugin.
+
+Where a class is a pure immutable data holder with no superclass, **Java 21 records** are preferred
+over Lombok — `KnowledgeRequest`, `IngestedDocument`, `IngestionJob`, `GraphContext`, and all REST
+DTOs (`GenerateRequest`, `RagRequest`, `RagResponse`, `GraphStats`, …) are records.
 
 ---
 

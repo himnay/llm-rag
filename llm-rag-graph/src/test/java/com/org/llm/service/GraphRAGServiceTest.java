@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
@@ -27,15 +28,24 @@ import static org.mockito.Mockito.when;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class GraphRAGServiceTest {
 
-    @Mock private GraphContextExtractor graphContextExtractor;
-    @Mock private AnthropicLLMService   llmService;
-    @Mock private CompanyRepository     companyRepo;
-    @Mock private DepartmentRepository  deptRepo;
-    @Mock private TeamRepository        teamRepo;
-    @Mock private EmployeeRepository    employeeRepo;
-    @Mock private ProjectRepository     projectRepo;
-    @Mock private TechnologyRepository  techRepo;
-    @Mock(answer = Answers.RETURNS_DEEP_STUBS) private Neo4jClient neo4jClient;
+    @Mock
+    private GraphContextExtractor graphContextExtractor;
+    @Mock
+    private AnthropicLLMService llmService;
+    @Mock
+    private CompanyRepository companyRepo;
+    @Mock
+    private DepartmentRepository deptRepo;
+    @Mock
+    private TeamRepository teamRepo;
+    @Mock
+    private EmployeeRepository employeeRepo;
+    @Mock
+    private ProjectRepository projectRepo;
+    @Mock
+    private TechnologyRepository techRepo;
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+    private Neo4jClient neo4jClient;
 
     @InjectMocks
     private GraphRAGService service;
@@ -56,6 +66,18 @@ class GraphRAGServiceTest {
         assertThat(response.relevantEntities()).containsExactly("Alice Chen");
         assertThat(response.processingTimeMs()).isGreaterThanOrEqualTo(0);
         verify(llmService).answer("Who is Alice?", ctx.formattedContext());
+    }
+
+    @Test
+    void llmCallFailurePropagatesAsLlmCallException() {
+        var ctx = new GraphContextExtractor.GraphContext("context", List.of("Alice"));
+        when(graphContextExtractor.extract(anyString())).thenReturn(ctx);
+        when(llmService.answer(anyString(), anyString()))
+                .thenThrow(new LlmCallException("Connection refused", new RuntimeException()));
+
+        assertThatThrownBy(() -> service.query(new RagRequest("Who is Alice?")))
+                .isInstanceOf(LlmCallException.class)
+                .hasMessageContaining("Connection refused");
     }
 
     @Test

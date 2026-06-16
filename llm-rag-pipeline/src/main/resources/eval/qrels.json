@@ -1,42 +1,62 @@
 [
   {
     "query": "How many paid leave days do employees get and how do I apply for leave?",
-    "relevantSources": ["HR_Leave_Policy.pdf"]
+    "relevantSources": [
+      "HR_Leave_Policy.pdf"
+    ]
   },
   {
     "query": "What are the steps to onboard a new employee?",
-    "relevantSources": ["Employee_Onboarding_Guide.pdf"]
+    "relevantSources": [
+      "Employee_Onboarding_Guide.pdf"
+    ]
   },
   {
     "query": "Which days are company holidays in 2026?",
-    "relevantSources": ["NexaCorp_Company_Holidays_2026.pdf"]
+    "relevantSources": [
+      "NexaCorp_Company_Holidays_2026.pdf"
+    ]
   },
   {
     "query": "What are the rules for accessing IT systems and granting permissions?",
-    "relevantSources": ["IT_Access_Control_Policy.pdf"]
+    "relevantSources": [
+      "IT_Access_Control_Policy.pdf"
+    ]
   },
   {
     "query": "How is personal and customer data protected and handled?",
-    "relevantSources": ["Data_Privacy_Guidelines.pdf"]
+    "relevantSources": [
+      "Data_Privacy_Guidelines.pdf"
+    ]
   },
   {
     "query": "What does the information security policy require of employees?",
-    "relevantSources": ["Information_Security_Policy.pdf"]
+    "relevantSources": [
+      "Information_Security_Policy.pdf"
+    ]
   },
   {
     "query": "How does the authentication flow work?",
-    "relevantSources": ["authentication-flow.md"]
+    "relevantSources": [
+      "authentication-flow.md"
+    ]
   },
   {
     "query": "What is the authorization model and how are roles enforced?",
-    "relevantSources": ["authorization-model.md"]
+    "relevantSources": [
+      "authorization-model.md"
+    ]
   },
   {
     "query": "What are the API guidelines for the platform?",
-    "relevantSources": ["api-guidelines.md"]
+    "relevantSources": [
+      "api-guidelines.md"
+    ]
   },
   {
     "query": "How do I troubleshoot common platform issues?",
-    "relevantSources": ["troubleshooting-common-issues.md"]
+    "relevantSources": [
+      "troubleshooting-common-issues.md"
+    ]
   }
 ]

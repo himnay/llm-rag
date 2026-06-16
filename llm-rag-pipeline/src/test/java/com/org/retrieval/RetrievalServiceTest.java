@@ -18,8 +18,8 @@ public class RetrievalServiceTest extends IntegrationTest {
     void retrieve_test() {
         RetrievalResult result = retrievalService.retrieve("What is the work from home policy");
 
-        log.info("Retrieval result - chunks found: {}" , result.chunks().size());
-        for(Chunk chunk : result.chunks()) {
+        log.info("Retrieval result - chunks found: {}", result.chunks().size());
+        for (Chunk chunk : result.chunks()) {
             log.info("Metadata    : {}", chunk.metadata());
             log.info("Content     : {}", chunk.content());
         }

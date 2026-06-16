@@ -23,11 +23,35 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class HybridSearchStrategy implements SearchStrategy {
 
-    /** Standard RRF damping constant from the original Cormack et al. paper. */
+    /**
+     * Standard RRF damping constant from the original Cormack et al. paper.
+     */
     private static final int K = 60;
 
     private final VectorSearchStrategy vectorSearch;
     private final KeywordSearchStrategy keywordSearch;
+
+    private static void accumulate(List<Document> side, Map<String, Document> byId, Map<String, Double> fused) {
+        for (int rank = 0; rank < side.size(); rank++) {
+            Document document = side.get(rank);
+            String key = document.getId() == null || document.getId().isBlank()
+                    ? document.getText() : document.getId();
+            byId.putIfAbsent(key, document);
+            fused.merge(key, 1.0 / (K + rank + 1), Double::sum);
+        }
+    }
+
+    /**
+     * One side of the hybrid; a failing side contributes nothing instead of failing the query.
+     */
+    private static List<Document> sideOf(String name, java.util.function.Supplier<List<Document>> side) {
+        try {
+            return side.get();
+        } catch (Exception e) {
+            log.warn("Hybrid search: {} side failed ({}); continuing with the other side", name, e.getMessage());
+            return List.of();
+        }
+    }
 
     @Override
     public SearchMode mode() {
@@ -54,25 +78,5 @@ public class HybridSearchStrategy implements SearchStrategy {
             result.add(document.mutate().score(max == 0 ? 0.0 : entry.getValue() / max).build());
         }
         return result;
-    }
-
-    private static void accumulate(List<Document> side, Map<String, Document> byId, Map<String, Double> fused) {
-        for (int rank = 0; rank < side.size(); rank++) {
-            Document document = side.get(rank);
-            String key = document.getId() == null || document.getId().isBlank()
-                    ? document.getText() : document.getId();
-            byId.putIfAbsent(key, document);
-            fused.merge(key, 1.0 / (K + rank + 1), Double::sum);
-        }
-    }
-
-    /** One side of the hybrid; a failing side contributes nothing instead of failing the query. */
-    private static List<Document> sideOf(String name, java.util.function.Supplier<List<Document>> side) {
-        try {
-            return side.get();
-        } catch (Exception e) {
-            log.warn("Hybrid search: {} side failed ({}); continuing with the other side", name, e.getMessage());
-            return List.of();
-        }
     }
 }

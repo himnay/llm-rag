@@ -11,7 +11,9 @@ import java.util.List;
  */
 public interface QueryTransformer {
 
-    /** Transform or expand the input query. Never returns null or an empty list. */
+    /**
+     * Transform or expand the input query. Never returns null or an empty list.
+     */
     List<String> transform(String query);
 
     QueryTransformMode mode();

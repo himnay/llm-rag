@@ -17,11 +17,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class IngestionOrchestrator {
 
-    private final PdfIngestionService  pdfIngestionService;
-    private final WikiIngestionService  wikiIngestionService;
-    private final DatabaseIngestionService   databaseIngestionService;
+    private final PdfIngestionService pdfIngestionService;
+    private final WikiIngestionService wikiIngestionService;
+    private final DatabaseIngestionService databaseIngestionService;
 
-    public List<IngestedDocument> ingest(KnowledgeRequest request) throws Exception{
+    public List<IngestedDocument> ingest(KnowledgeRequest request) throws Exception {
         SourceType source = request.sourceType();
         if (source.equals(SourceType.PDF)) {
             return pdfIngestionService.ingest(request.name());
@@ -35,7 +35,7 @@ public class IngestionOrchestrator {
         return Collections.emptyList();
     }
 
-    public List<IngestedDocument> ingestAll() throws  Exception {
+    public List<IngestedDocument> ingestAll() throws Exception {
         List<IngestedDocument> docs = new ArrayList<>();
         docs.addAll(pdfIngestionService.ingestPdfs());
         docs.addAll(wikiIngestionService.ingestWikiFiles());

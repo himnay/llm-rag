@@ -19,7 +19,7 @@ paths:
           application/json:
             schema:
               type: object
-              required: [query]
+              required: [ query ]
               properties:
                 query: { type: string, example: "What is the leave policy?" }
                 topK: { type: integer, minimum: 1, example: 10 }
@@ -117,9 +117,9 @@ components:
   schemas:
     KnowledgeRequest:
       type: object
-      required: [sourceType, name]
+      required: [ sourceType, name ]
       properties:
-        sourceType: { type: string, enum: [PDF, WIKI, DATABASE] }
+        sourceType: { type: string, enum: [ PDF, WIKI, DATABASE ] }
         name: { type: string, example: "HR_Leave_Policy.pdf" }
     ApiError:
       type: object

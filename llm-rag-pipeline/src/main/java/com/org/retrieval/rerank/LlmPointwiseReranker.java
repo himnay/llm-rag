@@ -34,14 +34,30 @@ public class LlmPointwiseReranker implements Reranker {
             You grade search results. Rate how relevant the document is to the query \
             on a scale of 0 (irrelevant) to 100 (perfectly answers it).
             Respond with ONLY the integer.
-
+            
             Query: %s
-
+            
             Document:
             %s
             """;
 
     private final ChatClient chatClient;
+
+    static String truncate(String content) {
+        return content.length() <= MAX_DOC_CHARS ? content : content.substring(0, MAX_DOC_CHARS);
+    }
+
+    private static double parseGrade(String reply) {
+        if (reply == null) {
+            return 0;
+        }
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\d{1,3}").matcher(reply);
+        if (!m.find()) {
+            log.warn("LLM pointwise reranker returned no grade ('{}') — scoring 0", reply);
+            return 0;
+        }
+        return Math.min(100, Double.parseDouble(m.group()));
+    }
 
     @Override
     public RerankStrategy strategy() {
@@ -76,21 +92,5 @@ public class LlmPointwiseReranker implements Reranker {
                 .call()
                 .content();
         return parseGrade(reply) / 100.0;
-    }
-
-    static String truncate(String content) {
-        return content.length() <= MAX_DOC_CHARS ? content : content.substring(0, MAX_DOC_CHARS);
-    }
-
-    private static double parseGrade(String reply) {
-        if (reply == null) {
-            return 0;
-        }
-        java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\d{1,3}").matcher(reply);
-        if (!m.find()) {
-            log.warn("LLM pointwise reranker returned no grade ('{}') — scoring 0", reply);
-            return 0;
-        }
-        return Math.min(100, Double.parseDouble(m.group()));
     }
 }

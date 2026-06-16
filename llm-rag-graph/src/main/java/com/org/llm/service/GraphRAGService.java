@@ -12,7 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Orchestrates the Graph RAG pipeline:
- *   question → GraphContextExtractor → AnthropicLLMService → RagResponse
+ * question → GraphContextExtractor → AnthropicLLMService → RagResponse
  */
 @Slf4j
 @Service
@@ -20,14 +20,14 @@ import org.springframework.transaction.annotation.Transactional;
 public class GraphRAGService {
 
     private final GraphContextExtractor graphContextExtractor;
-    private final AnthropicLLMService   llmService;
-    private final CompanyRepository     companyRepo;
-    private final DepartmentRepository  deptRepo;
-    private final TeamRepository        teamRepo;
-    private final EmployeeRepository    employeeRepo;
-    private final ProjectRepository     projectRepo;
-    private final TechnologyRepository  techRepo;
-    private final Neo4jClient           neo4jClient;
+    private final AnthropicLLMService llmService;
+    private final CompanyRepository companyRepo;
+    private final DepartmentRepository deptRepo;
+    private final TeamRepository teamRepo;
+    private final EmployeeRepository employeeRepo;
+    private final ProjectRepository projectRepo;
+    private final TechnologyRepository techRepo;
+    private final Neo4jClient neo4jClient;
 
     @Transactional(readOnly = true)
     public RagResponse query(RagRequest request) {
@@ -54,14 +54,14 @@ public class GraphRAGService {
     }
 
     public GraphStats getStats() {
-        long companies     = companyRepo.count();
-        long departments   = deptRepo.count();
-        long teams         = teamRepo.count();
-        long employees     = employeeRepo.count();
-        long projects      = projectRepo.count();
-        long technologies  = techRepo.count();
-        long totalNodes    = companies + departments + teams + employees + projects + technologies;
-        long totalRels     = countRelationships();
+        long companies = companyRepo.count();
+        long departments = deptRepo.count();
+        long teams = teamRepo.count();
+        long employees = employeeRepo.count();
+        long projects = projectRepo.count();
+        long technologies = techRepo.count();
+        long totalNodes = companies + departments + teams + employees + projects + technologies;
+        long totalRels = countRelationships();
 
         return new GraphStats(companies, departments, teams, employees,
                 projects, technologies, totalNodes, totalRels);

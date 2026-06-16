@@ -17,6 +17,10 @@ class RetrievalMetricsTest {
     // ranked relevance: relevant at ranks 1 and 3 (0-based 0 and 2)
     private static final List<Boolean> REL = List.of(true, false, true, false, false);
 
+    private static org.assertj.core.data.Offset<Double> within() {
+        return org.assertj.core.data.Offset.offset(EPS);
+    }
+
     @Test
     void precisionAtK() {
         assertThat(RetrievalMetrics.precisionAtK(REL, 1)).isCloseTo(1.0, within());   // 1/1
@@ -91,9 +95,5 @@ class RetrievalMetricsTest {
         double topRank = RetrievalMetrics.nDcg(List.of(true, false), 2);
         double lowerRank = RetrievalMetrics.nDcg(List.of(false, true), 2);
         assertThat(topRank).isGreaterThan(lowerRank);
-    }
-
-    private static org.assertj.core.data.Offset<Double> within() {
-        return org.assertj.core.data.Offset.offset(EPS);
     }
 }

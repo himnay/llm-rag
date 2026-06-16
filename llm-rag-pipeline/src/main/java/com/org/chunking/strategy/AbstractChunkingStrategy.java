@@ -8,10 +8,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/** Shared helper that turns text segments into {@link Chunk}s with consistent metadata. */
+/**
+ * Shared helper that turns text segments into {@link Chunk}s with consistent metadata.
+ */
 public abstract class AbstractChunkingStrategy implements ChunkingStrategy {
 
-    /** Builds chunks from ordered text segments, skipping blanks and assigning chunk indexes. */
+    /**
+     * Builds chunks from ordered text segments, skipping blanks and assigning chunk indexes.
+     */
     protected List<Chunk> toChunks(IngestedDocument document, List<String> segments) {
         List<Chunk> chunks = new ArrayList<>();
         int index = 0;

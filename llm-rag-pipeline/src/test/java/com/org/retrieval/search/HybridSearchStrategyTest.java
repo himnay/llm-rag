@@ -12,7 +12,9 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/** Unit tests with both sides stubbed — verifies RRF fusion, dedup, and one-side-down resilience. */
+/**
+ * Unit tests with both sides stubbed — verifies RRF fusion, dedup, and one-side-down resilience.
+ */
 class HybridSearchStrategyTest {
 
     private static Document doc(String id, String text) {

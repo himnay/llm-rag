@@ -16,10 +16,13 @@ import java.util.List;
  * Departments also form a collaboration network between themselves.
  */
 @Node("Department")
-@Getter @Setter @NoArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
 public class Department {
 
-    @Id @GeneratedValue
+    @Id
+    @GeneratedValue
     private Long id;
 
     private String name;

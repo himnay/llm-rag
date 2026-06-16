@@ -12,15 +12,15 @@ public class GroundingPolicy {
 
     private static final String WITH_CONTEXT =
             """
-            Answer the user's question using ONLY the provided context below.
-            If the answer is not present in the context, say "I don't have enough information to answer that."
-            Do not use prior knowledge. Do not make up information.
-            Every factual statement MUST reference its source using the citation header shown before each context block.
-            """;
+                    Answer the user's question using ONLY the provided context below.
+                    If the answer is not present in the context, say "I don't have enough information to answer that."
+                    Do not use prior knowledge. Do not make up information.
+                    Every factual statement MUST reference its source using the citation header shown before each context block.
+                    """;
 
     private static final String NO_CONTEXT =
             "No relevant context was retrieved from the knowledge base. "
-            + "Inform the user that you do not have enough information to answer their question.";
+                    + "Inform the user that you do not have enough information to answer their question.";
 
     public String groundingRules(boolean hasContext) {
         return hasContext ? WITH_CONTEXT : NO_CONTEXT;

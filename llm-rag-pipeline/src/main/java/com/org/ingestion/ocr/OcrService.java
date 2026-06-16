@@ -31,7 +31,9 @@ public class OcrService {
         return properties.getDpi();
     }
 
-    /** OCRs a single image; returns extracted text, or empty when OCR is unavailable. */
+    /**
+     * OCRs a single image; returns extracted text, or empty when OCR is unavailable.
+     */
     public String ocr(BufferedImage image) {
         if (!properties.isEnabled() || image == null) {
             return "";

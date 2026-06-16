@@ -19,7 +19,18 @@ public class IngestionLogRepository {
 
     private final JdbcTemplate jdbc;
 
-    /** True when an entry with this identity already records the same content hash. */
+    public static String sha256(String input) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(md.digest(input.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 unavailable", e);
+        }
+    }
+
+    /**
+     * True when an entry with this identity already records the same content hash.
+     */
     public boolean isUnchanged(String identity, String contentHash) {
         Integer count = jdbc.queryForObject(
                 "SELECT COUNT(*) FROM ingestion_log WHERE identity = ? AND content_hash = ?",
@@ -27,7 +38,9 @@ public class IngestionLogRepository {
         return count != null && count > 0;
     }
 
-    /** Inserts or updates the hash/chunk-count for an identity. */
+    /**
+     * Inserts or updates the hash/chunk-count for an identity.
+     */
     public void upsert(String identity, String contentHash, int chunkCount) {
         jdbc.update("""
                 INSERT INTO ingestion_log (identity, content_hash, chunk_count, updated_at)
@@ -45,14 +58,5 @@ public class IngestionLogRepository {
 
     public void deleteAll() {
         jdbc.update("TRUNCATE TABLE ingestion_log");
-    }
-
-    public static String sha256(String input) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            return HexFormat.of().formatHex(md.digest(input.getBytes(StandardCharsets.UTF_8)));
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 unavailable", e);
-        }
     }
 }

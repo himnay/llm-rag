@@ -8,7 +8,9 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/** Resolves a {@link ChunkingStrategy} by its {@link ChunkingStrategy#name()}. */
+/**
+ * Resolves a {@link ChunkingStrategy} by its {@link ChunkingStrategy#name()}.
+ */
 @Component
 public class ChunkingStrategyFactory {
 

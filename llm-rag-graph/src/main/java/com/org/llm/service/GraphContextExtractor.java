@@ -4,7 +4,6 @@ import com.org.llm.repository.DepartmentRepository;
 import com.org.llm.repository.EmployeeRepository;
 import com.org.llm.repository.ProjectRepository;
 import com.org.llm.repository.TechnologyRepository;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.neo4j.core.Neo4jClient;
@@ -16,43 +15,53 @@ import java.util.stream.Collectors;
 
 /**
  * Extracts rich multi-level graph context from Neo4j for a natural-language question.
- *
- * Strategy:
- *   1. Extract keywords from the question.
- *   2. Search Neo4j full-text index for matching entities.
- *   3. For each hit, traverse up to 4 relationship levels and collect paths.
- *   4. Format paths as natural-language sentences that the LLM can reason over.
+ * <p>
+ * Strategy pattern: the extraction pipeline delegates to a list of {@link GraphExtractionStrategy}
+ * implementations (currently {@link PathTraversalStrategy}), making it easy to add new traversal
+ * approaches (semantic search, embedding-based, etc.) without modifying this class.
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class GraphContextExtractor {
 
-    private final Neo4jClient          neo4jClient;
-    private final EmployeeRepository   employeeRepo;
+    private final Neo4jClient neo4jClient;
+    private final EmployeeRepository employeeRepo;
     private final DepartmentRepository deptRepo;
-    private final ProjectRepository    projectRepo;
+    private final ProjectRepository projectRepo;
     private final TechnologyRepository techRepo;
-
+    private final List<GraphExtractionStrategy> strategies;
     @Value("${app.graph.max-context-nodes:20}")
     private int maxContextNodes;
-
     @Value("${app.graph.context-depth:4}")
     private int contextDepth;
+
+    public GraphContextExtractor(Neo4jClient neo4jClient,
+                                 EmployeeRepository employeeRepo,
+                                 DepartmentRepository deptRepo,
+                                 ProjectRepository projectRepo,
+                                 TechnologyRepository techRepo,
+                                 List<GraphExtractionStrategy> strategies) {
+        this.neo4jClient = neo4jClient;
+        this.employeeRepo = employeeRepo;
+        this.deptRepo = deptRepo;
+        this.projectRepo = projectRepo;
+        this.techRepo = techRepo;
+        this.strategies = strategies;
+    }
 
     @Transactional(readOnly = true)
     public GraphContext extract(String question) {
         log.debug("Extracting graph context for question: {}", question);
 
-        List<String> keywords  = extractKeywords(question);
-        Set<String>  entityNames = new LinkedHashSet<>();
+        List<String> keywords = extractKeywords(question);
+        Set<String> entityNames = new LinkedHashSet<>();
         List<String> contextLines = new ArrayList<>();
 
         // ── 1. Full-text search across all node labels ──────────────────
         for (String keyword : keywords) {
             List<Map<String, Object>> hits = fullTextSearch(keyword);
             for (Map<String, Object> hit : hits) {
-                String name   = (String) hit.get("name");
+                String name = (String) hit.get("name");
                 String labels = (String) hit.get("labels");
                 if (name != null) entityNames.add(name);
                 if (name != null && labels != null) {
@@ -69,7 +78,7 @@ public class GraphContextExtractor {
 
                 StringBuilder sb = new StringBuilder();
                 sb.append("Employee ").append(emp.getName())
-                  .append(" (").append(emp.getTitle()).append(")");
+                        .append(" (").append(emp.getTitle()).append(")");
 
                 if (emp.getManager() != null) {
                     sb.append(" reports to ").append(emp.getManager().getName());
@@ -81,8 +90,8 @@ public class GraphContextExtractor {
                     emp.getProjectAssignments().forEach(wa -> {
                         if (wa.getProject() != null) {
                             sb.append(". Works on ").append(wa.getProject().getName())
-                              .append(" as ").append(wa.getRole())
-                              .append(" (").append(wa.getAllocationPct()).append("% allocation)");
+                                    .append(" as ").append(wa.getRole())
+                                    .append(" (").append(wa.getAllocationPct()).append("% allocation)");
                             entityNames.add(wa.getProject().getName());
                         }
                     });
@@ -97,7 +106,7 @@ public class GraphContextExtractor {
                 entityNames.add(dept.getName());
                 StringBuilder sb = new StringBuilder();
                 sb.append("Department ").append(dept.getName())
-                  .append(" (").append(dept.getHeadcount()).append(" headcount)");
+                        .append(" (").append(dept.getHeadcount()).append(" headcount)");
 
                 if (dept.getTeams() != null && !dept.getTeams().isEmpty()) {
                     String teams = dept.getTeams().stream()
@@ -127,7 +136,7 @@ public class GraphContextExtractor {
                 entityNames.add(proj.getName());
                 StringBuilder sb = new StringBuilder();
                 sb.append("Project ").append(proj.getName())
-                  .append(" (status: ").append(proj.getStatus()).append(")");
+                        .append(" (status: ").append(proj.getStatus()).append(")");
 
                 if (proj.getTechnologies() != null && !proj.getTechnologies().isEmpty()) {
                     String techs = proj.getTechnologies().stream()
@@ -145,8 +154,10 @@ public class GraphContextExtractor {
             });
         }
 
-        // ── 5. Multi-level path queries (Cypher traversal) ───────────────
-        contextLines.addAll(buildMultiLevelPaths(keywords));
+        // ── 5. Pluggable extraction strategies (Strategy pattern) ────────
+        for (GraphExtractionStrategy strategy : strategies) {
+            contextLines.addAll(strategy.extract(keywords));
+        }
 
         // ── 6. Deduplicate and cap ────────────────────────────────────────
         List<String> dedupedLines = contextLines.stream()
@@ -183,115 +194,6 @@ public class GraphContextExtractor {
         }
     }
 
-    // ── Multi-level Cypher path traversal ────────────────────────────────
-
-    private List<String> buildMultiLevelPaths(List<String> keywords) {
-        List<String> paths = new ArrayList<>();
-
-        for (String keyword : keywords) {
-            // Company → Department → Team → Employee path
-            paths.addAll(queryHierarchyPaths(keyword));
-            // Employee → Project → Technology path
-            paths.addAll(queryProjectPaths(keyword));
-            // Management chain
-            paths.addAll(queryManagementChain(keyword));
-            // Cross-department collaboration
-            paths.addAll(queryCollaborationPaths(keyword));
-        }
-        return paths;
-    }
-
-    private List<String> queryHierarchyPaths(String keyword) {
-        try {
-            String cypher = """
-                    MATCH (c:Company)-[:HAS_DEPARTMENT]->(d:Department)-[:HAS_TEAM]->(t:Team)-[:HAS_MEMBER]->(e:Employee)
-                    WHERE toLower(e.name) CONTAINS toLower($kw)
-                       OR toLower(d.name) CONTAINS toLower($kw)
-                       OR toLower(t.name) CONTAINS toLower($kw)
-                       OR any(skill IN e.skills WHERE toLower(skill) CONTAINS toLower($kw))
-                    RETURN c.name AS company, d.name AS dept, t.name AS team, e.name AS employee
-                    LIMIT 10
-                    """;
-            return neo4jClient.query(cypher)
-                    .bind(keyword).to("kw")
-                    .fetch().all().stream()
-                    .map(r -> String.format("%s → %s → %s → %s",
-                            r.get("company"), r.get("dept"), r.get("team"), r.get("employee")))
-                    .collect(Collectors.toList());
-        } catch (Exception e) {
-            log.debug("Hierarchy path query failed: {}", e.getMessage());
-            return Collections.emptyList();
-        }
-    }
-
-    private List<String> queryProjectPaths(String keyword) {
-        try {
-            String cypher = """
-                    MATCH (e:Employee)-[w:WORKS_ON]->(p:Project)-[:USES_TECHNOLOGY]->(t:Technology)
-                    WHERE toLower(e.name) CONTAINS toLower($kw)
-                       OR toLower(p.name) CONTAINS toLower($kw)
-                       OR toLower(t.name) CONTAINS toLower($kw)
-                       OR toLower(t.category) CONTAINS toLower($kw)
-                    RETURN e.name AS employee, w.role AS role, p.name AS project,
-                           collect(DISTINCT t.name) AS technologies
-                    LIMIT 10
-                    """;
-            return neo4jClient.query(cypher)
-                    .bind(keyword).to("kw")
-                    .fetch().all().stream()
-                    .map(r -> String.format("%s works on %s as %s using %s",
-                            r.get("employee"), r.get("project"),
-                            r.get("role"), r.get("technologies")))
-                    .collect(Collectors.toList());
-        } catch (Exception e) {
-            log.debug("Project path query failed: {}", e.getMessage());
-            return Collections.emptyList();
-        }
-    }
-
-    private List<String> queryManagementChain(String keyword) {
-        try {
-            String cypher = """
-                    MATCH chain = (e:Employee)-[:REPORTS_TO*1..3]->(mgr:Employee)
-                    WHERE toLower(e.name) CONTAINS toLower($kw)
-                       OR toLower(mgr.name) CONTAINS toLower($kw)
-                    WITH e, mgr, length(chain) AS depth
-                    RETURN e.name AS employee, mgr.name AS manager, depth
-                    ORDER BY depth LIMIT 10
-                    """;
-            return neo4jClient.query(cypher)
-                    .bind(keyword).to("kw")
-                    .fetch().all().stream()
-                    .map(r -> String.format("%s reports to %s (chain depth %s)",
-                            r.get("employee"), r.get("manager"), r.get("depth")))
-                    .collect(Collectors.toList());
-        } catch (Exception e) {
-            log.debug("Management chain query failed: {}", e.getMessage());
-            return Collections.emptyList();
-        }
-    }
-
-    private List<String> queryCollaborationPaths(String keyword) {
-        try {
-            String cypher = """
-                    MATCH (d1:Department)-[:COLLABORATES_WITH]->(d2:Department)
-                    WHERE toLower(d1.name) CONTAINS toLower($kw)
-                       OR toLower(d2.name) CONTAINS toLower($kw)
-                    RETURN d1.name AS dept1, d2.name AS dept2
-                    LIMIT 10
-                    """;
-            return neo4jClient.query(cypher)
-                    .bind(keyword).to("kw")
-                    .fetch().all().stream()
-                    .map(r -> String.format("Department %s collaborates with %s",
-                            r.get("dept1"), r.get("dept2")))
-                    .collect(Collectors.toList());
-        } catch (Exception e) {
-            log.debug("Collaboration path query failed: {}", e.getMessage());
-            return Collections.emptyList();
-        }
-    }
-
     // ── Helpers ───────────────────────────────────────────────────────────
 
     private List<String> extractKeywords(String question) {
@@ -315,12 +217,13 @@ public class GraphContextExtractor {
         }
         return "=== Graph Knowledge Context ===\n" +
                 lines.stream()
-                     .map(l -> "• " + l)
-                     .collect(Collectors.joining("\n")) +
+                        .map(l -> "• " + l)
+                        .collect(Collectors.joining("\n")) +
                 "\n=== End of Context ===";
     }
 
     // ── Result record ─────────────────────────────────────────────────────
 
-    public record GraphContext(String formattedContext, List<String> entityNames) {}
+    public record GraphContext(String formattedContext, List<String> entityNames) {
+    }
 }

@@ -14,10 +14,14 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/** Unit tests with a stubbed {@link ChatClient} whose grade depends on the prompted document. */
+/**
+ * Unit tests with a stubbed {@link ChatClient} whose grade depends on the prompted document.
+ */
 class LlmPointwiseRerankerTest {
 
-    /** A ChatClient whose reply is computed from the user prompt (thread-safe for parallel calls). */
+    /**
+     * A ChatClient whose reply is computed from the user prompt (thread-safe for parallel calls).
+     */
     private static ChatClient replying(Function<String, String> replyForPrompt) {
         ChatClient chatClient = mock(ChatClient.class);
         when(chatClient.prompt()).thenAnswer(promptInv -> {

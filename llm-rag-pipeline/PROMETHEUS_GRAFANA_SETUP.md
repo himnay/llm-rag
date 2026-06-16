@@ -22,14 +22,14 @@ export OPENAI_API_KEY=sk-...          # used only for embeddings (required at st
 
 ## 3. Endpoints
 
-| What            | URL                                                     |
-|-----------------|---------------------------------------------------------|
-| App health      | http://localhost:8081/actuator/health                   |
-| Prometheus scrape | http://localhost:8081/actuator/prometheus             |
-| Prometheus UI   | http://localhost:9090                                   |
-| Grafana         | http://localhost:3000  (admin / admin)                  |
-| Tempo (traces)  | queried via Grafana                                     |
-| Loki (logs)     | queried via Grafana                                     |
+| What              | URL                                       |
+|-------------------|-------------------------------------------|
+| App health        | http://localhost:8081/actuator/health     |
+| Prometheus scrape | http://localhost:8081/actuator/prometheus |
+| Prometheus UI     | http://localhost:9090                     |
+| Grafana           | http://localhost:3000  (admin / admin)    |
+| Tempo (traces)    | queried via Grafana                       |
+| Loki (logs)       | queried via Grafana                       |
 
 ## 4. Grafana
 

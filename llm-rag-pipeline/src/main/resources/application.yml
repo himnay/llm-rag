@@ -46,10 +46,11 @@ management:
         include: health,info,metrics,prometheus
   endpoint:
     health:
-      show-details: always
-      show-components: always
+      show-details: when-authorized   # expose internals only to ACTUATOR role, not unauthenticated callers
+      show-components: when-authorized
       probes:
         enabled: true
+      roles: ACTUATOR
     info:
       enabled: true
   info:
@@ -167,7 +168,6 @@ app:
       queue-capacity: 64           # bounded backlog for the shared write executor (back-pressure)
       embedding-model-id: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}  # stamped into every chunk's metadata
       embedding-dimension: 1536    # must match the model above; changing model requires full re-ingestion
-  # ── API-key security ──────────────────────────────────────────────────────────
   security:
     auth-enabled: ${API_AUTH_ENABLED:false}   # dev default: open. Set true in prod.
     header: X-API-Key
@@ -179,7 +179,6 @@ app:
     pii:
       enabled: ${PII_REDACTION_ENABLED:false}  # redact PII (email, phone, SSN, CC, IP) before embedding
       replacement: "[REDACTED]"
-  # ── Generation layer (opt-in — disabled by default) ───────────────────────────
   generation:
     enabled: ${GENERATION_ENABLED:false}  # expose POST /api/v1/generate
     mode: ${GENERATION_MODE:manual}       # manual (Section 7 pattern) | advisor (Section 12 pattern)
@@ -188,7 +187,6 @@ app:
     evaluate-faithfulness: ${EVALUATE_FAITHFULNESS:false}  # adds one extra LLM call per generation
     advisor:
       similarity-threshold: 0.7
-  # ── Caching ───────────────────────────────────────────────────────────────────
   cache:
     embedding:
       enabled: ${EMBEDDING_CACHE_ENABLED:true}   # cache text→vector to avoid re-embedding identical sentences

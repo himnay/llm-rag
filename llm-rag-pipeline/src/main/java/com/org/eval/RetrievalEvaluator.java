@@ -35,7 +35,9 @@ public class RetrievalEvaluator {
     private final RetrievalService retrievalService;
     private final ObjectMapper objectMapper;
 
-    /** Mutable holder backing the Micrometer gauges (updated on each evaluation run). */
+    /**
+     * Mutable holder backing the Micrometer gauges (updated on each evaluation run).
+     */
     private final Gauges gauges = new Gauges();
 
     public RetrievalEvaluator(RetrievalService retrievalService,
@@ -51,6 +53,10 @@ public class RetrievalEvaluator {
         Gauge.builder("rag.eval.ndcg", gauges, g -> g.ndcg).register(meterRegistry);
     }
 
+    private static String str(Object value) {
+        return Objects.toString(value, "");
+    }
+
     @PostConstruct
     void logGoldSetSize() {
         try {
@@ -61,7 +67,9 @@ public class RetrievalEvaluator {
         }
     }
 
-    /** Loads the gold evaluation set from the classpath. */
+    /**
+     * Loads the gold evaluation set from the classpath.
+     */
     public List<QueryRelevance> loadGoldSet() throws IOException {
         try (InputStream in = new ClassPathResource(QRELS_PATH).getInputStream()) {
             return List.of(objectMapper.readValue(in, QueryRelevance[].class));
@@ -140,7 +148,9 @@ public class RetrievalEvaluator {
         return report;
     }
 
-    /** Returns the first label that matches the chunk's source metadata, if any. */
+    /**
+     * Returns the first label that matches the chunk's source metadata, if any.
+     */
     private Optional<String> matchedLabel(Chunk chunk, List<String> labels) {
         String haystack = (str(chunk.metadata().get("fileName")) + "|"
                 + str(chunk.metadata().get("identity")) + "|"
@@ -150,11 +160,9 @@ public class RetrievalEvaluator {
                 .findFirst();
     }
 
-    private static String str(Object value) {
-        return Objects.toString(value, "");
-    }
-
-    /** Backing state for the {@code rag.eval.*} gauges. */
+    /**
+     * Backing state for the {@code rag.eval.*} gauges.
+     */
     private static final class Gauges {
         volatile double mrr;
         volatile double contextPrecision;

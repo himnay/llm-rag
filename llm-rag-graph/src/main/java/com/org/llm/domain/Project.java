@@ -16,10 +16,13 @@ import java.util.List;
  * and uses specific Technologies. Creates horizontal edges across the hierarchy.
  */
 @Node("Project")
-@Getter @Setter @NoArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
 public class Project {
 
-    @Id @GeneratedValue
+    @Id
+    @GeneratedValue
     private Long id;
 
     private String name;

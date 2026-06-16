@@ -26,7 +26,9 @@ public record EvaluationReport(
         double meanNdcg,
         List<QueryResult> perQuery) {
 
-    /** Per-query metrics. */
+    /**
+     * Per-query metrics.
+     */
     public record QueryResult(
             String query,
             int retrieved,

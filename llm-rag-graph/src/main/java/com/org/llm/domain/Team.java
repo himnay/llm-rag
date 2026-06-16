@@ -15,10 +15,13 @@ import java.util.List;
  * Level 2 — child of Department; parent of Employees.
  */
 @Node("Team")
-@Getter @Setter @NoArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
 public class Team {
 
-    @Id @GeneratedValue
+    @Id
+    @GeneratedValue
     private Long id;
 
     private String name;

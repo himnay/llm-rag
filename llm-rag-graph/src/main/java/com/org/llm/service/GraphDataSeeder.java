@@ -16,14 +16,14 @@ import java.util.List;
 
 /**
  * Seeds the Neo4j database with a 4-level TechCorp knowledge graph on first startup.
- *
+ * <p>
  * Hierarchy:
- *   Company (L0)
- *     └── Department (L1)          ← COLLABORATES_WITH between depts
- *           └── Team (L2)
- *                 └── Employee (L3) ← REPORTS_TO management chain
- *                       └── Project (cross-cutting) ← WORKS_ON (with role/allocation)
- *                             └── Technology (L4 leaf)
+ * Company (L0)
+ * └── Department (L1)          ← COLLABORATES_WITH between depts
+ * └── Team (L2)
+ * └── Employee (L3) ← REPORTS_TO management chain
+ * └── Project (cross-cutting) ← WORKS_ON (with role/allocation)
+ * └── Technology (L4 leaf)
  */
 @Slf4j
 @Service
@@ -31,13 +31,13 @@ import java.util.List;
 @ConditionalOnProperty(name = "app.graph.seed-data", havingValue = "true", matchIfMissing = true)
 public class GraphDataSeeder {
 
-    private final CompanyRepository     companyRepo;
-    private final DepartmentRepository  deptRepo;
-    private final TeamRepository        teamRepo;
-    private final EmployeeRepository    employeeRepo;
-    private final ProjectRepository     projectRepo;
-    private final TechnologyRepository  techRepo;
-    private final Neo4jClient           neo4jClient;
+    private final CompanyRepository companyRepo;
+    private final DepartmentRepository deptRepo;
+    private final TeamRepository teamRepo;
+    private final EmployeeRepository employeeRepo;
+    private final ProjectRepository projectRepo;
+    private final TechnologyRepository techRepo;
+    private final Neo4jClient neo4jClient;
 
     @EventListener(ApplicationReadyEvent.class)
     @Transactional
@@ -51,18 +51,18 @@ public class GraphDataSeeder {
         createFullTextIndex();
 
         // ── Technologies (leaf nodes) ──────────────────────────────────────
-        Technology java        = save(new Technology("Java",          "language",  "Enterprise JVM language",        "21"));
-        Technology spring      = save(new Technology("Spring Boot",   "framework", "Java microservices framework",   "4.x"));
-        Technology kubernetes  = save(new Technology("Kubernetes",    "platform",  "Container orchestration",        "1.29"));
-        Technology react       = save(new Technology("React",         "framework", "UI component library",           "18"));
-        Technology typescript  = save(new Technology("TypeScript",    "language",  "Typed superset of JavaScript",   "5"));
-        Technology graphql     = save(new Technology("GraphQL",       "framework", "API query language",             "16"));
-        Technology python      = save(new Technology("Python",        "language",  "Data science & scripting",       "3.12"));
-        Technology tensorflow  = save(new Technology("TensorFlow",    "framework", "ML training framework",          "2.x"));
-        Technology spark       = save(new Technology("Apache Spark",  "platform",  "Distributed data processing",    "3.5"));
-        Technology kafka       = save(new Technology("Apache Kafka",  "platform",  "Event streaming platform",       "3.x"));
-        Technology postgres    = save(new Technology("PostgreSQL",    "platform",  "Relational database",            "16"));
-        Technology neo4j       = save(new Technology("Neo4j",        "platform",  "Native graph database",          "5.x"));
+        Technology java = save(new Technology("Java", "language", "Enterprise JVM language", "21"));
+        Technology spring = save(new Technology("Spring Boot", "framework", "Java microservices framework", "4.x"));
+        Technology kubernetes = save(new Technology("Kubernetes", "platform", "Container orchestration", "1.29"));
+        Technology react = save(new Technology("React", "framework", "UI component library", "18"));
+        Technology typescript = save(new Technology("TypeScript", "language", "Typed superset of JavaScript", "5"));
+        Technology graphql = save(new Technology("GraphQL", "framework", "API query language", "16"));
+        Technology python = save(new Technology("Python", "language", "Data science & scripting", "3.12"));
+        Technology tensorflow = save(new Technology("TensorFlow", "framework", "ML training framework", "2.x"));
+        Technology spark = save(new Technology("Apache Spark", "platform", "Distributed data processing", "3.5"));
+        Technology kafka = save(new Technology("Apache Kafka", "platform", "Event streaming platform", "3.x"));
+        Technology postgres = save(new Technology("PostgreSQL", "platform", "Relational database", "16"));
+        Technology neo4j = save(new Technology("Neo4j", "platform", "Native graph database", "5.x"));
 
         // ── Projects (cross-cutting) ───────────────────────────────────────
         Project alphaApi = new Project("Project Alpha",
@@ -147,42 +147,42 @@ public class GraphDataSeeder {
                 "Builds data pipelines, warehousing, and graph infrastructure", "Kanban");
 
         // ── Employees (L3) ────────────────────────────────────────────────
-        Employee alice = new Employee("Alice Chen",    "Principal Engineer",
+        Employee alice = new Employee("Alice Chen", "Principal Engineer",
                 "alice@techcorp.com",
                 "Alice leads the backend platform; deep expertise in distributed systems and API design.",
                 List.of("Java", "Spring Boot", "Kubernetes", "GraphQL", "System Design"), 9);
 
-        Employee bob = new Employee("Bob Martinez",   "Senior Engineer",
+        Employee bob = new Employee("Bob Martinez", "Senior Engineer",
                 "bob@techcorp.com",
                 "Bob specialises in high-throughput services and event-driven architectures.",
                 List.of("Java", "Apache Kafka", "Spring Boot", "PostgreSQL"), 6);
 
-        Employee charlie = new Employee("Charlie Wang",  "Tech Lead",
+        Employee charlie = new Employee("Charlie Wang", "Tech Lead",
                 "charlie@techcorp.com",
                 "Charlie leads the frontend team and is passionate about design systems.",
                 List.of("React", "TypeScript", "GraphQL", "CSS", "Testing"), 7);
 
-        Employee diana = new Employee("Diana Patel",   "Senior Frontend Engineer",
+        Employee diana = new Employee("Diana Patel", "Senior Frontend Engineer",
                 "diana@techcorp.com",
                 "Diana owns the React component library and accessibility initiatives.",
                 List.of("React", "TypeScript", "WCAG", "Figma"), 5);
 
-        Employee eve = new Employee("Eve Johnson",    "VP of Product",
+        Employee eve = new Employee("Eve Johnson", "VP of Product",
                 "eve@techcorp.com",
                 "Eve defines the product vision and manages cross-functional roadmaps.",
                 List.of("Product Strategy", "OKRs", "Stakeholder Management", "Data Analysis"), 12);
 
-        Employee frank = new Employee("Frank Kim",     "Platform Engineer",
+        Employee frank = new Employee("Frank Kim", "Platform Engineer",
                 "frank@techcorp.com",
                 "Frank owns Kubernetes, Helm charts, and the streaming platform migration.",
                 List.of("Kubernetes", "Helm", "Terraform", "Apache Kafka", "Java"), 4);
 
-        Employee grace = new Employee("Grace Liu",     "ML Engineer",
+        Employee grace = new Employee("Grace Liu", "ML Engineer",
                 "grace@techcorp.com",
                 "Grace designs and trains production ML models for recommendation and fraud detection.",
                 List.of("Python", "TensorFlow", "PyTorch", "Feature Engineering", "MLOps"), 6);
 
-        Employee henry = new Employee("Henry Brown",   "Data Scientist",
+        Employee henry = new Employee("Henry Brown", "Data Scientist",
                 "henry@techcorp.com",
                 "Henry builds analytical pipelines and performs statistical analysis for product teams.",
                 List.of("Python", "Apache Spark", "SQL", "Statistics", "Neo4j"), 5);
@@ -192,7 +192,7 @@ public class GraphDataSeeder {
                 "Isabel owns the customer portal roadmap and coordinates Engineering + Data Science.",
                 List.of("Roadmapping", "User Research", "SQL", "Figma", "A/B Testing"), 7);
 
-        Employee james = new Employee("James Wright",  "Staff Engineer",
+        Employee james = new Employee("James Wright", "Staff Engineer",
                 "james@techcorp.com",
                 "James architects cross-system integrations and drives tech decisions in Engineering.",
                 List.of("Java", "Neo4j", "System Architecture", "Apache Kafka", "Kubernetes"), 10);
@@ -209,39 +209,39 @@ public class GraphDataSeeder {
 
         // ── Project assignments (WORKS_ON with role + allocation) ─────────
         alice.setProjectAssignments(List.of(
-                new WorksOnRelationship("lead",        "2023-01-15", 60, alphaApi),
-                new WorksOnRelationship("architect",   "2024-03-01", 20, epsilonGraph)));
+                new WorksOnRelationship("lead", "2023-01-15", 60, alphaApi),
+                new WorksOnRelationship("architect", "2024-03-01", 20, epsilonGraph)));
 
         bob.setProjectAssignments(List.of(
                 new WorksOnRelationship("contributor", "2023-01-15", 70, alphaApi),
                 new WorksOnRelationship("contributor", "2023-09-01", 30, deltaStream)));
 
         charlie.setProjectAssignments(List.of(
-                new WorksOnRelationship("lead",        "2023-06-01", 80, betaPortal)));
+                new WorksOnRelationship("lead", "2023-06-01", 80, betaPortal)));
 
         diana.setProjectAssignments(List.of(
                 new WorksOnRelationship("contributor", "2023-06-01", 100, betaPortal)));
 
         frank.setProjectAssignments(List.of(
-                new WorksOnRelationship("lead",        "2023-09-01", 80, deltaStream),
+                new WorksOnRelationship("lead", "2023-09-01", 80, deltaStream),
                 new WorksOnRelationship("contributor", "2023-01-15", 20, alphaApi)));
 
         grace.setProjectAssignments(List.of(
-                new WorksOnRelationship("lead",        "2024-01-10", 70, gammaML),
+                new WorksOnRelationship("lead", "2024-01-10", 70, gammaML),
                 new WorksOnRelationship("contributor", "2024-03-01", 30, epsilonGraph)));
 
         henry.setProjectAssignments(List.of(
                 new WorksOnRelationship("contributor", "2024-01-10", 60, gammaML),
-                new WorksOnRelationship("lead",        "2024-03-01", 40, epsilonGraph)));
+                new WorksOnRelationship("lead", "2024-03-01", 40, epsilonGraph)));
 
         james.setProjectAssignments(List.of(
-                new WorksOnRelationship("architect",   "2023-09-01", 40, deltaStream),
-                new WorksOnRelationship("architect",   "2024-03-01", 40, epsilonGraph),
-                new WorksOnRelationship("reviewer",    "2023-01-15", 20, alphaApi)));
+                new WorksOnRelationship("architect", "2023-09-01", 40, deltaStream),
+                new WorksOnRelationship("architect", "2024-03-01", 40, epsilonGraph),
+                new WorksOnRelationship("reviewer", "2023-01-15", 20, alphaApi)));
 
         isabel.setProjectAssignments(List.of(
-                new WorksOnRelationship("pm",          "2023-06-01", 50, betaPortal),
-                new WorksOnRelationship("pm",          "2024-01-10", 50, gammaML)));
+                new WorksOnRelationship("pm", "2023-06-01", 50, betaPortal),
+                new WorksOnRelationship("pm", "2024-01-10", 50, gammaML)));
 
         // ── Assemble teams ─────────────────────────────────────────────────
         backendTeam.setMembers(List.of(alice, bob, charlie));

@@ -31,9 +31,9 @@ public class LlmListwiseReranker implements Reranker {
             You rank search results. Order the documents below from most to least relevant \
             to the query. Respond with ONLY the document numbers, comma-separated \
             (e.g. "2, 0, 1"). Include every number exactly once.
-
+            
             Query: %s
-
+            
             %s
             """;
 

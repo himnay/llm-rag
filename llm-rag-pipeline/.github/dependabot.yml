@@ -7,9 +7,9 @@ updates:
     open-pull-requests-limit: 10
     groups:
       spring:
-        patterns: ["org.springframework*"]
+        patterns: [ "org.springframework*" ]
       testing:
-        patterns: ["*junit*", "*testcontainers*", "*mockito*"]
+        patterns: [ "*junit*", "*testcontainers*", "*mockito*" ]
 
   - package-ecosystem: github-actions
     directory: "/"

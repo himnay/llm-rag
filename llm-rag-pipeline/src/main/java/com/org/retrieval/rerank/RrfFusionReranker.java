@@ -16,7 +16,9 @@ import java.util.List;
 @Component
 public class RrfFusionReranker implements Reranker {
 
-    /** Standard RRF damping constant from the original Cormack et al. paper. */
+    /**
+     * Standard RRF damping constant from the original Cormack et al. paper.
+     */
     private static final int K = 60;
 
     @Override

@@ -15,7 +15,9 @@ import java.util.regex.Pattern;
  */
 final class Bm25 {
 
-    /** Standard Okapi defaults: k1 = term-frequency saturation, b = length normalization. */
+    /**
+     * Standard Okapi defaults: k1 = term-frequency saturation, b = length normalization.
+     */
     private static final double K1 = 1.2;
     private static final double B = 0.75;
     private static final Pattern TOKEN = Pattern.compile("[^\\p{Alnum}]+");
@@ -23,7 +25,9 @@ final class Bm25 {
     private Bm25() {
     }
 
-    /** BM25 score per chunk, in candidate order. */
+    /**
+     * BM25 score per chunk, in candidate order.
+     */
     static double[] scores(String query, List<Chunk> chunks) {
         List<String> queryTerms = tokenize(query).keySet().stream().toList();
         List<Map<String, Integer>> docTerms = chunks.stream().map(c -> tokenize(c.content())).toList();

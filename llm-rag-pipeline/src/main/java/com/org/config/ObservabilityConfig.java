@@ -31,13 +31,17 @@ public class ObservabilityConfig {
         return new ObservedAspect(registry);
     }
 
-    /** Native process memory metrics ({@code process_memory_*}); Linux-only, no-op elsewhere. */
+    /**
+     * Native process memory metrics ({@code process_memory_*}); Linux-only, no-op elsewhere.
+     */
     @Bean
     MeterBinder processMemoryMetrics() {
         return new ProcessMemoryMetrics();
     }
 
-    /** Process thread counts ({@code process_threads}); Linux-only, no-op elsewhere. */
+    /**
+     * Process thread counts ({@code process_threads}); Linux-only, no-op elsewhere.
+     */
     @Bean
     MeterBinder processThreadMetrics() {
         return new ProcessThreadMetrics();

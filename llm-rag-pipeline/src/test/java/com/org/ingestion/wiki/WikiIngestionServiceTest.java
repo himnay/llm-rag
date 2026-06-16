@@ -1,4 +1,5 @@
 package com.org.ingestion.wiki;
+
 import com.org.support.IntegrationTest;
 
 import org.junit.jupiter.api.Test;

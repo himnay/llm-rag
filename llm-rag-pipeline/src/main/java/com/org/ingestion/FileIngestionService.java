@@ -43,7 +43,9 @@ public class FileIngestionService {
         }
     }
 
-    /** Ingest a file on disk, using {@code displayName} for type detection + identity metadata. */
+    /**
+     * Ingest a file on disk, using {@code displayName} for type detection + identity metadata.
+     */
     public void ingestFile(Path path, String displayName) throws Exception {
         // Resource whose filename is the original name (so extension detection + metadata are correct),
         // while content is read from the actual path.

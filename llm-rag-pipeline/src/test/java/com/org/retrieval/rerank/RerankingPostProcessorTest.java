@@ -24,36 +24,6 @@ class RerankingPostProcessorTest {
             new Chunk("WIKI", "beta", new HashMap<>(), 1),
             new Chunk("WIKI", "gamma", new HashMap<>(), 2));
 
-    /** Counting reranker that stamps descending scores by reversed input order. */
-    private static final class CountingReranker implements Reranker {
-        final AtomicInteger invocations = new AtomicInteger();
-        final RerankStrategy strategy;
-        final boolean failing;
-
-        CountingReranker(RerankStrategy strategy, boolean failing) {
-            this.strategy = strategy;
-            this.failing = failing;
-        }
-
-        @Override
-        public RerankStrategy strategy() {
-            return strategy;
-        }
-
-        @Override
-        public List<Chunk> rerank(String query, List<Chunk> candidates) {
-            invocations.incrementAndGet();
-            if (failing) {
-                throw new IllegalStateException("boom");
-            }
-            List<Chunk> reversed = new java.util.ArrayList<>(candidates).reversed();
-            for (int i = 0; i < reversed.size(); i++) {
-                Reranker.score(reversed.get(i), 1.0 - i * 0.1);
-            }
-            return reversed;
-        }
-    }
-
     private static RetrievalProperties enabled(RerankStrategy strategy) {
         RetrievalProperties props = new RetrievalProperties();
         props.getRerank().setEnabled(true);
@@ -144,5 +114,37 @@ class RerankingPostProcessorTest {
         // BM25: only "gamma" matches the query (score 1.0); the others score 0 and are dropped.
         List<Chunk> result = processor(props, new Bm25Reranker()).process("gamma", chunks);
         assertThat(result).extracting(Chunk::content).containsExactly("gamma");
+    }
+
+    /**
+     * Counting reranker that stamps descending scores by reversed input order.
+     */
+    private static final class CountingReranker implements Reranker {
+        final AtomicInteger invocations = new AtomicInteger();
+        final RerankStrategy strategy;
+        final boolean failing;
+
+        CountingReranker(RerankStrategy strategy, boolean failing) {
+            this.strategy = strategy;
+            this.failing = failing;
+        }
+
+        @Override
+        public RerankStrategy strategy() {
+            return strategy;
+        }
+
+        @Override
+        public List<Chunk> rerank(String query, List<Chunk> candidates) {
+            invocations.incrementAndGet();
+            if (failing) {
+                throw new IllegalStateException("boom");
+            }
+            List<Chunk> reversed = new java.util.ArrayList<>(candidates).reversed();
+            for (int i = 0; i < reversed.size(); i++) {
+                Reranker.score(reversed.get(i), 1.0 - i * 0.1);
+            }
+            return reversed;
+        }
     }
 }

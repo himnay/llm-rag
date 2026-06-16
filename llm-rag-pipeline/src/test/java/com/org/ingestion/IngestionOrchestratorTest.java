@@ -8,12 +8,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.util.List;
 
 public class IngestionOrchestratorTest extends IntegrationTest {
-    
+
     @Autowired
     private IngestionOrchestrator ingestionOrchestrator;
 
     @Test
-    void ingestAll() throws Exception{
+    void ingestAll() throws Exception {
         List<IngestedDocument> docs = ingestionOrchestrator.ingestAll();
         System.out.println("Total docs = " + docs.size());
 

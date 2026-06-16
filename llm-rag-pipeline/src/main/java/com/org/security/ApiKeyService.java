@@ -25,7 +25,18 @@ public class ApiKeyService {
 
     private final JdbcTemplate jdbc;
 
-    /** True if the raw key maps to an enabled, non-expired row. Never throws. */
+    static String sha256(String input) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(md.digest(input.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 unavailable", e);
+        }
+    }
+
+    /**
+     * True if the raw key maps to an enabled, non-expired row. Never throws.
+     */
     public boolean isValid(String rawKey) {
         if (rawKey == null || rawKey.isBlank()) {
             return false;
@@ -45,21 +56,14 @@ public class ApiKeyService {
         }
     }
 
-    /** Best-effort {@code last_used} stamp; failures are swallowed (never blocks the request). */
+    /**
+     * Best-effort {@code last_used} stamp; failures are swallowed (never blocks the request).
+     */
     public void touchLastUsed(String rawKey) {
         try {
             jdbc.update("UPDATE api_keys SET last_used = NOW() WHERE key_hash = ?", sha256(rawKey.trim()));
         } catch (DataAccessException ex) {
             log.warn("API_KEY | last_used update failed | error={}", ex.getMessage());
-        }
-    }
-
-    static String sha256(String input) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            return HexFormat.of().formatHex(md.digest(input.getBytes(StandardCharsets.UTF_8)));
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 unavailable", e);
         }
     }
 }

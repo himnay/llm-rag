@@ -12,7 +12,7 @@ services:
       - postgres_data:/var/lib/postgresql   # PG18+ stores data in a versioned subdir; mount the parent, not /data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d llm-rag"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d llm-rag" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -35,7 +35,7 @@ services:
       - opensearch_data:/usr/share/opensearch/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      test: [ "CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1" ]
       interval: 15s
       timeout: 5s
       retries: 10

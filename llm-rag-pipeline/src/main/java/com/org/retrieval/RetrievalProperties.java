@@ -12,63 +12,164 @@ import org.springframework.validation.annotation.Validated;
 @ConfigurationProperties(prefix = "app.retrieval")
 public class RetrievalProperties {
 
-    /** Final number of chunks returned when the caller doesn't specify one. */
-    private int defaultTopK = 10;
-
-    /** Over-fetch multiplier: fetch {@code topK * factor} candidates before post-filtering. */
-    private int overFetchFactor = 3;
-
-    /** Drop hits below this cosine similarity (0 = disabled). Pushed down into the vector query. */
-    private double similarityThreshold = 0.0;
-
     private final Search search = new Search();
     private final Length length = new Length();
     private final Dedup dedup = new Dedup();
     private final Mmr mmr = new Mmr();
     private final Rerank rerank = new Rerank();
     private final QueryTransform queryTransform = new QueryTransform();
+    /**
+     * Final number of chunks returned when the caller doesn't specify one.
+     */
+    private int defaultTopK = 10;
+    /**
+     * Over-fetch multiplier: fetch {@code topK * factor} candidates before post-filtering.
+     */
+    private int overFetchFactor = 3;
+    /**
+     * Drop hits below this cosine similarity (0 = disabled). Pushed down into the vector query.
+     */
+    private double similarityThreshold = 0.0;
 
-    /** First-stage candidate search ({@code com.org.retrieval.search}). */
-    public static class Search {
-        /** vector (cosine kNN) | keyword (BM25 full-text) | hybrid (RRF fusion of both). */
-        private com.org.retrieval.search.SearchMode mode = com.org.retrieval.search.SearchMode.VECTOR;
-
-        public com.org.retrieval.search.SearchMode getMode() { return mode; }
-        public void setMode(com.org.retrieval.search.SearchMode mode) { this.mode = mode; }
+    public int getDefaultTopK() {
+        return defaultTopK;
     }
 
-    /** Length filtering: drop chunks outside the LLM-friendly size band (0 = unbounded). */
+    public void setDefaultTopK(int defaultTopK) {
+        this.defaultTopK = defaultTopK;
+    }
+
+    public int getOverFetchFactor() {
+        return overFetchFactor;
+    }
+
+    public void setOverFetchFactor(int overFetchFactor) {
+        this.overFetchFactor = overFetchFactor;
+    }
+
+    public double getSimilarityThreshold() {
+        return similarityThreshold;
+    }
+
+    public void setSimilarityThreshold(double similarityThreshold) {
+        this.similarityThreshold = similarityThreshold;
+    }
+
+    public Search getSearch() {
+        return search;
+    }
+
+    public Length getLength() {
+        return length;
+    }
+
+    public Dedup getDedup() {
+        return dedup;
+    }
+
+    public Mmr getMmr() {
+        return mmr;
+    }
+
+    public Rerank getRerank() {
+        return rerank;
+    }
+
+    public QueryTransform getQueryTransform() {
+        return queryTransform;
+    }
+
+    /**
+     * First-stage candidate search ({@code com.org.retrieval.search}).
+     */
+    public static class Search {
+        /**
+         * vector (cosine kNN) | keyword (BM25 full-text) | hybrid (RRF fusion of both).
+         */
+        private com.org.retrieval.search.SearchMode mode = com.org.retrieval.search.SearchMode.VECTOR;
+
+        public com.org.retrieval.search.SearchMode getMode() {
+            return mode;
+        }
+
+        public void setMode(com.org.retrieval.search.SearchMode mode) {
+            this.mode = mode;
+        }
+    }
+
+    /**
+     * Length filtering: drop chunks outside the LLM-friendly size band (0 = unbounded).
+     */
     public static class Length {
         private int minChars = 0;
         private int maxChars = 0;
 
-        public int getMinChars() { return minChars; }
-        public void setMinChars(int minChars) { this.minChars = minChars; }
-        public int getMaxChars() { return maxChars; }
-        public void setMaxChars(int maxChars) { this.maxChars = maxChars; }
+        public int getMinChars() {
+            return minChars;
+        }
+
+        public void setMinChars(int minChars) {
+            this.minChars = minChars;
+        }
+
+        public int getMaxChars() {
+            return maxChars;
+        }
+
+        public void setMaxChars(int maxChars) {
+            this.maxChars = maxChars;
+        }
     }
 
-    /** Retrieval-time near-duplicate collapsing. */
+    /**
+     * Retrieval-time near-duplicate collapsing.
+     */
     public static class Dedup {
         private boolean enabled = true;
         private double threshold = 0.95;
 
-        public boolean isEnabled() { return enabled; }
-        public void setEnabled(boolean enabled) { this.enabled = enabled; }
-        public double getThreshold() { return threshold; }
-        public void setThreshold(double threshold) { this.threshold = threshold; }
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public double getThreshold() {
+            return threshold;
+        }
+
+        public void setThreshold(double threshold) {
+            this.threshold = threshold;
+        }
     }
 
-    /** Maximal Marginal Relevance diversity. */
+    /**
+     * Maximal Marginal Relevance diversity.
+     */
     public static class Mmr {
         private boolean enabled = false;
-        /** Relevance-vs-diversity trade-off: 1.0 = pure relevance, 0.0 = pure diversity. */
+        /**
+         * Relevance-vs-diversity trade-off: 1.0 = pure relevance, 0.0 = pure diversity.
+         */
         private double lambda = 0.7;
 
-        public boolean isEnabled() { return enabled; }
-        public void setEnabled(boolean enabled) { this.enabled = enabled; }
-        public double getLambda() { return lambda; }
-        public void setLambda(double lambda) { this.lambda = lambda; }
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public double getLambda() {
+            return lambda;
+        }
+
+        public void setLambda(double lambda) {
+            this.lambda = lambda;
+        }
     }
 
     /**
@@ -76,92 +177,189 @@ public class RetrievalProperties {
      * technique; {@code base-url}/{@code model}/{@code api-key} only apply to {@code cross-encoder}.
      */
     public static class Rerank {
+        private final Cache cache = new Cache();
+        private final Breaker breaker = new Breaker();
         private boolean enabled = false;
-        /** Which reranking technique to apply (cross-encoder | bi-encoder | llm-pointwise | llm-listwise | bm25 | rrf). */
+        /**
+         * Which reranking technique to apply (cross-encoder | bi-encoder | llm-pointwise | llm-listwise | bm25 | rrf).
+         */
         private com.org.retrieval.rerank.RerankStrategy strategy =
                 com.org.retrieval.rerank.RerankStrategy.CROSS_ENCODER;
         private String baseUrl = "https://api.cohere.ai";
         private String model = "rerank-english-v3.0";
         private String apiKey = "";
-        /** Re-score at most this many candidates (cost control); 0 = all. */
+        /**
+         * Re-score at most this many candidates (cost control); 0 = all.
+         */
         private int topN = 0;
-        /** Read timeout for the external cross-encoder call (fail-open on expiry). */
+        /**
+         * Read timeout for the external cross-encoder call (fail-open on expiry).
+         */
         private java.time.Duration timeout = java.time.Duration.ofSeconds(10);
-        /** Drop re-scored chunks below this relevance (0 = off). Scales differ per strategy. */
+        /**
+         * Drop re-scored chunks below this relevance (0 = off). Scales differ per strategy.
+         */
         private double minScore = 0.0;
-        private final Cache cache = new Cache();
-        private final Breaker breaker = new Breaker();
 
-        /** Per-chunk rerank-score cache — only used by the costly strategies (API/LLM/embedding). */
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public double getMinScore() {
+            return minScore;
+        }
+
+        public void setMinScore(double minScore) {
+            this.minScore = minScore;
+        }
+
+        public Cache getCache() {
+            return cache;
+        }
+
+        public Breaker getBreaker() {
+            return breaker;
+        }
+
+        public com.org.retrieval.rerank.RerankStrategy getStrategy() {
+            return strategy;
+        }
+
+        public void setStrategy(com.org.retrieval.rerank.RerankStrategy strategy) {
+            this.strategy = strategy;
+        }
+
+        public java.time.Duration getTimeout() {
+            return timeout;
+        }
+
+        public void setTimeout(java.time.Duration timeout) {
+            this.timeout = timeout;
+        }
+
+        public String getBaseUrl() {
+            return baseUrl;
+        }
+
+        public void setBaseUrl(String baseUrl) {
+            this.baseUrl = baseUrl;
+        }
+
+        public String getModel() {
+            return model;
+        }
+
+        public void setModel(String model) {
+            this.model = model;
+        }
+
+        public String getApiKey() {
+            return apiKey;
+        }
+
+        public void setApiKey(String apiKey) {
+            this.apiKey = apiKey;
+        }
+
+        public int getTopN() {
+            return topN;
+        }
+
+        public void setTopN(int topN) {
+            this.topN = topN;
+        }
+
+        /**
+         * Per-chunk rerank-score cache — only used by the costly strategies (API/LLM/embedding).
+         */
         public static class Cache {
             private boolean enabled = true;
             private int maxSize = 1000;
             private java.time.Duration ttl = java.time.Duration.ofMinutes(10);
 
-            public boolean isEnabled() { return enabled; }
-            public void setEnabled(boolean enabled) { this.enabled = enabled; }
-            public int getMaxSize() { return maxSize; }
-            public void setMaxSize(int maxSize) { this.maxSize = maxSize; }
-            public java.time.Duration getTtl() { return ttl; }
-            public void setTtl(java.time.Duration ttl) { this.ttl = ttl; }
+            public boolean isEnabled() {
+                return enabled;
+            }
+
+            public void setEnabled(boolean enabled) {
+                this.enabled = enabled;
+            }
+
+            public int getMaxSize() {
+                return maxSize;
+            }
+
+            public void setMaxSize(int maxSize) {
+                this.maxSize = maxSize;
+            }
+
+            public java.time.Duration getTtl() {
+                return ttl;
+            }
+
+            public void setTtl(java.time.Duration ttl) {
+                this.ttl = ttl;
+            }
         }
 
-        /** Circuit breaker: skip reranking while the backing vendor/model keeps failing. */
+        /**
+         * Circuit breaker: skip reranking while the backing vendor/model keeps failing.
+         */
         public static class Breaker {
             private int failureThreshold = 3;
             private java.time.Duration cooldown = java.time.Duration.ofSeconds(30);
 
-            public int getFailureThreshold() { return failureThreshold; }
-            public void setFailureThreshold(int failureThreshold) { this.failureThreshold = failureThreshold; }
-            public java.time.Duration getCooldown() { return cooldown; }
-            public void setCooldown(java.time.Duration cooldown) { this.cooldown = cooldown; }
-        }
+            public int getFailureThreshold() {
+                return failureThreshold;
+            }
 
-        public boolean isEnabled() { return enabled; }
-        public void setEnabled(boolean enabled) { this.enabled = enabled; }
-        public double getMinScore() { return minScore; }
-        public void setMinScore(double minScore) { this.minScore = minScore; }
-        public Cache getCache() { return cache; }
-        public Breaker getBreaker() { return breaker; }
-        public com.org.retrieval.rerank.RerankStrategy getStrategy() { return strategy; }
-        public void setStrategy(com.org.retrieval.rerank.RerankStrategy strategy) { this.strategy = strategy; }
-        public java.time.Duration getTimeout() { return timeout; }
-        public void setTimeout(java.time.Duration timeout) { this.timeout = timeout; }
-        public String getBaseUrl() { return baseUrl; }
-        public void setBaseUrl(String baseUrl) { this.baseUrl = baseUrl; }
-        public String getModel() { return model; }
-        public void setModel(String model) { this.model = model; }
-        public String getApiKey() { return apiKey; }
-        public void setApiKey(String apiKey) { this.apiKey = apiKey; }
-        public int getTopN() { return topN; }
-        public void setTopN(int topN) { this.topN = topN; }
+            public void setFailureThreshold(int failureThreshold) {
+                this.failureThreshold = failureThreshold;
+            }
+
+            public java.time.Duration getCooldown() {
+                return cooldown;
+            }
+
+            public void setCooldown(java.time.Duration cooldown) {
+                this.cooldown = cooldown;
+            }
+        }
     }
 
-    /** Pre-retrieval query transformation. */
+    /**
+     * Pre-retrieval query transformation.
+     */
     public static class QueryTransform {
-        /** Transformation to apply before retrieval. NONE = pass-through (no LLM call). */
+        /**
+         * Transformation to apply before retrieval. NONE = pass-through (no LLM call).
+         */
         private com.org.retrieval.transform.QueryTransformMode mode =
                 com.org.retrieval.transform.QueryTransformMode.NONE;
 
-        /** Number of variant queries for MULTI_QUERY mode. */
+        /**
+         * Number of variant queries for MULTI_QUERY mode.
+         */
         private int multiQueryCount = 3;
 
-        public com.org.retrieval.transform.QueryTransformMode getMode() { return mode; }
-        public void setMode(com.org.retrieval.transform.QueryTransformMode mode) { this.mode = mode; }
-        public int getMultiQueryCount() { return multiQueryCount; }
-        public void setMultiQueryCount(int multiQueryCount) { this.multiQueryCount = multiQueryCount; }
-    }
+        public com.org.retrieval.transform.QueryTransformMode getMode() {
+            return mode;
+        }
 
-    public int getDefaultTopK() { return defaultTopK; }
-    public void setDefaultTopK(int defaultTopK) { this.defaultTopK = defaultTopK; }
-    public int getOverFetchFactor() { return overFetchFactor; }
-    public void setOverFetchFactor(int overFetchFactor) { this.overFetchFactor = overFetchFactor; }
-    public double getSimilarityThreshold() { return similarityThreshold; }
-    public void setSimilarityThreshold(double similarityThreshold) { this.similarityThreshold = similarityThreshold; }
-    public Search getSearch() { return search; }
-    public Length getLength() { return length; }
-    public Dedup getDedup() { return dedup; }
-    public Mmr getMmr() { return mmr; }
-    public Rerank getRerank() { return rerank; }
-    public QueryTransform getQueryTransform() { return queryTransform; }
+        public void setMode(com.org.retrieval.transform.QueryTransformMode mode) {
+            this.mode = mode;
+        }
+
+        public int getMultiQueryCount() {
+            return multiQueryCount;
+        }
+
+        public void setMultiQueryCount(int multiQueryCount) {
+            this.multiQueryCount = multiQueryCount;
+        }
+    }
 }

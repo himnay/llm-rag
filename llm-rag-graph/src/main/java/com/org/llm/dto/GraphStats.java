@@ -9,4 +9,5 @@ public record GraphStats(
         long technologies,
         long totalNodes,
         long totalRelationships
-) {}
+) {
+}

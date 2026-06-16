@@ -1,4 +1,5 @@
 package com.org.ingestion.db;
+
 import com.org.support.IntegrationTest;
 
 import org.junit.jupiter.api.Test;

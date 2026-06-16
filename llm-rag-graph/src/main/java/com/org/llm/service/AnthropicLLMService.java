@@ -18,14 +18,6 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class AnthropicLLMService {
 
-    private final AnthropicClient anthropicClient;
-
-    @Value("${app.anthropic.model:claude-opus-4-8}")
-    private String model;
-
-    @Value("${app.anthropic.max-tokens:4096}")
-    private int maxTokens;
-
     private static final String SYSTEM_PROMPT = """
             You are an expert knowledge assistant with access to a rich organizational knowledge graph.
             The graph captures a 4-level company hierarchy:
@@ -34,7 +26,7 @@ public class AnthropicLLMService {
               Employee -[WORKS_ON]→ Project -[USES_TECHNOLOGY]→ Technology
               Employee -[REPORTS_TO]→ Employee  (management chain)
               Department -[COLLABORATES_WITH]→ Department
-
+            
             When answering questions:
             1. Use ONLY the graph context provided — do not hallucinate facts.
             2. Cite specific nodes and relationships from the context.
@@ -42,32 +34,41 @@ public class AnthropicLLMService {
             4. If the context does not contain enough information, say so explicitly.
             5. Be concise but complete — include relevant structural details.
             """;
+    private final AnthropicClient anthropicClient;
+    @Value("${app.anthropic.model:claude-opus-4-8}")
+    private String model;
+    @Value("${app.anthropic.max-tokens:4096}")
+    private int maxTokens;
 
     public String answer(String question, String graphContext) {
         String userMessage = buildUserMessage(question, graphContext);
         log.debug("Sending request to Claude model={} maxTokens={}", model, maxTokens);
 
-        Message response = anthropicClient.messages().create(
-                MessageCreateParams.builder()
-                        .model(model)
-                        .maxTokens(maxTokens)
-                        .thinking(ThinkingConfigAdaptive.builder().build())
-                        .system(SYSTEM_PROMPT)
-                        .addUserMessage(userMessage)
-                        .build()
-        );
-
-        return extractText(response);
+        try {
+            Message response = anthropicClient.messages().create(
+                    MessageCreateParams.builder()
+                            .model(model)
+                            .maxTokens(maxTokens)
+                            .thinking(ThinkingConfigAdaptive.builder().build())
+                            .system(SYSTEM_PROMPT)
+                            .addUserMessage(userMessage)
+                            .build()
+            );
+            return extractText(response);
+        } catch (Exception e) {
+            log.error("Anthropic API call failed for question='{}': {}", question, e.getMessage(), e);
+            throw new LlmCallException("LLM call to Claude failed: " + e.getMessage(), e);
+        }
     }
 
     private String buildUserMessage(String question, String graphContext) {
         return """
                 Here is the relevant knowledge graph context retrieved for your question:
-
+                
                 %s
-
+                
                 Question: %s
-
+                
                 Please answer the question based on the graph context above.
                 """.formatted(graphContext, question);
     }

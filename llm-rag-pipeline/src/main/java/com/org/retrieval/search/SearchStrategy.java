@@ -12,7 +12,9 @@ import java.util.List;
  */
 public interface SearchStrategy {
 
-    /** Which {@code app.retrieval.search.mode} value selects this implementation. */
+    /**
+     * Which {@code app.retrieval.search.mode} value selects this implementation.
+     */
     SearchMode mode();
 
     List<Document> search(String query, int topK);

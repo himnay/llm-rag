@@ -20,8 +20,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class GraphController {
 
-    private final GraphRAGService    ragService;
-    private final CompanyRepository  companyRepo;
+    private final GraphRAGService ragService;
+    private final CompanyRepository companyRepo;
     private final EmployeeRepository employeeRepo;
 
     @GetMapping("/stats")

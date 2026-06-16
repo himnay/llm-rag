@@ -17,10 +17,13 @@ import java.util.List;
  * This node is the richest in cross-cutting edges, making it the best entry point for RAG traversal.
  */
 @Node("Employee")
-@Getter @Setter @NoArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
 public class Employee {
 
-    @Id @GeneratedValue
+    @Id
+    @GeneratedValue
     private Long id;
 
     private String name;
@@ -30,11 +33,15 @@ public class Employee {
     private List<String> skills;
     private int yearsExperience;
 
-    /** Management chain — forms an additional hierarchy on top of the Team structure. */
+    /**
+     * Management chain — forms an additional hierarchy on top of the Team structure.
+     */
     @Relationship(type = "REPORTS_TO", direction = Relationship.Direction.OUTGOING)
     private Employee manager;
 
-    /** Cross-hierarchy edges: employees work on projects owned by departments. */
+    /**
+     * Cross-hierarchy edges: employees work on projects owned by departments.
+     */
     @Relationship(type = "WORKS_ON", direction = Relationship.Direction.OUTGOING)
     private List<WorksOnRelationship> projectAssignments = new ArrayList<>();
 

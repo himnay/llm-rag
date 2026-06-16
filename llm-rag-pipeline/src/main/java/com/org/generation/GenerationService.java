@@ -8,7 +8,11 @@ import com.org.retrieval.model.RetrievalResult;
 import com.org.security.PromptInjectionGuard;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
+import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.memory.InMemoryChatMemoryRepository;
+import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
@@ -17,6 +21,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Orchestrates the full RAG generation pipeline (retrieve → guard → augment → generate).
@@ -45,6 +50,9 @@ public class GenerationService {
     private final SemanticCacheService semanticCache;
     private final PromptInjectionGuard injectionGuard;
     private final GenerationEvaluator generationEvaluator;
+    private final MessageWindowChatMemory chatMemory = MessageWindowChatMemory.builder()
+            .chatMemoryRepository(new InMemoryChatMemoryRepository())
+            .build();
 
     public GenerationService(GenerationProperties properties,
                              PromptOrchestrator promptOrchestrator,
@@ -78,6 +86,9 @@ public class GenerationService {
     public GenerateResponse generate(GenerateRequest request) {
         String query = request.query();
         int topK = request.topK() != null ? request.topK() : properties.getTopK();
+        // Assign a conversation ID if the caller didn't supply one (single-turn fallback).
+        String conversationId = request.conversationId() != null && !request.conversationId().isBlank()
+                ? request.conversationId() : UUID.randomUUID().toString();
 
         // Check semantic cache before spending on retrieval + generation.
         Optional<String> cached = semanticCache.get(query);
@@ -88,10 +99,10 @@ public class GenerationService {
 
         return "advisor".equalsIgnoreCase(properties.getMode())
                 ? generateWithAdvisor(query)
-                : generateManual(query, topK);
+                : generateManual(query, topK, conversationId);
     }
 
-    private GenerateResponse generateManual(String query, int topK) {
+    private GenerateResponse generateManual(String query, int topK, String conversationId) {
         PromptOrchestrator.ChatPrompt chatPrompt = promptOrchestrator.build(query, topK);
         RetrievalResult retrieval = chatPrompt.retrievalResult();
 
@@ -106,9 +117,13 @@ public class GenerationService {
                 chatPrompt.groundingRules(),
                 safeRetrieval);
 
+        // MessageChatMemoryAdvisor injects prior turns so the model can handle follow-up questions.
         String answer = chatClient.prompt()
                 .system(safePrompt.systemInstructions())
                 .user(safePrompt.toLlmUserMessage(query))
+                .advisors(spec -> spec
+                        .advisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
+                        .param(ChatMemory.CONVERSATION_ID, conversationId))
                 .call()
                 .content();
 
@@ -125,6 +140,35 @@ public class GenerationService {
         List<com.org.retrieval.model.Citation> citations = properties.isIncludeCitations()
                 ? safeRetrieval.citations() : List.of();
         return new GenerateResponse(answer, citations, faithful, false);
+    }
+
+    /**
+     * Streaming generation via SSE. Returns a token-by-token {@link reactor.core.publisher.Flux}
+     * so the HTTP connection is not held until the full answer is ready.
+     */
+    public reactor.core.publisher.Flux<String> stream(GenerateRequest request) {
+        String query = request.query();
+        int topK = request.topK() != null ? request.topK() : properties.getTopK();
+        String conversationId = request.conversationId() != null && !request.conversationId().isBlank()
+                ? request.conversationId() : UUID.randomUUID().toString();
+
+        PromptOrchestrator.ChatPrompt chatPrompt = promptOrchestrator.build(query, topK);
+        RetrievalResult retrieval = chatPrompt.retrievalResult();
+        List<com.org.chunking.model.Chunk> safeChunks = injectionGuard.filter(retrieval.chunks());
+        PromptOrchestrator.ChatPrompt safePrompt = new PromptOrchestrator.ChatPrompt(
+                chatPrompt.systemInstructions(),
+                rebuildContext(safeChunks, retrieval),
+                chatPrompt.groundingRules(),
+                new RetrievalResult(safeChunks, retrieval.citations()));
+
+        return chatClient.prompt()
+                .system(safePrompt.systemInstructions())
+                .user(safePrompt.toLlmUserMessage(query))
+                .advisors(spec -> spec
+                        .advisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
+                        .param(ChatMemory.CONVERSATION_ID, conversationId))
+                .stream()
+                .content();
     }
 
     private GenerateResponse generateWithAdvisor(String query) {

@@ -13,7 +13,9 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/** Unit test with a stubbed {@link EmbeddingModel} — no embedding service required. */
+/**
+ * Unit test with a stubbed {@link EmbeddingModel} — no embedding service required.
+ */
 class BiEncoderRerankerTest {
 
     @Test

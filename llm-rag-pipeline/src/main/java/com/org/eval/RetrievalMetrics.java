@@ -14,7 +14,9 @@ public final class RetrievalMetrics {
     private RetrievalMetrics() {
     }
 
-    /** Precision@k = (relevant in top k) / k. */
+    /**
+     * Precision@k = (relevant in top k) / k.
+     */
     public static double precisionAtK(List<Boolean> rel, int k) {
         int n = Math.min(k, rel.size());
         if (n == 0) {
@@ -24,7 +26,9 @@ public final class RetrievalMetrics {
         return (double) hits / n;
     }
 
-    /** Recall@k = (relevant in top k) / (total relevant that exist). */
+    /**
+     * Recall@k = (relevant in top k) / (total relevant that exist).
+     */
     public static double recallAtK(List<Boolean> rel, int k, int totalRelevant) {
         if (totalRelevant <= 0) {
             return 0.0;
@@ -34,7 +38,9 @@ public final class RetrievalMetrics {
         return Math.min(1.0, (double) hits / totalRelevant);
     }
 
-    /** Reciprocal Rank = 1 / (rank of first relevant chunk); 0 if none relevant. */
+    /**
+     * Reciprocal Rank = 1 / (rank of first relevant chunk); 0 if none relevant.
+     */
     public static double reciprocalRank(List<Boolean> rel) {
         for (int i = 0; i < rel.size(); i++) {
             if (rel.get(i)) {
@@ -63,7 +69,9 @@ public final class RetrievalMetrics {
         return sum / totalRelevant;
     }
 
-    /** Hit Rate@k — 1.0 if at least one relevant chunk appears in the top-k results, else 0.0. */
+    /**
+     * Hit Rate@k — 1.0 if at least one relevant chunk appears in the top-k results, else 0.0.
+     */
     public static double hitRate(List<Boolean> rel, int k) {
         int n = Math.min(k, rel.size());
         for (int i = 0; i < n; i++) {
@@ -94,7 +102,9 @@ public final class RetrievalMetrics {
         return idcg == 0.0 ? 0.0 : dcg / idcg;
     }
 
-    /** Mean of a list of per-query metric values; 0 for an empty list. */
+    /**
+     * Mean of a list of per-query metric values; 0 for an empty list.
+     */
     public static double mean(List<Double> values) {
         if (values.isEmpty()) {
             return 0.0;

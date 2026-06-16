@@ -10,7 +10,9 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.Map;
 
-/** Token-aware splitting using Spring AI's {@link TokenTextSplitter} (chunk size in tokens). */
+/**
+ * Token-aware splitting using Spring AI's {@link TokenTextSplitter} (chunk size in tokens).
+ */
 @Component
 @RequiredArgsConstructor
 public class TokenChunkingStrategy extends AbstractChunkingStrategy {

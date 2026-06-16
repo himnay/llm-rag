@@ -31,6 +31,23 @@ public class FakeEmbeddingConfig {
 
         private static final int DIM = 1536;
 
+        private static float[] vectorFor(String text) {
+            Random random = new Random(text == null ? 0 : text.hashCode());
+            float[] vector = new float[DIM];
+            double norm = 0.0;
+            for (int i = 0; i < DIM; i++) {
+                vector[i] = (float) (random.nextDouble() * 2 - 1);
+                norm += vector[i] * vector[i];
+            }
+            norm = Math.sqrt(norm);
+            if (norm > 0) {
+                for (int i = 0; i < DIM; i++) {
+                    vector[i] /= (float) norm;
+                }
+            }
+            return vector;
+        }
+
         @Override
         public EmbeddingResponse call(EmbeddingRequest request) {
             List<Embedding> embeddings = new ArrayList<>();
@@ -49,23 +66,6 @@ public class FakeEmbeddingConfig {
         @Override
         public int dimensions() {
             return DIM;
-        }
-
-        private static float[] vectorFor(String text) {
-            Random random = new Random(text == null ? 0 : text.hashCode());
-            float[] vector = new float[DIM];
-            double norm = 0.0;
-            for (int i = 0; i < DIM; i++) {
-                vector[i] = (float) (random.nextDouble() * 2 - 1);
-                norm += vector[i] * vector[i];
-            }
-            norm = Math.sqrt(norm);
-            if (norm > 0) {
-                for (int i = 0; i < DIM; i++) {
-                    vector[i] /= (float) norm;
-                }
-            }
-            return vector;
         }
     }
 }

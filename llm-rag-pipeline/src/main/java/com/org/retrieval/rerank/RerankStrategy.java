@@ -33,7 +33,9 @@ public enum RerankStrategy {
         this.costly = costly;
     }
 
-    /** Whether re-scoring pays a network/model call — score caching is only worth it when true. */
+    /**
+     * Whether re-scoring pays a network/model call — score caching is only worth it when true.
+     */
     public boolean isCostly() {
         return costly;
     }

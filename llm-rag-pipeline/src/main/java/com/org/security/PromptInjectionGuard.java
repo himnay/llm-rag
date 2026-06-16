@@ -33,7 +33,9 @@ public class PromptInjectionGuard {
             Pattern.compile("(?i)###\\s*(instruction|system|prompt)")
     );
 
-    /** Returns a new list with any chunks containing injection patterns removed. */
+    /**
+     * Returns a new list with any chunks containing injection patterns removed.
+     */
     public List<Chunk> filter(List<Chunk> chunks) {
         return chunks.stream()
                 .filter(chunk -> {

@@ -137,50 +137,50 @@ Client         GenerationController   SemanticCache   PromptOrchestrator   ChatC
 
 ## Package Map (`com.org.*`)
 
-| Package | Key classes | Responsibility |
-|---------|-------------|----------------|
-| `controller/` | `RetrievalController`, `GenerationController`, `LifecycleController`, `EvaluationController` | REST endpoints |
-| `ingestion/` | `IngestionOrchestrator`, `FileIngestionService`, `PdfIngestionService`, `WikiIngestionService`, `DatabaseIngestionService` | Document loading & normalising |
-| `ingestion/reader/` | `DocumentReaderFactory` | Extension → reader mapping (PDF / MD / TXT / JSON / Excel / Tika) |
-| `ingestion/ocr/` | `OcrService`, `OcrPdfAugmentor` | Tesseract OCR for scanned PDFs (opt-in) |
-| `ingestion/excel/` | `ExcelDocumentReader` | Apache POI workbook → Markdown tables |
-| `chunking/strategy/` | `FixedSizeChunkingStrategy`, `RecursiveChunkingStrategy`, `TokenChunkingStrategy`, `SemanticChunkingStrategy`, `MarkdownSectionChunkingStrategy`, `LlmChunkingStrategy` | 6 pluggable chunking algorithms |
-| `chunking/` | `ChunkingOrchestrator`, `ChunkingStrategyFactory` | Factory + orchestration |
-| `enrichment/` | `ChunkEnricher` | LLM keyword / summary enrichment (opt-in) |
-| `vectorstore/` | `ChunkVectorStoreService` | Parallel batched writes to OpenSearch |
-| `retrieval/` | `RetrievalService` | Top-level retrieve + citation assembly |
-| `retrieval/transform/` | `HydeQueryTransformer`, `MultiQueryExpanderImpl`, `RewriteQueryTransformerImpl`, `StepBackQueryTransformer` | Pre-retrieval query transformation |
-| `retrieval/search/` | `VectorSearchStrategy`, `KeywordSearchStrategy`, `HybridSearchStrategy` | First-stage candidate fetch |
-| `retrieval/postprocess/` | `BusinessRuleFilter`, `LengthFilter`, `NearDuplicateFilter`, `RetrievalPostProcessor`, `ScoreAwareRanker`, `MmrDiversityProcessor` | Ordered post-processing chain |
-| `retrieval/rerank/` | `CrossEncoderReranker`, `BiEncoderReranker`, `LlmPointwiseReranker`, `LlmListwiseReranker`, `Bm25Reranker`, `RrfFusionReranker` | 6 second-stage rerankers |
-| `generation/` | `GenerationService`, `PromptOrchestrator`, `ContextBuilder`, `GroundingPolicy` | Full RAG generation pipeline |
-| `cache/` | `EmbeddingCacheService`, `SemanticCacheService` | LRU+TTL embedding cache · semantic answer cache |
-| `security/` | `ApiKeyAuthFilter`, `ApiKeyService`, `RateLimitFilter`, `SecurityConfig` | API-key auth + rate limiting |
-| `security/pii/` | `PiiRedactor` | Regex PII redaction before embedding |
-| `security/` | `PromptInjectionGuard` | Strips injection-payload chunks from context |
-| `eval/` | `RetrievalEvaluator`, `GenerationEvaluator`, `RetrievalMetrics` | MRR / P@k / R@k / nDCG / faithfulness / relevance |
-| `lifecycle/` | `KnowledgeLifecycleService`, `IngestionLogRepository` | Content-hash dedup + delete |
-| `common/` | `CircuitBreaker`, `Resilience` | Retry + circuit breaker (used by reranking) |
-| `config/` | `ChatClientConfig`, `ObservabilityConfig`, `StartupValidator` | Bean wiring + validation |
-| `web/` | `GlobalExceptionHandler`, `ApiError` | Structured error responses |
+| Package                  | Key classes                                                                                                                                                             | Responsibility                                                    |
+|--------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
+| `controller/`            | `RetrievalController`, `GenerationController`, `LifecycleController`, `EvaluationController`                                                                            | REST endpoints                                                    |
+| `ingestion/`             | `IngestionOrchestrator`, `FileIngestionService`, `PdfIngestionService`, `WikiIngestionService`, `DatabaseIngestionService`                                              | Document loading & normalising                                    |
+| `ingestion/reader/`      | `DocumentReaderFactory`                                                                                                                                                 | Extension → reader mapping (PDF / MD / TXT / JSON / Excel / Tika) |
+| `ingestion/ocr/`         | `OcrService`, `OcrPdfAugmentor`                                                                                                                                         | Tesseract OCR for scanned PDFs (opt-in)                           |
+| `ingestion/excel/`       | `ExcelDocumentReader`                                                                                                                                                   | Apache POI workbook → Markdown tables                             |
+| `chunking/strategy/`     | `FixedSizeChunkingStrategy`, `RecursiveChunkingStrategy`, `TokenChunkingStrategy`, `SemanticChunkingStrategy`, `MarkdownSectionChunkingStrategy`, `LlmChunkingStrategy` | 6 pluggable chunking algorithms                                   |
+| `chunking/`              | `ChunkingOrchestrator`, `ChunkingStrategyFactory`                                                                                                                       | Factory + orchestration                                           |
+| `enrichment/`            | `ChunkEnricher`                                                                                                                                                         | LLM keyword / summary enrichment (opt-in)                         |
+| `vectorstore/`           | `ChunkVectorStoreService`                                                                                                                                               | Parallel batched writes to OpenSearch                             |
+| `retrieval/`             | `RetrievalService`                                                                                                                                                      | Top-level retrieve + citation assembly                            |
+| `retrieval/transform/`   | `HydeQueryTransformer`, `MultiQueryExpanderImpl`, `RewriteQueryTransformerImpl`, `StepBackQueryTransformer`                                                             | Pre-retrieval query transformation                                |
+| `retrieval/search/`      | `VectorSearchStrategy`, `KeywordSearchStrategy`, `HybridSearchStrategy`                                                                                                 | First-stage candidate fetch                                       |
+| `retrieval/postprocess/` | `BusinessRuleFilter`, `LengthFilter`, `NearDuplicateFilter`, `RetrievalPostProcessor`, `ScoreAwareRanker`, `MmrDiversityProcessor`                                      | Ordered post-processing chain                                     |
+| `retrieval/rerank/`      | `CrossEncoderReranker`, `BiEncoderReranker`, `LlmPointwiseReranker`, `LlmListwiseReranker`, `Bm25Reranker`, `RrfFusionReranker`                                         | 6 second-stage rerankers                                          |
+| `generation/`            | `GenerationService`, `PromptOrchestrator`, `ContextBuilder`, `GroundingPolicy`                                                                                          | Full RAG generation pipeline                                      |
+| `cache/`                 | `EmbeddingCacheService`, `SemanticCacheService`                                                                                                                         | LRU+TTL embedding cache · semantic answer cache                   |
+| `security/`              | `ApiKeyAuthFilter`, `ApiKeyService`, `RateLimitFilter`, `SecurityConfig`                                                                                                | API-key auth + rate limiting                                      |
+| `security/pii/`          | `PiiRedactor`                                                                                                                                                           | Regex PII redaction before embedding                              |
+| `security/`              | `PromptInjectionGuard`                                                                                                                                                  | Strips injection-payload chunks from context                      |
+| `eval/`                  | `RetrievalEvaluator`, `GenerationEvaluator`, `RetrievalMetrics`                                                                                                         | MRR / P@k / R@k / nDCG / faithfulness / relevance                 |
+| `lifecycle/`             | `KnowledgeLifecycleService`, `IngestionLogRepository`                                                                                                                   | Content-hash dedup + delete                                       |
+| `common/`                | `CircuitBreaker`, `Resilience`                                                                                                                                          | Retry + circuit breaker (used by reranking)                       |
+| `config/`                | `ChatClientConfig`, `ObservabilityConfig`, `StartupValidator`                                                                                                           | Bean wiring + validation                                          |
+| `web/`                   | `GlobalExceptionHandler`, `ApiError`                                                                                                                                    | Structured error responses                                        |
 
 ---
 
 ## REST API
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| `POST` | `/api/v1/retrieve` | key | Retrieve ranked chunks + citations for a query |
-| `POST` | `/api/v1/generate` | key | Full RAG: retrieve → guard → augment → generate |
-| `POST` | `/api/v1/admin/lifecycle/ingest` | key | Ingest a named knowledge source |
-| `POST` | `/api/v1/admin/lifecycle/ingest-all` | key | Ingest all bundled sources |
-| `POST` | `/api/v1/admin/lifecycle/upload` | key | Upload + ingest a file (multipart) |
-| `DELETE` | `/api/v1/admin/lifecycle/delete` | key | Delete a knowledge source |
-| `DELETE` | `/api/v1/admin/lifecycle/delete-all` | key | Delete all knowledge |
-| `POST` | `/api/v1/admin/eval/run?k=10` | key | Retrieval-quality evaluation (MRR, P@k, R@k, nDCG, HitRate) |
-| `POST` | `/api/v1/admin/eval/run/generation` | key | Generation-quality evaluation (faithfulness + relevance) |
-| `GET` | `/actuator/health` | open | Liveness / readiness probes |
-| `GET` | `/actuator/prometheus` | open | Micrometer metrics scrape |
+| Method   | Path                                 | Auth | Description                                                 |
+|----------|--------------------------------------|------|-------------------------------------------------------------|
+| `POST`   | `/api/v1/retrieve`                   | key  | Retrieve ranked chunks + citations for a query              |
+| `POST`   | `/api/v1/generate`                   | key  | Full RAG: retrieve → guard → augment → generate             |
+| `POST`   | `/api/v1/admin/lifecycle/ingest`     | key  | Ingest a named knowledge source                             |
+| `POST`   | `/api/v1/admin/lifecycle/ingest-all` | key  | Ingest all bundled sources                                  |
+| `POST`   | `/api/v1/admin/lifecycle/upload`     | key  | Upload + ingest a file (multipart)                          |
+| `DELETE` | `/api/v1/admin/lifecycle/delete`     | key  | Delete a knowledge source                                   |
+| `DELETE` | `/api/v1/admin/lifecycle/delete-all` | key  | Delete all knowledge                                        |
+| `POST`   | `/api/v1/admin/eval/run?k=10`        | key  | Retrieval-quality evaluation (MRR, P@k, R@k, nDCG, HitRate) |
+| `POST`   | `/api/v1/admin/eval/run/generation`  | key  | Generation-quality evaluation (faithfulness + relevance)    |
+| `GET`    | `/actuator/health`                   | open | Liveness / readiness probes                                 |
+| `GET`    | `/actuator/prometheus`               | open | Micrometer metrics scrape                                   |
 
 ---
 
@@ -282,22 +282,23 @@ app:
 
 ## Design Patterns
 
-| Pattern | Where | Why |
-|---------|-------|-----|
-| **Strategy** | `ChunkingStrategy` (6 chunking algorithms) · `SearchStrategy` (3 search modes) · `Reranker` (6 rerankers) · `QueryTransformer` (4 transformers) | Swap algorithm at runtime via config |
-| **Chain of Responsibility** | `RetrievalPostProcessor` chain (filter → dedup → rerank → rank → MMR) | Each stage handles and forwards |
-| **Factory** | `ChunkingStrategyFactory` · `DocumentReaderFactory` | Name/extension → implementation |
-| **Template Method** | `AbstractChunkingStrategy` | Shared skeleton; subclasses supply the split step |
-| **Composite** | `HybridSearchStrategy` | Composes vector + keyword + RRF |
-| **Proxy (protection)** | `RerankingPostProcessor` wrapping `Reranker` | Adds circuit breaker, cache, cost cap, metrics |
-| **Facade** | `IngestionOrchestrator` · `PromptOrchestrator` | One entry point over multi-step pipelines |
-| **Adapter** | `ExcelDocumentReader` · `OcrPdfAugmentor` | Bridge third-party APIs into the document model |
+| Pattern                     | Where                                                                                                                                           | Why                                               |
+|-----------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------|
+| **Strategy**                | `ChunkingStrategy` (6 chunking algorithms) · `SearchStrategy` (3 search modes) · `Reranker` (6 rerankers) · `QueryTransformer` (4 transformers) | Swap algorithm at runtime via config              |
+| **Chain of Responsibility** | `RetrievalPostProcessor` chain (filter → dedup → rerank → rank → MMR)                                                                           | Each stage handles and forwards                   |
+| **Factory**                 | `ChunkingStrategyFactory` · `DocumentReaderFactory`                                                                                             | Name/extension → implementation                   |
+| **Template Method**         | `AbstractChunkingStrategy`                                                                                                                      | Shared skeleton; subclasses supply the split step |
+| **Composite**               | `HybridSearchStrategy`                                                                                                                          | Composes vector + keyword + RRF                   |
+| **Proxy (protection)**      | `RerankingPostProcessor` wrapping `Reranker`                                                                                                    | Adds circuit breaker, cache, cost cap, metrics    |
+| **Facade**                  | `IngestionOrchestrator` · `PromptOrchestrator`                                                                                                  | One entry point over multi-step pipelines         |
+| **Adapter**                 | `ExcelDocumentReader` · `OcrPdfAugmentor`                                                                                                       | Bridge third-party APIs into the document model   |
 
 ---
 
 ## Getting Started
 
 ### Prerequisites
+
 - Java 21+, Maven
 - Docker & Docker Compose
 - An OpenAI API key (embeddings + generation)
@@ -410,13 +411,13 @@ llm-rag-pipeline/
 
 ## Service Ports
 
-| Service | Port |
-|---------|------|
-| RAG application | 8081 |
-| PostgreSQL | 5432 |
-| OpenSearch | 9200 / 9600 |
-| OpenSearch Dashboards | 5601 |
-| Prometheus | 9090 |
-| Grafana | 3000 |
-| Tempo | 3200 / 4317 / 4318 |
-| Loki | 3100 |
+| Service               | Port               |
+|-----------------------|--------------------|
+| RAG application       | 8081               |
+| PostgreSQL            | 5432               |
+| OpenSearch            | 9200 / 9600        |
+| OpenSearch Dashboards | 5601               |
+| Prometheus            | 9090               |
+| Grafana               | 3000               |
+| Tempo                 | 3200 / 4317 / 4318 |
+| Loki                  | 3100               |

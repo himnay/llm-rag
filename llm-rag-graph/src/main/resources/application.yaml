@@ -26,6 +26,10 @@ app:
     seed-data: true
     context-depth: 4
     max-context-nodes: 20
+  security:
+    auth-enabled: ${API_AUTH_ENABLED:false}   # dev default: open. Set true in prod.
+    header: X-API-Key
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:}
 
 management:
   endpoints:
@@ -34,8 +38,9 @@ management:
         include: health,info,metrics,prometheus
   endpoint:
     health:
-      show-details: always
-      show-components: always
+      show-details: when-authorized
+      show-components: when-authorized
+      roles: ACTUATOR
     info:
       enabled: true
   info:

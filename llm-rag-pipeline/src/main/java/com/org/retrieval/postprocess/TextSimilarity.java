@@ -15,7 +15,9 @@ final class TextSimilarity {
     private TextSimilarity() {
     }
 
-    /** Cosine similarity (0..1) of the token-frequency vectors of two strings. */
+    /**
+     * Cosine similarity (0..1) of the token-frequency vectors of two strings.
+     */
     static double cosine(String a, String b) {
         Map<String, Integer> va = termFrequencies(a);
         Map<String, Integer> vb = termFrequencies(b);

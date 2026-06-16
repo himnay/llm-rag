@@ -41,7 +41,7 @@ public class FixedSizeChunker {
             ));
             chunkIndex += 1;
 
-            if(end < content.length()) {
+            if (end < content.length()) {
                 start = end - overlap;
             } else {
                 start = end;

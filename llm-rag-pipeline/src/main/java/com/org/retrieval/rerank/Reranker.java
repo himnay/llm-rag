@@ -15,13 +15,17 @@ import java.util.List;
  */
 public interface Reranker {
 
-    /** Which {@code app.retrieval.rerank.strategy} value selects this implementation. */
-    RerankStrategy strategy();
-
-    List<Chunk> rerank(String query, List<Chunk> chunks);
-
-    /** Stamp a chunk's relevance score so downstream ranking orders by it. */
+    /**
+     * Stamp a chunk's relevance score so downstream ranking orders by it.
+     */
     static void score(Chunk chunk, double score) {
         chunk.metadata().put(RetrievalPostProcessor.SCORE_KEY, score);
     }
+
+    /**
+     * Which {@code app.retrieval.rerank.strategy} value selects this implementation.
+     */
+    RerankStrategy strategy();
+
+    List<Chunk> rerank(String query, List<Chunk> chunks);
 }

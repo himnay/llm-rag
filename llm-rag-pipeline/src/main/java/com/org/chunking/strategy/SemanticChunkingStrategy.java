@@ -2,6 +2,7 @@ package com.org.chunking.strategy;
 
 import com.org.cache.EmbeddingCacheService;
 import com.org.chunking.model.Chunk;
+import com.org.common.VectorMath;
 import com.org.ingestion.model.IngestedDocument;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,20 @@ public class SemanticChunkingStrategy extends AbstractChunkingStrategy {
 
     private final ChunkingProperties properties;
     private final EmbeddingCacheService embeddingCacheService;
+
+    private static List<String> splitSentences(String text) {
+        List<String> sentences = new ArrayList<>();
+        for (String s : text.split("(?<=[.!?])\\s+|\\n{2,}")) {
+            if (!s.isBlank()) {
+                sentences.add(s.strip());
+            }
+        }
+        return sentences;
+    }
+
+    private static double cosine(float[] a, float[] b) {
+        return VectorMath.cosine(a, b);
+    }
 
     @Override
     public String name() {
@@ -55,28 +70,5 @@ public class SemanticChunkingStrategy extends AbstractChunkingStrategy {
         }
         chunks.add(current.toString());
         return toChunks(document, chunks);
-    }
-
-    private static List<String> splitSentences(String text) {
-        List<String> sentences = new ArrayList<>();
-        for (String s : text.split("(?<=[.!?])\\s+|\\n{2,}")) {
-            if (!s.isBlank()) {
-                sentences.add(s.strip());
-            }
-        }
-        return sentences;
-    }
-
-    private static double cosine(float[] a, float[] b) {
-        if (a == null || b == null || a.length != b.length) {
-            return 0.0;
-        }
-        double dot = 0, na = 0, nb = 0;
-        for (int i = 0; i < a.length; i++) {
-            dot += a[i] * b[i];
-            na += a[i] * a[i];
-            nb += b[i] * b[i];
-        }
-        return (na == 0 || nb == 0) ? 0.0 : dot / (Math.sqrt(na) * Math.sqrt(nb));
     }
 }

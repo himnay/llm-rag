@@ -11,10 +11,13 @@ import org.springframework.data.neo4j.core.schema.Node;
  * Leaf node used by Projects — represents frameworks, languages, and platforms.
  */
 @Node("Technology")
-@Getter @Setter @NoArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
 public class Technology {
 
-    @Id @GeneratedValue
+    @Id
+    @GeneratedValue
     private Long id;
 
     private String name;

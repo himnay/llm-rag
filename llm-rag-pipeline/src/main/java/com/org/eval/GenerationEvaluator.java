@@ -69,7 +69,9 @@ public class GenerationEvaluator {
         }
     }
 
-    /** Full RAG Triad evaluation — faithfulness + relevance in one call. */
+    /**
+     * Full RAG Triad evaluation — faithfulness + relevance in one call.
+     */
     public GenerationEvaluationReport evaluate(String question, List<Document> context, String answer) {
         boolean faithful = isFaithful(question, context, answer);
         boolean relevant = isRelevant(question, context, answer);

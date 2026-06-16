@@ -11,7 +11,9 @@ import org.springframework.data.neo4j.core.schema.TargetNode;
  * Rich relationship between Employee and Project — carries the role the employee plays.
  */
 @RelationshipProperties
-@Getter @Setter @NoArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
 public class WorksOnRelationship {
 
     @RelationshipId

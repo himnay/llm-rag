@@ -1,7 +1,10 @@
 package com.org.controller;
 
 import com.org.ingestion.FileIngestionService;
+import com.org.ingestion.job.IngestionJob;
+import com.org.ingestion.job.IngestionJobService;
 import com.org.lifecycle.KnowledgeLifecycleService;
+import com.org.lifecycle.command.CommandExecutor;
 import com.org.lifecycle.model.KnowledgeRequest;
 import com.org.web.validation.SupportedDocument;
 import jakarta.validation.Valid;
@@ -13,43 +16,68 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
-@RestController
-@RequestMapping("/api/v1/admin/lifecycle")
-@RequiredArgsConstructor
 @Validated
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/v1/admin/lifecycle")
 class LifecycleController {
 
     private final KnowledgeLifecycleService knowledgeLifecycleService;
     private final FileIngestionService fileIngestionService;
+    private final IngestionJobService ingestionJobService;
+    private final CommandExecutor commandExecutor;
 
-    /** Upload a file (pdf/md/txt/json/docx/...) and ingest it through the full pipeline. */
+    /**
+     * Synchronous upload — blocks until ingestion completes. Suitable for small files
+     * and CLI/script callers. For large files use {@code POST /upload/async}.
+     */
     @PostMapping("/upload")
     public ResponseEntity<Object> upload(@RequestParam("file") @SupportedDocument MultipartFile file) throws Exception {
         fileIngestionService.ingestUpload(file);
         return ResponseEntity.ok(Map.of("status", "ingested", "fileName", file.getOriginalFilename()));
     }
 
+    /**
+     * Async upload — returns a {@code jobId} immediately; the ingestion runs in the background.
+     * Poll {@code GET /upload/{jobId}/status} to track progress.
+     */
+    @PostMapping("/upload/async")
+    public ResponseEntity<Object> uploadAsync(@RequestParam("file") @SupportedDocument MultipartFile file) {
+        String jobId = ingestionJobService.submit(file);
+        return ResponseEntity.accepted().body(Map.of("jobId", jobId, "status", "PENDING"));
+    }
+
+    /**
+     * Returns the current status of an async ingestion job.
+     */
+    @GetMapping("/upload/{jobId}/status")
+    public ResponseEntity<IngestionJob> jobStatus(@PathVariable String jobId) {
+        return ingestionJobService.getJob(jobId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @PostMapping("/ingest")
     public ResponseEntity<Object> ingest(@Valid @RequestBody KnowledgeRequest request) throws Exception {
-        knowledgeLifecycleService.ingest(request);
+        commandExecutor.execute(new com.org.lifecycle.command.IngestCommand(knowledgeLifecycleService, request));
         return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/delete")
     public ResponseEntity<Object> delete(@Valid @RequestBody KnowledgeRequest request) throws Exception {
-        knowledgeLifecycleService.delete(request);
+        commandExecutor.execute(new com.org.lifecycle.command.DeleteCommand(knowledgeLifecycleService, request));
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/ingest-all")
     public ResponseEntity<Object> ingestAll() throws Exception {
-        knowledgeLifecycleService.ingestAll();
+        commandExecutor.execute(new com.org.lifecycle.command.IngestAllCommand(knowledgeLifecycleService));
         return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/delete-all")
-    public ResponseEntity<Object> deleteAll() {
-        knowledgeLifecycleService.deleteAll();
+    public ResponseEntity<Object> deleteAll() throws Exception {
+        commandExecutor.execute(knowledgeLifecycleService::deleteAll);
         return ResponseEntity.ok().build();
     }
 

@@ -16,10 +16,13 @@ import java.util.List;
  * Company → Department → Team → Employee
  */
 @Node("Company")
-@Getter @Setter @NoArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
 public class Company {
 
-    @Id @GeneratedValue
+    @Id
+    @GeneratedValue
     private Long id;
 
     private String name;

@@ -1,31 +1,37 @@
 # LLM RAG Graph
 
-A **Graph RAG** (Retrieval-Augmented Generation) pipeline built on **Neo4j** and **Anthropic Claude**. It models a 4-level corporate knowledge graph and answers natural-language questions by traversing graph relationships before calling the LLM — going far beyond what flat vector search can do.
+A **Graph RAG** (Retrieval-Augmented Generation) pipeline built on **Neo4j** and **Anthropic Claude**. It models a
+4-level corporate knowledge graph and answers natural-language questions by traversing graph relationships before
+calling the LLM — going far beyond what flat vector search can do.
 
 ---
 
 ## What is RAG?
 
-Retrieval-Augmented Generation combines a retrieval step with an LLM. Instead of relying on the model's training knowledge, you fetch relevant context at query time, inject it into the prompt, and let the LLM reason over fresh, private, or structured data.
+Retrieval-Augmented Generation combines a retrieval step with an LLM. Instead of relying on the model's training
+knowledge, you fetch relevant context at query time, inject it into the prompt, and let the LLM reason over fresh,
+private, or structured data.
 
 ---
 
 ## Traditional RAG vs Graph RAG
 
-| Dimension | Traditional RAG | Graph RAG |
-|---|---|---|
-| **Storage** | Vector database (embeddings) | Graph database (nodes + relationships) |
-| **Retrieval unit** | Chunk of text (flat) | Paths and subgraphs (structured) |
-| **Relationship awareness** | None — chunks are independent | First-class — traverses edges at query time |
-| **Multi-hop reasoning** | Weak — requires the answer to be in one chunk | Strong — follows chains: Employee → Manager → Department → Project |
-| **Context quality** | Semantically similar text | Factually connected entities with typed relationships |
-| **Data freshness** | Requires re-embedding on updates | Graph writes are immediately queryable |
-| **Query type** | "What does doc X say about topic Y?" | "Who in Engineering works on ML projects and reports to the CTO?" |
-| **Hallucination risk** | Higher — context gaps are silent | Lower — missing relationships return no path, not a wrong answer |
+| Dimension                  | Traditional RAG                               | Graph RAG                                                          |
+|----------------------------|-----------------------------------------------|--------------------------------------------------------------------|
+| **Storage**                | Vector database (embeddings)                  | Graph database (nodes + relationships)                             |
+| **Retrieval unit**         | Chunk of text (flat)                          | Paths and subgraphs (structured)                                   |
+| **Relationship awareness** | None — chunks are independent                 | First-class — traverses edges at query time                        |
+| **Multi-hop reasoning**    | Weak — requires the answer to be in one chunk | Strong — follows chains: Employee → Manager → Department → Project |
+| **Context quality**        | Semantically similar text                     | Factually connected entities with typed relationships              |
+| **Data freshness**         | Requires re-embedding on updates              | Graph writes are immediately queryable                             |
+| **Query type**             | "What does doc X say about topic Y?"          | "Who in Engineering works on ML projects and reports to the CTO?"  |
+| **Hallucination risk**     | Higher — context gaps are silent              | Lower — missing relationships return no path, not a wrong answer   |
 
 ### Why relationships matter
 
-Traditional RAG retrieves the most similar text chunks. If you ask *"Which engineers on the fraud detection project report to Eve?"* it needs the answer co-located in a single chunk. In a knowledge graph that query is a 3-hop Cypher traversal:
+Traditional RAG retrieves the most similar text chunks. If you ask *"Which engineers on the fraud detection project
+report to Eve?"* it needs the answer co-located in a single chunk. In a knowledge graph that query is a 3-hop Cypher
+traversal:
 
 ```
 Employee -[:WORKS_ON]-> Project <-[:WORKS_ON]- Employee -[:REPORTS_TO*]-> Eve
@@ -104,39 +110,39 @@ TechCorp (Company)
 
 ### Projects (cross-cutting)
 
-| Project | Status | Technologies | Owner dept |
-|---|---|---|---|
-| Project Alpha | active | Java, Spring Boot, Kubernetes, PostgreSQL | Engineering |
-| Project Beta | active | React, TypeScript, GraphQL | Product |
-| Project Gamma | active | Python, TensorFlow, Apache Spark, Kafka | Data Science |
-| Project Delta | active | Apache Kafka, Java, Spring Boot, Kubernetes | Engineering |
-| Project Epsilon | active | Neo4j, Python, Java, Spring Boot | Data Science |
+| Project         | Status | Technologies                                | Owner dept   |
+|-----------------|--------|---------------------------------------------|--------------|
+| Project Alpha   | active | Java, Spring Boot, Kubernetes, PostgreSQL   | Engineering  |
+| Project Beta    | active | React, TypeScript, GraphQL                  | Product      |
+| Project Gamma   | active | Python, TensorFlow, Apache Spark, Kafka     | Data Science |
+| Project Delta   | active | Apache Kafka, Java, Spring Boot, Kubernetes | Engineering  |
+| Project Epsilon | active | Neo4j, Python, Java, Spring Boot            | Data Science |
 
 ### Relationship types
 
-| Relationship | From → To | Properties |
-|---|---|---|
-| `HAS_DEPARTMENT` | Company → Department | — |
-| `HAS_TEAM` | Department → Team | — |
-| `HAS_MEMBER` | Team → Employee | — |
-| `REPORTS_TO` | Employee → Employee | — |
-| `WORKS_ON` | Employee → Project | `role`, `allocationPct`, `startDate` |
-| `USES_TECHNOLOGY` | Project → Technology | — |
-| `COLLABORATES_WITH` | Department → Department | — |
-| `OWNS_PROJECT` | Department → Project | — |
+| Relationship        | From → To               | Properties                           |
+|---------------------|-------------------------|--------------------------------------|
+| `HAS_DEPARTMENT`    | Company → Department    | —                                    |
+| `HAS_TEAM`          | Department → Team       | —                                    |
+| `HAS_MEMBER`        | Team → Employee         | —                                    |
+| `REPORTS_TO`        | Employee → Employee     | —                                    |
+| `WORKS_ON`          | Employee → Project      | `role`, `allocationPct`, `startDate` |
+| `USES_TECHNOLOGY`   | Project → Technology    | —                                    |
+| `COLLABORATES_WITH` | Department → Department | —                                    |
+| `OWNS_PROJECT`      | Department → Project    | —                                    |
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Runtime | Java 21 |
-| Framework | Spring Boot 4.1 |
-| Graph DB | Neo4j 5.x (Spring Data Neo4j) |
-| LLM | Anthropic Claude (claude-opus-4-8) via `anthropic-java` SDK 2.34 |
-| Build | Maven |
-| Boilerplate | Lombok |
+| Layer       | Technology                                                       |
+|-------------|------------------------------------------------------------------|
+| Runtime     | Java 21                                                          |
+| Framework   | Spring Boot 4.1                                                  |
+| Graph DB    | Neo4j 5.x (Spring Data Neo4j)                                    |
+| LLM         | Anthropic Claude (claude-opus-4-8) via `anthropic-java` SDK 2.34 |
+| Build       | Maven                                                            |
+| Boilerplate | Lombok                                                           |
 
 ---
 
@@ -178,7 +184,8 @@ export NEO4J_PASSWORD=password       # default: password
 ./mvnw spring-boot:run
 ```
 
-On first startup the application seeds the full TechCorp knowledge graph automatically (`app.graph.seed-data: true`). Subsequent restarts skip seeding if data is already present.
+On first startup the application seeds the full TechCorp knowledge graph automatically (`app.graph.seed-data: true`).
+Subsequent restarts skip seeding if data is already present.
 
 ---
 
@@ -209,14 +216,14 @@ Content-Type: application/json
 
 ### Graph inspection endpoints
 
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/graph/stats` | Node and relationship counts |
-| `GET` | `/api/graph/companies/{name}/hierarchy` | Full company hierarchy |
-| `GET` | `/api/graph/companies/{name}/employees` | All employees in a company |
-| `GET` | `/api/graph/employees/{name}/context` | Employee with projects and manager |
-| `GET` | `/api/graph/employees/{name}/reports` | Direct reports of an employee |
-| `GET` | `/api/graph/projects/{name}/team` | Everyone working on a project |
+| Method | Path                                    | Description                        |
+|--------|-----------------------------------------|------------------------------------|
+| `GET`  | `/api/graph/stats`                      | Node and relationship counts       |
+| `GET`  | `/api/graph/companies/{name}/hierarchy` | Full company hierarchy             |
+| `GET`  | `/api/graph/companies/{name}/employees` | All employees in a company         |
+| `GET`  | `/api/graph/employees/{name}/context`   | Employee with projects and manager |
+| `GET`  | `/api/graph/employees/{name}/reports`   | Direct reports of an employee      |
+| `GET`  | `/api/graph/projects/{name}/team`       | Everyone working on a project      |
 
 ### Health check
 
@@ -263,12 +270,13 @@ app:
 1. **Keyword extraction** — stop words are stripped; up to 8 meaningful terms are pulled from the question.
 2. **Full-text index search** — Neo4j's `entitySearch` index is queried for matching node names across all labels.
 3. **Typed traversals** — for each keyword, four specialised Cypher queries run in parallel:
-   - Org hierarchy paths: `Company → Department → Team → Employee`
-   - Project paths: `Employee → Project → Technology`
-   - Management chains: `Employee -[:REPORTS_TO*1..3]-> Manager`
-   - Cross-department collaboration: `Department -[:COLLABORATES_WITH]-> Department`
+    - Org hierarchy paths: `Company → Department → Team → Employee`
+    - Project paths: `Employee → Project → Technology`
+    - Management chains: `Employee -[:REPORTS_TO*1..3]-> Manager`
+    - Cross-department collaboration: `Department -[:COLLABORATES_WITH]-> Department`
 4. **Deduplication and capping** — results are deduplicated and capped at `maxContextNodes × 3` lines.
-5. **Prompt injection** — the formatted context block is prepended to the LLM prompt so Claude reasons over graph facts, not its training weights.
+5. **Prompt injection** — the formatted context block is prepended to the LLM prompt so Claude reasons over graph facts,
+   not its training weights.
 
 ## 🧩 Design patterns
 

@@ -21,6 +21,16 @@ public class BiEncoderReranker implements Reranker {
 
     private final EmbeddingModel embeddingModel;
 
+    private static double cosine(float[] a, float[] b) {
+        double dot = 0, na = 0, nb = 0;
+        for (int i = 0; i < Math.min(a.length, b.length); i++) {
+            dot += (double) a[i] * b[i];
+            na += (double) a[i] * a[i];
+            nb += (double) b[i] * b[i];
+        }
+        return (na == 0 || nb == 0) ? 0.0 : dot / (Math.sqrt(na) * Math.sqrt(nb));
+    }
+
     @Override
     public RerankStrategy strategy() {
         return RerankStrategy.BI_ENCODER;
@@ -38,15 +48,5 @@ public class BiEncoderReranker implements Reranker {
         reranked.sort(Comparator.comparingDouble(
                 (Chunk c) -> com.org.retrieval.postprocess.RetrievalPostProcessor.score(c)).reversed());
         return reranked;
-    }
-
-    private static double cosine(float[] a, float[] b) {
-        double dot = 0, na = 0, nb = 0;
-        for (int i = 0; i < Math.min(a.length, b.length); i++) {
-            dot += (double) a[i] * b[i];
-            na += (double) a[i] * a[i];
-            nb += (double) b[i] * b[i];
-        }
-        return (na == 0 || nb == 0) ? 0.0 : dot / (Math.sqrt(na) * Math.sqrt(nb));
     }
 }

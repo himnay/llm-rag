@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Write-through LRU + TTL cache for embedding vectors. Wraps {@link EmbeddingModel} so that
@@ -16,94 +17,118 @@ import java.util.*;
  * document and would otherwise make one API call per sentence every time the same corpus is
  * re-ingested.
  *
- * <p>Keyed by {@code SHA-256(text)}. Thread-safe via synchronization — swap to Caffeine if QPS
- * makes this a bottleneck.</p>
+ * <p>Keyed by {@code SHA-256(text)}. Thread-safe: a ConcurrentHashMap guards the write path so
+ * the embedding call is never made while holding a lock. A ThreadLocal MessageDigest avoids the
+ * per-call registry lookup overhead on the hot path. Swap to Caffeine if QPS is a bottleneck.</p>
  */
 @Slf4j
 @Service
 public class EmbeddingCacheService {
 
-    private record CachedVector(float[] vector, long expiresAtMillis) {}
-
+    /**
+     * Reuse one MessageDigest instance per thread — MessageDigest is NOT thread-safe.
+     */
+    private static final ThreadLocal<MessageDigest> SHA256 = ThreadLocal.withInitial(() -> {
+        try {
+            return MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 unavailable", e);
+        }
+    });
     private final EmbeddingModel embeddingModel;
     private final EmbeddingCacheProperties properties;
-    private final Map<String, CachedVector> cache;
-
+    private final long maxSize;
+    /**
+     * LRU map guarded by its own intrinsic lock (only for eviction; writes are ConcurrentHashMap).
+     */
+    private final Map<String, CachedVector> lruOrder;
+    private final ConcurrentHashMap<String, CachedVector> cache = new ConcurrentHashMap<>();
     public EmbeddingCacheService(EmbeddingModel embeddingModel, EmbeddingCacheProperties properties) {
         this.embeddingModel = embeddingModel;
         this.properties = properties;
-        long maxSize = properties.getMaxSize();
-        this.cache = new LinkedHashMap<>(64, 0.75f, true) {
-            @Override
-            protected boolean removeEldestEntry(Map.Entry<String, CachedVector> eldest) {
-                return size() > maxSize;
-            }
-        };
+        this.maxSize = properties.getMaxSize();
+        this.lruOrder = new LinkedHashMap<>(64, 0.75f, true);
     }
 
-    /** Embed a single text string, returning the cached vector if available. */
+    private static String sha256(String text) {
+        MessageDigest md = SHA256.get();
+        md.reset();
+        return HexFormat.of().formatHex(md.digest(text.getBytes(StandardCharsets.UTF_8)));
+    }
+
+    /**
+     * Embed a single text string, returning the cached vector if available.
+     */
     public float[] embed(String text) {
         if (!properties.isEnabled()) {
             return embeddingModel.embed(text);
         }
         String key = sha256(text);
-        synchronized (cache) {
-            CachedVector cached = cache.get(key);
-            if (cached != null && System.currentTimeMillis() < cached.expiresAtMillis()) {
-                return cached.vector();
-            }
+        CachedVector cached = cache.get(key);
+        long now = System.currentTimeMillis();
+        if (cached != null && now < cached.expiresAtMillis()) {
+            return cached.vector();
         }
+        // Embed outside any lock — network I/O must never block cache readers.
         float[] vector = embeddingModel.embed(text);
-        synchronized (cache) {
-            cache.put(key, new CachedVector(vector, System.currentTimeMillis() + properties.getTtl().toMillis()));
-        }
+        long expiry = System.currentTimeMillis() + properties.getTtl().toMillis();
+        CachedVector cv = new CachedVector(vector, expiry);
+        cache.put(key, cv);
+        evictIfNecessary(key);
         return vector;
     }
 
-    /** Embed a list of texts, hitting the cache per-item to avoid redundant API calls. */
+    /**
+     * Embed a list of texts, hitting the cache per-item to avoid redundant API calls.
+     */
     public List<float[]> embed(List<String> texts) {
         if (!properties.isEnabled()) {
             return embeddingModel.embed(texts);
         }
-        List<String> uncached = new ArrayList<>();
+        long now = System.currentTimeMillis();
+        List<String> uncachedTexts = new ArrayList<>();
         List<Integer> uncachedIdx = new ArrayList<>();
-        List<float[]> result = new ArrayList<>(texts.size());
+        List<float[]> result = new ArrayList<>(Collections.nCopies(texts.size(), null));
 
         for (int i = 0; i < texts.size(); i++) {
-            String key = sha256(texts.get(i));
-            synchronized (cache) {
-                CachedVector cv = cache.get(key);
-                if (cv != null && System.currentTimeMillis() < cv.expiresAtMillis()) {
-                    result.add(cv.vector());
-                    continue;
-                }
+            CachedVector cv = cache.get(sha256(texts.get(i)));
+            if (cv != null && now < cv.expiresAtMillis()) {
+                result.set(i, cv.vector());
+            } else {
+                uncachedTexts.add(texts.get(i));
+                uncachedIdx.add(i);
             }
-            result.add(null);
-            uncached.add(texts.get(i));
-            uncachedIdx.add(i);
         }
 
-        if (!uncached.isEmpty()) {
-            List<float[]> fetched = embeddingModel.embed(uncached);
+        if (!uncachedTexts.isEmpty()) {
+            List<float[]> fetched = embeddingModel.embed(uncachedTexts);
             long expiry = System.currentTimeMillis() + properties.getTtl().toMillis();
-            for (int j = 0; j < uncached.size(); j++) {
+            for (int j = 0; j < uncachedTexts.size(); j++) {
                 float[] v = fetched.get(j);
                 result.set(uncachedIdx.get(j), v);
-                synchronized (cache) {
-                    cache.put(sha256(uncached.get(j)), new CachedVector(v, expiry));
-                }
+                String key = sha256(uncachedTexts.get(j));
+                cache.put(key, new CachedVector(v, expiry));
+                evictIfNecessary(key);
             }
-            log.debug("EmbeddingCache: {} hit(s), {} miss(es)", texts.size() - uncached.size(), uncached.size());
+            log.debug("EmbeddingCache: {} hit(s), {} miss(es)", texts.size() - uncachedTexts.size(), uncachedTexts.size());
         }
         return result;
     }
 
-    private static String sha256(String text) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            return HexFormat.of().formatHex(md.digest(text.getBytes(StandardCharsets.UTF_8)));
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 unavailable", e);
+    /**
+     * Evict LRU entry when the cache exceeds maxSize.
+     */
+    private void evictIfNecessary(String recentKey) {
+        synchronized (lruOrder) {
+            lruOrder.put(recentKey, null);
+            if (lruOrder.size() > maxSize) {
+                String eldest = lruOrder.keySet().iterator().next();
+                lruOrder.remove(eldest);
+                cache.remove(eldest);
+            }
         }
+    }
+
+    private record CachedVector(float[] vector, long expiresAtMillis) {
     }
 }

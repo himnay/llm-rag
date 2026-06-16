@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import java.util.function.Consumer;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -68,7 +70,7 @@ class GenerationServiceTest {
     void semanticCacheHitBypassesRetrievalAndGeneration() {
         when(semanticCache.get("cached question")).thenReturn(Optional.of("cached answer"));
 
-        GenerateResponse response = service.generate(new GenerateRequest("cached question", null));
+        GenerateResponse response = service.generate(new GenerateRequest("cached question", null, null));
 
         assertThat(response.answer()).isEqualTo("cached answer");
         assertThat(response.fromSemanticCache()).isTrue();
@@ -95,10 +97,10 @@ class GenerationServiceTest {
         when(promptOrchestrator.build(query, 5)).thenReturn(chatPrompt);
         when(injectionGuard.filter(List.of(chunk))).thenReturn(List.of(chunk));
         when(contextBuilder.build(any())).thenReturn("context text");
-        when(chatClient.prompt().system(anyString()).user(anyString()).call().content())
+        when(chatClient.prompt().system(anyString()).user(anyString()).advisors(any(Consumer.class)).call().content())
                 .thenReturn(expectedAnswer);
 
-        GenerateResponse response = service.generate(new GenerateRequest(query, null));
+        GenerateResponse response = service.generate(new GenerateRequest(query, null, null));
 
         assertThat(response.answer()).isEqualTo(expectedAnswer);
         assertThat(response.citations()).isEqualTo(List.of(citation));
@@ -122,10 +124,10 @@ class GenerationServiceTest {
         when(promptOrchestrator.build(query, 5)).thenReturn(chatPrompt);
         when(injectionGuard.filter(List.of(chunk))).thenReturn(List.of(chunk));
         when(contextBuilder.build(any())).thenReturn("ctx");
-        when(chatClient.prompt().system(anyString()).user(anyString()).call().content())
+        when(chatClient.prompt().system(anyString()).user(anyString()).advisors(any(Consumer.class)).call().content())
                 .thenReturn("answer");
 
-        GenerateResponse response = service.generate(new GenerateRequest(query, null));
+        GenerateResponse response = service.generate(new GenerateRequest(query, null, null));
 
         assertThat(response.citations()).isEmpty();
     }
@@ -144,10 +146,10 @@ class GenerationServiceTest {
         when(promptOrchestrator.build("q", 3)).thenReturn(chatPrompt);
         when(injectionGuard.filter(any())).thenReturn(List.of(chunk));
         when(contextBuilder.build(any())).thenReturn("ctx");
-        when(chatClient.prompt().system(anyString()).user(anyString()).call().content())
+        when(chatClient.prompt().system(anyString()).user(anyString()).advisors(any(Consumer.class)).call().content())
                 .thenReturn("answer");
 
-        service.generate(new GenerateRequest("q", 3)); // explicit topK=3
+        service.generate(new GenerateRequest("q", 3, null)); // explicit topK=3
 
         verify(promptOrchestrator).build("q", 3);
     }
@@ -167,10 +169,10 @@ class GenerationServiceTest {
         when(promptOrchestrator.build(query, 5)).thenReturn(chatPrompt);
         when(injectionGuard.filter(any())).thenReturn(List.of(chunk));
         when(contextBuilder.build(any())).thenReturn("ctx");
-        when(chatClient.prompt().system(anyString()).user(anyString()).call().content())
+        when(chatClient.prompt().system(anyString()).user(anyString()).advisors(any(Consumer.class)).call().content())
                 .thenReturn("the answer");
 
-        service.generate(new GenerateRequest(query, null));
+        service.generate(new GenerateRequest(query, null, null));
 
         verify(semanticCache).put(query, "the answer");
     }
@@ -193,10 +195,10 @@ class GenerationServiceTest {
         // guard removes the unsafe chunk
         when(injectionGuard.filter(List.of(safe, unsafe))).thenReturn(List.of(safe));
         when(contextBuilder.build(any())).thenReturn("ctx");
-        when(chatClient.prompt().system(anyString()).user(anyString()).call().content())
+        when(chatClient.prompt().system(anyString()).user(anyString()).advisors(any(Consumer.class)).call().content())
                 .thenReturn("answer");
 
-        service.generate(new GenerateRequest(query, null));
+        service.generate(new GenerateRequest(query, null, null));
 
         // Verify that only the safe chunk made it to context building
         verify(injectionGuard).filter(List.of(safe, unsafe));

@@ -8,7 +8,9 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Fixed-size character windows with overlap. */
+/**
+ * Fixed-size character windows with overlap.
+ */
 @Component
 @RequiredArgsConstructor
 public class FixedSizeChunkingStrategy extends AbstractChunkingStrategy {

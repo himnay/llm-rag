@@ -22,6 +22,17 @@ public class WikiSemanticChunkerTest extends IntegrationTest {
     @Autowired
     private WikiSemanticChunker wikiSemanticChunker;
 
+    private static void printChunks(IngestedDocument document, List<Chunk> chunks) {
+        log.info("Source: {}", document.source());
+        log.info("Original length: {}", document.content().length());
+        log.info("Total chunks: {}", chunks.size());
+
+        for (Chunk chunk : chunks) {
+            log.info("---- Chunk {} ----", chunk.chunkIndex());
+            log.info(chunk.content());
+        }
+    }
+
     @Test
     public void testChunker() throws Exception {
         List<IngestedDocument> documents = ingestionOrchestrator.ingestAll();
@@ -39,17 +50,5 @@ public class WikiSemanticChunkerTest extends IntegrationTest {
         log.info("========== SEMANTIC (WIKI) CHUNKING ==========");
         List<Chunk> semanticChunks = wikiSemanticChunker.chunk(wikiDoc);
         printChunks(wikiDoc, semanticChunks);
-    }
-
-
-    private static void printChunks(IngestedDocument document, List<Chunk> chunks) {
-        log.info("Source: {}", document.source());
-        log.info("Original length: {}", document.content().length());
-        log.info("Total chunks: {}", chunks.size());
-
-        for (Chunk chunk : chunks) {
-            log.info("---- Chunk {} ----", chunk.chunkIndex());
-            log.info(chunk.content());
-        }
     }
 }

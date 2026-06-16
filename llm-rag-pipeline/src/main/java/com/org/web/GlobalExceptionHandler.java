@@ -1,5 +1,6 @@
 package com.org.web;
 
+import com.org.ingestion.reader.UnsupportedDocumentTypeException;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -21,7 +22,9 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    /** Bean-validation failures on @Valid request bodies. */
+    /**
+     * Bean-validation failures on @Valid request bodies.
+     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiError> handleValidation(MethodArgumentNotValidException ex) {
         Map<String, String> fieldErrors = new LinkedHashMap<>();
@@ -36,19 +39,33 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, "Validation failed", ex.getMessage(), null);
     }
 
-    /** Malformed / empty JSON body. */
+    /**
+     * Malformed / empty JSON body.
+     */
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiError> handleUnreadable(HttpMessageNotReadableException ex) {
         return build(HttpStatus.BAD_REQUEST, "Malformed request", "Request body is missing or not valid JSON", null);
     }
 
-    /** Bad arguments — e.g. unsupported source type from the chunking/ingestion orchestrators. */
+    /**
+     * File type not supported by any registered {@link com.org.ingestion.reader.DocumentReaderStrategy}.
+     */
+    @ExceptionHandler(UnsupportedDocumentTypeException.class)
+    public ResponseEntity<ApiError> handleUnsupportedDocumentType(UnsupportedDocumentTypeException ex) {
+        return build(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Unsupported file type", ex.getMessage(), null);
+    }
+
+    /**
+     * Bad arguments — e.g. unsupported source type from the chunking/ingestion orchestrators.
+     */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex) {
         return build(HttpStatus.BAD_REQUEST, "Bad request", ex.getMessage(), null);
     }
 
-    /** Ingestion / IO failures. */
+    /**
+     * Ingestion / IO failures.
+     */
     @ExceptionHandler(IOException.class)
     public ResponseEntity<ApiError> handleIo(IOException ex) {
         log.error("IO error handling request", ex);
