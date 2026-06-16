@@ -11,19 +11,23 @@ Two vectorless retrieval approaches backed by Claude for generation — no embed
 
 ## What is Vectorless RAG?
 
-Standard RAG converts every document chunk into a high-dimensional vector using an embedding model, stores those vectors
-in a vector database (Pinecone, Weaviate, pgvector …), and retrieves chunks at query time by cosine similarity. This
-captures semantic meaning but requires an embedding model, a running vector DB, and extra latency/cost on every request.
-
-**Vectorless RAG** achieves the same goal — grounding LLM answers in your documents — without any of that
-infrastructure. Two approaches are implemented here:
+- **Standard RAG** converts every document chunk into a high-dimensional vector using an embedding model
+  - Those vectors are stored in a vector database (Pinecone, Weaviate, pgvector, etc.)
+  - At query time, chunks are retrieved by cosine similarity to the embedded query
+  - This captures semantic meaning effectively but introduces significant operational overhead
+- **The cost of standard RAG** includes an embedding model (often GPU-backed), a running vector database, and extra latency and API cost on every ingestion and query request
+- **Vectorless RAG** achieves the same goal — grounding LLM answers in your documents — without any of that infrastructure
+  - No embedding model is required for indexing or retrieval
+  - No vector database needs to be deployed or maintained
+  - The two approaches implemented here (BM25 and PageIndex) cover both offline/local and cloud use cases
 
 ---
 
 ## Retriever 1 — BM25 (local, always-on)
 
-BM25 (Best Match 25) is a classic information-retrieval ranking function. The index is built in-memory at startup and
-queries run in-process with no external calls.
+- **BM25 (Best Match 25)** is a classic probabilistic information-retrieval ranking function developed from the BM (Best Match) family of models
+- The index is built entirely in-memory at application startup — no external process or service is required
+- Queries run in-process with sub-millisecond latency and no network calls
 
 ```
 Query ──► tokenise ──► BM25 score each chunk ──► top-k chunks ──► Claude prompt ──► answer
@@ -45,9 +49,10 @@ IDF(t) = log( (N − df(t) + 0.5) / (df(t) + 0.5) + 1 )
 
 ## Retriever 2 — PageIndex (cloud, reasoning-based)
 
-[PageIndex](https://pageindex.ai) by VectifyAI is a vectorless RAG cloud service. Instead of splitting documents into
-fixed chunks and comparing embedding vectors, PageIndex builds a **hierarchical tree index** (like an intelligent table
-of contents) and uses LLM reasoning to navigate that tree when a question arrives.
+- [PageIndex](https://pageindex.ai) by VectifyAI is a vectorless RAG cloud service with no embedding step on either the indexing or query side
+- Instead of splitting documents into fixed chunks and comparing embedding vectors, PageIndex builds a **hierarchical tree index** — conceptually similar to an intelligent, auto-generated table of contents
+- At query time, LLM reasoning is used to navigate the tree (evaluating section titles and summaries) rather than running a vector similarity search
+- The tree search is entirely driven by language understanding, enabling accurate retrieval on long or complex documents
 
 ```
             ┌─ upload once ─────────────────────────┐
@@ -62,9 +67,6 @@ Query ──►   │ POST /retrieval/ {doc_id, query}                          
                                           ▼
                                Claude prompt ──► answer
 ```
-
-PageIndex's retrieval is entirely vectorless — no embeddings are involved on either the indexing or query side. The tree
-search is driven by LLM reasoning over section titles and summaries.
 
 ---
 
@@ -201,17 +203,16 @@ export RAG_PAGEINDEX_ENABLED=true
 ./mvnw spring-boot:run
 ```
 
-On startup, all `.txt` files are converted to PDFs (via PDFBox) and uploaded to PageIndex. PageIndex builds its tree
-index asynchronously; the app waits for all documents to be ready before accepting requests (~30–60 s per document for
-the cloud service).
+- On startup, all `.txt` files are converted to PDFs (via PDFBox) and uploaded to PageIndex
+- PageIndex builds its tree index asynchronously in the cloud; the app waits for all documents to reach `ready` status before accepting requests
+- Expect approximately 30–60 seconds per document for the initial tree-building phase on the cloud service
+- **Adding documents:** drop any `.txt` file into `src/main/resources/documents/`
+  - BM25 index rebuilds automatically on the next startup from all files present in that directory
+  - PageIndex re-uploads and re-indexes the new file on next startup (existing documents are not re-processed if their doc_id is already recorded)
 
-**Adding documents:** drop any `.txt` into `src/main/resources/documents/`. BM25 rebuilds automatically; PageIndex
-re-uploads on next startup.
-
-**Example:**
+**Example — compare both retrievers on the same question:**
 
 ```bash
-# compare both retrievers on the same question
 curl -s -X POST http://localhost:8080/api/rag/chat \
   -H 'Content-Type: application/json' \
   -d '{"question": "What is BM25?"}' | jq .
@@ -244,12 +245,12 @@ Sources:
 
 ## 🧩 Design patterns
 
-The two retrieval paths (local **BM25** and remote **PageIndex**) are exposed as separate
-endpoints with different response shapes, so they are deliberately *not* forced behind a common
-Strategy interface — that would be speculative abstraction for a variation point that doesn't
-exist (PageIndex is toggled by `@ConditionalOnProperty`, not selected per request). See the
-[Design patterns section](../llm-rag-pipeline/README.md#-design-patterns-gof) in
-`llm-rag-pipeline` for the GoF patterns used across the llm-rag modules.
+- The two retrieval paths (local **BM25** and remote **PageIndex**) are exposed as separate endpoints with intentionally different response shapes
+- A common Strategy interface is deliberately **not** introduced for these two retrievers:
+  - The variation point does not exist at runtime — PageIndex is toggled by `@ConditionalOnProperty`, not selected per request
+  - Forcing both paths behind a shared interface would be speculative abstraction with no current caller
+  - The simpler design keeps each path independently testable and deployable
+- See the [Design patterns section](../llm-rag-pipeline/README.md#-design-patterns-gof) in `llm-rag-pipeline` for the full GoF pattern inventory used across the llm-rag modules
 
 ## 🏗️ Build & test
 
@@ -257,7 +258,8 @@ exist (PageIndex is toggled by `@ConditionalOnProperty`, not selected per reques
 mvn test
 ```
 
-Tests run **offline** with no API keys: `BM25RetrieverTest` covers the ranking behaviour
-(keyword-matching chunks ranked first, stop-word/no-match queries return empty), and
-`LlmVectorlessRagApplicationTests` verifies the Spring context assembles with a dummy Anthropic
-key from the `test` profile.
+- Tests run **offline** with no live API keys required — the `test` Spring profile supplies a dummy Anthropic key and disables PageIndex
+- `BM25RetrieverTest` covers the core ranking behaviour:
+  - Chunks containing query keywords are ranked above non-matching chunks
+  - Stop-word-only queries and no-match queries both return an empty result set
+- `LlmVectorlessRagApplicationTests` verifies that the full Spring application context assembles cleanly with the test profile active

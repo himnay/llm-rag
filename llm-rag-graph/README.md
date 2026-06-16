@@ -1,16 +1,20 @@
 # LLM RAG Graph
 
-A **Graph RAG** (Retrieval-Augmented Generation) pipeline built on **Neo4j** and **Anthropic Claude**. It models a
-4-level corporate knowledge graph and answers natural-language questions by traversing graph relationships before
-calling the LLM — going far beyond what flat vector search can do.
+A **Graph RAG** (Retrieval-Augmented Generation) pipeline built on **Neo4j** and **Anthropic Claude**.
+
+- Models a 4-level corporate knowledge graph (Company → Department → Team → Employee) for TechCorp
+- Answers natural-language questions by traversing typed graph relationships before calling the LLM
+- Goes far beyond flat vector search by exploiting the structure encoded in graph edges
+- Returns precise, factually-grounded answers — the LLM narrates graph facts rather than inventing them
 
 ---
 
 ## What is RAG?
 
-Retrieval-Augmented Generation combines a retrieval step with an LLM. Instead of relying on the model's training
-knowledge, you fetch relevant context at query time, inject it into the prompt, and let the LLM reason over fresh,
-private, or structured data.
+- **Retrieval-Augmented Generation (RAG)** combines a structured retrieval step with a large language model
+- Instead of relying solely on the model's training-time knowledge, relevant context is fetched at query time
+- That context is injected into the prompt, letting the LLM reason over fresh, private, or structured data
+- This approach keeps the model grounded and dramatically reduces hallucination on domain-specific questions
 
 ---
 
@@ -29,15 +33,17 @@ private, or structured data.
 
 ### Why relationships matter
 
-Traditional RAG retrieves the most similar text chunks. If you ask *"Which engineers on the fraud detection project
-report to Eve?"* it needs the answer co-located in a single chunk. In a knowledge graph that query is a 3-hop Cypher
-traversal:
+- Traditional RAG retrieves the most similar text chunks, which requires the full answer to be co-located in a single chunk
+- Multi-hop questions (e.g., *"Which engineers on the fraud detection project report to Eve?"*) cannot be answered reliably this way
+- In a knowledge graph the same question becomes a 3-hop Cypher traversal:
 
 ```
 Employee -[:WORKS_ON]-> Project <-[:WORKS_ON]- Employee -[:REPORTS_TO*]-> Eve
 ```
 
-The graph returns precise, structured facts. The LLM's job is then to narrate those facts, not to invent them.
+- The graph returns precise, structured facts as a result set — not a ranked similarity score
+- The LLM's only job is then to narrate those facts in natural language, not to invent or guess them
+- Missing relationships return an empty result, making knowledge gaps explicit rather than silent
 
 ---
 
@@ -184,8 +190,9 @@ export NEO4J_PASSWORD=password       # default: password
 ./mvnw spring-boot:run
 ```
 
-On first startup the application seeds the full TechCorp knowledge graph automatically (`app.graph.seed-data: true`).
-Subsequent restarts skip seeding if data is already present.
+- On first startup the application seeds the full TechCorp knowledge graph automatically (`app.graph.seed-data: true`)
+- Subsequent restarts detect existing data and skip the seeding step entirely
+- No manual Cypher scripts or migrations are required — the seeder is idempotent
 
 ---
 
@@ -280,13 +287,11 @@ app:
 
 ## 🧩 Design patterns
 
-This module stays deliberately small: `GraphRAGService` is a **Facade** over the multi-step
-keyword-extraction → graph-traversal → prompt-assembly → LLM flow, and the Spring Data Neo4j
-repositories follow the Repository pattern. There is a single LLM provider
-(`AnthropicLLMService`), so no Strategy interface is introduced — see the
-[Design patterns section](../llm-rag-pipeline/README.md#-design-patterns-gof) in
-`llm-rag-pipeline` for the GoF patterns used across the llm-rag modules and the reasoning about
-where patterns are deliberately not applied.
+- `GraphRAGService` acts as a **Facade** over the full multi-step flow: keyword extraction → graph traversal → prompt assembly → LLM call
+  - Callers interact with a single `query(String question)` method; none of the internal steps are exposed
+- Spring Data Neo4j repositories follow the **Repository** pattern, keeping Cypher queries isolated from service logic
+- There is a single LLM provider (`AnthropicLLMService`), so a Strategy interface for LLM providers is deliberately not introduced — adding one would be speculative abstraction
+- See the [Design patterns section](../llm-rag-pipeline/README.md#-design-patterns-gof) in `llm-rag-pipeline` for the full GoF pattern inventory used across the llm-rag modules and the reasoning about where patterns are deliberately not applied
 
 ## 🏗️ Build & test
 
@@ -294,8 +299,10 @@ where patterns are deliberately not applied.
 mvn test
 ```
 
-Tests run **offline** — the `test` profile disables graph seeding and supplies a dummy Anthropic
-key, so no running Neo4j instance or real API key is needed. `GraphRAGServiceTest` unit-tests the
-RAG orchestration (context extraction → LLM answer → response assembly) and the graph-stats
-aggregation with mocked collaborators; `LlmRagGraphApplicationTests` verifies the Spring context
-assembles.
+- Tests run **offline** — the `test` profile disables graph seeding and supplies a dummy Anthropic key
+- No running Neo4j instance or real API key is required to execute the test suite
+- `GraphRAGServiceTest` unit-tests the full RAG orchestration path:
+  - Context extraction → LLM answer → response assembly
+  - Graph-stats aggregation logic
+  - All collaborators (Neo4j repositories, `AnthropicLLMService`) are mocked with Mockito
+- `LlmRagGraphApplicationTests` verifies that the Spring application context assembles cleanly without errors

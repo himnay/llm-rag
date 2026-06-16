@@ -359,7 +359,9 @@ Response fields:
 
 ## API-key Authentication
 
-`/api/**` is protected when `app.security.auth-enabled=true`. Keys are SHA-256 digests stored in the `api_keys` PostgreSQL table:
+- All `/api/**` routes are protected when `app.security.auth-enabled=true`
+- API keys are stored as SHA-256 digests in the `api_keys` PostgreSQL table — plaintext keys are never persisted
+- To provision a new key:
 
 ```bash
 raw=$(openssl rand -hex 32)
@@ -367,6 +369,9 @@ hash=$(printf "%s" "$raw" | shasum -a 256 | cut -d' ' -f1)
 psql ... -c "INSERT INTO api_keys (key_hash, label) VALUES ('$hash', 'my-client');"
 echo "X-API-Key: $raw"
 ```
+
+- Send the raw value in the `X-API-Key` request header; the filter hashes it and compares against the stored digest
+- Rate limiting is enforced separately via `RateLimitFilter` (token-bucket, configurable capacity and refill rate)
 
 ---
 

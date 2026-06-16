@@ -1,4 +1,9 @@
+server:
+  shutdown: graceful
+
 spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
   application:
     name: llm-rag-graph
   neo4j:
@@ -23,11 +28,11 @@ app:
     model: claude-opus-4-8
     max-tokens: 4096
   graph:
-    seed-data: true
+    seed-data: ${GRAPH_SEED_DATA:false}
     context-depth: 4
     max-context-nodes: 20
   security:
-    auth-enabled: ${API_AUTH_ENABLED:false}   # dev default: open. Set true in prod.
+    auth-enabled: ${API_AUTH_ENABLED:true}   # secure by default; set API_AUTH_ENABLED=false for local dev
     header: X-API-Key
     allowed-origins: ${CORS_ALLOWED_ORIGINS:}
 

@@ -15,31 +15,28 @@ the root `pom.xml` is a plain aggregator.
 
 ### [llm-rag-pipeline](llm-rag-pipeline/README.md) — Spring AI vector RAG backend
 
-A production-grade **ingestion + retrieval** service built with Spring AI. Documents are read
-(PDF/OCR, Markdown, Excel, Tika …), normalized, deduplicated by content hash, chunked by a
-pluggable `ChunkingStrategy`, optionally LLM-enriched, and stored as vectors in OpenSearch.
-Retrieval offers vector kNN, BM25 keyword, and hybrid RRF search behind a `SearchStrategy`
-interface, followed by a post-processor chain (filters, dedup, six reranking strategies, MMR
-diversity). Includes API-key security, rate limiting, retrieval-quality evaluation (MRR, P@k,
-R@k), and full observability (Prometheus / Grafana / Tempo / Loki). Answer generation is
-deliberately out of scope — a downstream consumer turns the ranked chunks into answers.
+- **Ingestion:** reads PDF/OCR, Markdown, Excel, and generic formats via Tika; normalises, deduplicates by content hash, and chunks via a pluggable `ChunkingStrategy`
+- **Storage:** vectors written to OpenSearch kNN index; structured source data and operational metadata in PostgreSQL
+- **Retrieval:** `SearchStrategy` interface with vector kNN, BM25 keyword, and hybrid RRF search; post-processor chain of filters, dedup, six reranking strategies, and MMR diversity
+- **Security & reliability:** API-key auth, SHA-256 hashed, rate limiting, Resilience4j circuit breaker
+- **Observability:** Prometheus metrics, Grafana dashboards, Tempo distributed tracing, Loki structured logging
+- **Quality:** retrieval evaluation (MRR, P@k, R@k, RAGAS context precision); answer generation is out of scope — downstream consumers handle that
 
 ### [llm-rag-vectorless](llm-rag-vectorless/README.md) — RAG without embeddings
 
-Two retrieval approaches that need **no embedding model, no vector database, and no GPU**, with
-Claude for generation. A local **BM25** index ranks chunks in-process with classic keyword IR
-(always on), and **PageIndex** — a cloud tree-reasoning service — navigates a hierarchical
-document index with LLM reasoning (opt-in via API key). Both feed the same grounded-answer
-prompt, so the two retrievers can be compared side by side on the same questions.
+- **No vectors required:** works without an embedding model, vector database, or GPU
+- **BM25 retriever:** in-process inverted index built at startup (k1=1.2, b=0.75); always on
+- **PageIndex retriever:** cloud tree-reasoning service that navigates a hierarchical document index with LLM-guided reasoning; opt-in via `PAGEINDEX_API_KEY`
+- **Generation:** Claude (via Spring AI `ChatClient`) produces grounded answers from retrieved chunks
+- **Comparison:** both retrievers feed the same prompt template, enabling side-by-side evaluation on identical questions
 
 ### [llm-rag-graph](llm-rag-graph/README.md) — Graph RAG on Neo4j
 
-Answers natural-language questions by **traversing a knowledge graph** instead of comparing
-vectors. A seeded 4-level corporate graph (Company → Department → Team → Employee, plus projects,
-technologies, and management chains) is queried with full-text search and multi-hop Cypher
-traversals; the extracted subgraph context is injected into a Claude prompt, so the LLM narrates
-structured facts rather than inventing them. Strong at multi-hop questions flat RAG cannot
-answer, e.g. *"Who in Engineering works on ML projects and reports to the CTO?"*.
+- **Graph traversal:** answers questions by walking a knowledge graph rather than comparing vectors
+- **Schema:** 4-level corporate graph — Company → Department → Team → Employee — plus Projects, Technologies, and management/collaboration edges
+- **Retrieval:** full-text APOC index for entity lookup, then multi-hop Cypher traversals for relationship paths
+- **Generation:** extracted subgraph context injected into a Claude prompt with extended thinking enabled; LLM narrates structured facts rather than inventing them
+- **Strength:** multi-hop questions flat RAG cannot answer, e.g. *"Who in Engineering works on ML projects and reports to the CTO?"*
 
 ## Design patterns
 
