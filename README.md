@@ -62,7 +62,7 @@ Patterns are deliberately *omitted* where no real variation point exists.
 
 | Area | Change |
 |------|--------|
-| **Multi-turn conversation** | `GenerationService` now holds a `MessageWindowChatMemory` (Spring AI 2.0.0-RC2). Pass `conversationId` in `GenerateRequest` to continue a session; omit it for single-turn (UUID generated per request). Conversation ID is injected via `ChatMemory.CONVERSATION_ID` advisor param. |
+| **Multi-turn conversation** | `GenerationService` now holds a `MessageWindowChatMemory` (Spring AI 2.0.0). Pass `conversationId` in `GenerateRequest` to continue a session; omit it for single-turn (UUID generated per request). Conversation ID is injected via `ChatMemory.CONVERSATION_ID` advisor param. |
 | **Streaming generation (SSE)** | `POST /api/v1/generate/stream` returns `text/event-stream` via `Flux<String>`. Same RAG pipeline as the blocking endpoint — injection guard, context rebuild, ChatMemory advisor. |
 | **Async ingestion** | `POST /api/v1/upload/async` accepts a file and immediately returns HTTP 202 with a `jobId`. The ingestion runs in a dedicated `ThreadPoolTaskExecutor`. `GET /api/v1/upload/{jobId}/status` polls the `IngestionJob` (PENDING → RUNNING → DONE / FAILED). |
 | **Command pattern for lifecycle** | `IngestCommand`, `DeleteCommand`, `IngestAllCommand` wrap each lifecycle operation. `CommandExecutor` provides audit logging at a single point. |
@@ -114,16 +114,16 @@ and exactly how this project uses it.
 
 ---
 
-### Java 21
+### Java 25
 
-**What it is:** The latest long-term-support release of the Java platform.
+**What it is:** The latest release of the Java platform (GA June 2025, Azul Zulu build used here).
 
-**How it's used here:** All three modules compile and run on Java 21. The project makes deliberate
-use of Java 21 features: sealed records (`RetrievalResult`, `RagResponse`, `GraphContext`) replace
+**How it's used here:** All three modules compile and run on Java 25. The project makes deliberate
+use of modern Java features: sealed records (`RetrievalResult`, `RagResponse`, `GraphContext`) replace
 verbose POJOs; text blocks clean up multi-line SQL and prompt strings throughout the codebase; and
 `llm-rag-pipeline`'s `LlmPointwiseReranker` uses `Executors.newVirtualThreadPerTaskExecutor()` to
 fire N parallel LLM grading calls with the cost of one round-trip rather than N sequential ones —
-the core virtual-threads feature of Java 21.
+the virtual-threads feature introduced in Java 21 and available here on Java 25.
 
 ---
 
@@ -156,7 +156,7 @@ dev-only) auto-manages the Docker Compose stack when running from an IDE.
 
 ---
 
-### Spring AI 2.0.0-RC2
+### Spring AI 2.0.0
 
 **What it is:** Anthropic's (and VMware's) abstraction layer that gives Spring applications a
 uniform interface over multiple LLM providers, embedding models, vector stores, and document
@@ -505,7 +505,7 @@ cannot be Java records. Command classes (`IngestCommand`, `DeleteCommand`, `Inge
 remain on Neo4j `@Node` domain classes in `llm-rag-graph`. Lombok is excluded from the final JAR
 (`<optional>true</optional>`) and stripped by the Spring Boot Maven plugin.
 
-Where a class is a pure immutable data holder with no superclass, **Java 21 records** are preferred
+Where a class is a pure immutable data holder with no superclass, **Java records** are preferred
 over Lombok — `KnowledgeRequest`, `IngestedDocument`, `IngestionJob`, `GraphContext`, and all REST
 DTOs (`GenerateRequest`, `RagRequest`, `RagResponse`, `GraphStats`, …) are records.
 

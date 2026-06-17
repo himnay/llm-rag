@@ -6,7 +6,7 @@ A production-grade **Retrieval-Augmented Generation** backend built with Spring 
 - **Retrieval** — ranking the most relevant chunks
 - **Generation** — assembling a grounded LLM answer with citations, semantic caching, and prompt-injection defence
 
-> **Stack**: Spring Boot 4.1 · Spring AI 2.0.0 · Java 21 · OpenAI · OpenSearch · PostgreSQL 17
+> **Stack**: Spring Boot 4.1 · Spring AI 2.0.0 · Java 25 · OpenAI · OpenSearch · PostgreSQL 17
 
 ---
 
@@ -300,7 +300,7 @@ app:
 
 ### Prerequisites
 
-- Java 21+, Maven
+- Java 25, Maven
 - Docker & Docker Compose
 - An OpenAI API key (embeddings + generation)
 

@@ -23,8 +23,8 @@ class RetrievalController {
 
     private final RetrievalService retrievalService;
 
-    @Timed(value = "rag.retrieval", description = "Vector retrieval turnaround time", histogram = true)
     @PostMapping("/retrieve")
+    @Timed(value = "rag.retrieval", description = "Vector retrieval turnaround time", histogram = true)
     public RetrievalResult retrieve(@Valid @RequestBody RetrieveRequest request) {
         return request.topK() != null
                 ? retrievalService.retrieve(request.query(), request.topK())

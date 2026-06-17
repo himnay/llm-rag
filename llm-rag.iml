@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module version="4">
+  <component name="AdditionalModuleElements">
+    <content url="file://$MODULE_DIR$" dumb="true">
+      <sourceFolder url="file://$MODULE_DIR$/llm-rag-graph/src/main/java" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/llm-rag-graph/src/main/resources" type="java-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/llm-rag-graph/src/test/java" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/llm-rag-graph/src/test/resources" type="java-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/llm-rag-pipeline/src/main/java" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/llm-rag-pipeline/src/main/resources" type="java-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/llm-rag-pipeline/src/test/java" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/llm-rag-vectorless/src/main/java" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/llm-rag-vectorless/src/main/resources" type="java-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/llm-rag-vectorless/src/test/java" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/llm-rag-vectorless/src/test/resources" type="java-resource" />
+    </content>
+  </component>
+</module>

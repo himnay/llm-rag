@@ -185,7 +185,7 @@ rag:
 
 ## Running Locally
 
-**Prerequisites:** Java 21, Maven 3.9+, Anthropic API key.
+**Prerequisites:** Java 25, Maven 3.9+, Anthropic API key.
 
 ### BM25 only
 

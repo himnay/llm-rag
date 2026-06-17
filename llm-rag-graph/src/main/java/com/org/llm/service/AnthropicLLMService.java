@@ -5,6 +5,8 @@ import com.anthropic.models.messages.ContentBlock;
 import com.anthropic.models.messages.Message;
 import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.ThinkingConfigAdaptive;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,6 +42,8 @@ public class AnthropicLLMService {
     @Value("${app.anthropic.max-tokens:4096}")
     private int maxTokens;
 
+    @CircuitBreaker(name = "llm-rag-graph", fallbackMethod = "answerFallback")
+    @Retry(name = "llm-rag-graph")
     public String answer(String question, String graphContext) {
         String userMessage = buildUserMessage(question, graphContext);
         log.debug("Sending request to Claude model={} maxTokens={}", model, maxTokens);
@@ -59,6 +63,12 @@ public class AnthropicLLMService {
             log.error("Anthropic API call failed for question='{}': {}", question, e.getMessage(), e);
             throw new LlmCallException("LLM call to Claude failed: " + e.getMessage(), e);
         }
+    }
+
+    @SuppressWarnings("unused")
+    private String answerFallback(String question, String graphContext, Throwable t) {
+        log.warn("AnthropicLLMService circuit breaker fallback for question='{}': {}", question, t.getMessage());
+        return "The knowledge graph assistant is temporarily unavailable. Please try again in a moment.";
     }
 
     private String buildUserMessage(String question, String graphContext) {

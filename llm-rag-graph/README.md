@@ -143,7 +143,7 @@ TechCorp (Company)
 
 | Layer       | Technology                                                       |
 |-------------|------------------------------------------------------------------|
-| Runtime     | Java 21                                                          |
+| Runtime     | Java 25                                                          |
 | Framework   | Spring Boot 4.1                                                  |
 | Graph DB    | Neo4j 5.x (Spring Data Neo4j)                                    |
 | LLM         | Anthropic Claude (claude-opus-4-8) via `anthropic-java` SDK 2.34 |
@@ -154,7 +154,7 @@ TechCorp (Company)
 
 ## Prerequisites
 
-- Java 21+
+- Java 25
 - Maven 3.9+
 - Neo4j 5.x running locally (default: `bolt://localhost:7687`)
 - An [Anthropic API key](https://console.anthropic.com/)
