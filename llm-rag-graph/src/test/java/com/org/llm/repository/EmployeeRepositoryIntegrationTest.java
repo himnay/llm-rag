@@ -4,6 +4,7 @@ import com.org.llm.TestcontainersConfiguration;
 import com.org.llm.domain.Employee;
 import com.org.llm.service.AnthropicLLMService;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -40,6 +41,7 @@ class EmployeeRepositoryIntegrationTest {
                 List.of("Java", "Spring"), 5);
     }
 
+    @DisplayName("Saving an employee persists it as a node and returns it with an assigned id")
     @Test
     void save_persistsEmployeeNode() {
         Employee employee = newEmployee("Alice Chen", "Principal Engineer", "alice@techcorp.com");
@@ -51,6 +53,7 @@ class EmployeeRepositoryIntegrationTest {
         assertThat(saved.getEmail()).isEqualTo("alice@techcorp.com");
     }
 
+    @DisplayName("findByName returns the employee matching the given name")
     @Test
     void findByName_returnsMatchingEmployee() {
         employeeRepository.save(newEmployee("Bob Lee", "Backend Engineer", "bob@techcorp.com"));
@@ -61,12 +64,14 @@ class EmployeeRepositoryIntegrationTest {
         assertThat(found.get().getTitle()).isEqualTo("Backend Engineer");
     }
 
+    @DisplayName("findByName returns empty when no employee matches the name")
     @Test
     void findByName_returnsEmpty_whenNotFound() {
         Optional<Employee> found = employeeRepository.findByName("No One");
         assertThat(found).isEmpty();
     }
 
+    @DisplayName("findByEmail returns the employee matching the given email")
     @Test
     void findByEmail_returnsMatchingEmployee() {
         employeeRepository.save(newEmployee("Carol Wu", "Staff Engineer", "carol@techcorp.com"));
@@ -77,6 +82,7 @@ class EmployeeRepositoryIntegrationTest {
         assertThat(found.get().getName()).isEqualTo("Carol Wu");
     }
 
+    @DisplayName("searchByKeyword matches employees by name or title")
     @Test
     void searchByKeyword_matchesNameAndTitle() {
         employeeRepository.save(newEmployee("Dave Kim", "DevOps Engineer", "dave@techcorp.com"));
@@ -88,6 +94,7 @@ class EmployeeRepositoryIntegrationTest {
         assertThat(results.get(0).getName()).isEqualTo("Dave Kim");
     }
 
+    @DisplayName("count reflects the number of persisted employee nodes")
     @Test
     void count_reflectsPersistedNodes() {
         employeeRepository.save(newEmployee("Frank Doe", "QA Engineer", "frank@techcorp.com"));
@@ -96,6 +103,7 @@ class EmployeeRepositoryIntegrationTest {
         assertThat(employeeRepository.count()).isEqualTo(2);
     }
 
+    @DisplayName("deleteAll removes every employee node from the graph")
     @Test
     void deleteAll_removesAllNodes() {
         employeeRepository.save(newEmployee("Henry Fox", "CTO", "henry@techcorp.com"));

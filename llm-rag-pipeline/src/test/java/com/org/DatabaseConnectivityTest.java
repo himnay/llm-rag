@@ -2,6 +2,7 @@ package com.org;
 
 import com.org.support.IntegrationTest;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -12,6 +13,7 @@ public class DatabaseConnectivityTest extends IntegrationTest {
     private JdbcTemplate jdbcTemplate;
 
     @Test
+    @DisplayName("Runs a simple SELECT against the database to confirm connectivity")
     void testDatabaseConnectivity() {
         Integer result = jdbcTemplate.queryForObject("SELECT 1", Integer.class);
         System.out.println("DB connectivity check result = " + result);

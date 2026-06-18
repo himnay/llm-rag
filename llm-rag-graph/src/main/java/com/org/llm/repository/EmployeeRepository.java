@@ -11,8 +11,14 @@ import java.util.Optional;
 @Repository
 public interface EmployeeRepository extends Neo4jRepository<Employee, Long> {
 
+    /**
+     * Finds an employee by exact name match.
+     */
     Optional<Employee> findByName(String name);
 
+    /**
+     * Finds an employee by exact email match.
+     */
     Optional<Employee> findByEmail(String email);
 
     /**
@@ -29,6 +35,9 @@ public interface EmployeeRepository extends Neo4jRepository<Employee, Long> {
             """)
     Optional<Employee> findWithFullContext(String name);
 
+    /**
+     * Finds employees whose name, title, bio, or skills contain the keyword (case-insensitive).
+     */
     @Query("""
             MATCH (e:Employee)
             WHERE toLower(e.name) CONTAINS toLower($keyword)

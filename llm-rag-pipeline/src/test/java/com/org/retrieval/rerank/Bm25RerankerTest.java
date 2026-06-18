@@ -2,6 +2,7 @@ package com.org.retrieval.rerank;
 
 import com.org.chunking.model.Chunk;
 import com.org.retrieval.postprocess.RetrievalPostProcessor;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -14,6 +15,7 @@ class Bm25RerankerTest {
     private final Bm25Reranker reranker = new Bm25Reranker();
 
     @Test
+    @DisplayName("Ranks the keyword-matching chunk first and max-normalizes BM25 scores")
     void ranksKeywordMatchFirstAndNormalizesScores() {
         List<Chunk> chunks = List.of(
                 new Chunk("WIKI", "the office is closed on public holidays", new HashMap<>(), 0),
@@ -28,6 +30,7 @@ class Bm25RerankerTest {
     }
 
     @Test
+    @DisplayName("Scores chunks zero without throwing when there is no lexical overlap")
     void noLexicalOverlapScoresZeroWithoutThrowing() {
         List<Chunk> chunks = List.of(
                 new Chunk("WIKI", "alpha", new HashMap<>(), 0),

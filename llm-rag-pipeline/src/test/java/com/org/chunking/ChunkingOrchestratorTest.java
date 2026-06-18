@@ -4,6 +4,7 @@ import com.org.chunking.model.Chunk;
 import com.org.ingestion.IngestionOrchestrator;
 import com.org.ingestion.model.IngestedDocument;
 import com.org.support.IntegrationTest;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +22,7 @@ public class ChunkingOrchestratorTest extends IntegrationTest {
     private ChunkingOrchestrator chunkingOrchestrator;
 
     @Test
+    @DisplayName("Chunks every ingested document via the chunking orchestrator")
     void testAllChunks() throws Exception {
         List<IngestedDocument> documents = ingestionOrchestrator.ingestAll();
         for (IngestedDocument ingestedDocument : documents) {

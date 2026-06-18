@@ -16,5 +16,8 @@ public interface QueryTransformer {
      */
     List<String> transform(String query);
 
+    /**
+     * Which {@code app.retrieval.query-transform.mode} value selects this implementation.
+     */
     QueryTransformMode mode();
 }

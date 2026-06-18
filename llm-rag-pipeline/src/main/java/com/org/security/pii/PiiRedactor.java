@@ -30,6 +30,10 @@ public class PiiRedactor {
 
     private final PiiProperties properties;
 
+    /**
+     * Replaces detected PII spans (email, SSN, credit card, phone, IP) with the configured
+     * replacement token. Returns {@code text} unchanged when redaction is disabled or input is blank.
+     */
     public String redact(String text) {
         if (!properties.isEnabled() || text == null || text.isBlank()) {
             return text;

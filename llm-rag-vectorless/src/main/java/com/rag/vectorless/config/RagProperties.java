@@ -7,6 +7,8 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 public record RagProperties(
         @DefaultValue("500") int chunkSize,
         @DefaultValue("100") int chunkOverlap,
-        @DefaultValue("5") int topK
+        @DefaultValue("5") int topK,
+        // Faithfulness check adds one extra LLM call per request — off by default.
+        @DefaultValue("false") boolean evaluateFaithfulness
 ) {
 }

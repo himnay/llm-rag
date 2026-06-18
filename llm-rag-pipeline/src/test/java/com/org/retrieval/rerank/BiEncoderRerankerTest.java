@@ -1,6 +1,7 @@
 package com.org.retrieval.rerank;
 
 import com.org.chunking.model.Chunk;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.embedding.EmbeddingModel;
 
@@ -19,6 +20,7 @@ import static org.mockito.Mockito.when;
 class BiEncoderRerankerTest {
 
     @Test
+    @DisplayName("Reorders chunks by exact cosine similarity between embeddings")
     void reordersByExactCosineSimilarity() {
         EmbeddingModel embeddingModel = mock(EmbeddingModel.class);
         when(embeddingModel.embed(anyString())).thenReturn(new float[]{1f, 0f});

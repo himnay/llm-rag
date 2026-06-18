@@ -45,6 +45,9 @@ public class Employee {
     @Relationship(type = "WORKS_ON", direction = Relationship.Direction.OUTGOING)
     private List<WorksOnRelationship> projectAssignments = new ArrayList<>();
 
+    /**
+     * Creates an employee node with the given attributes (no relationships set).
+     */
     public Employee(String name, String title, String email, String bio,
                     List<String> skills, int yearsExperience) {
         this.name = name;

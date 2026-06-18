@@ -1,5 +1,6 @@
 package com.org.llm.service;
 
+import com.org.llm.dto.Citation;
 import com.org.llm.repository.DepartmentRepository;
 import com.org.llm.repository.EmployeeRepository;
 import com.org.llm.repository.ProjectRepository;
@@ -35,6 +36,9 @@ public class GraphContextExtractor {
     @Value("${app.graph.context-depth:4}")
     private int contextDepth;
 
+    /**
+     * Wires the repositories and extraction strategies used to build graph context.
+     */
     public GraphContextExtractor(Neo4jClient neo4jClient,
                                  EmployeeRepository employeeRepo,
                                  DepartmentRepository deptRepo,
@@ -49,6 +53,11 @@ public class GraphContextExtractor {
         this.strategies = strategies;
     }
 
+    /**
+     * Builds formatted graph context, matched entity names, and citations for a natural-language
+     * question by combining full-text search, per-label keyword traversal, and the pluggable
+     * {@link GraphExtractionStrategy} chain.
+     */
     @Transactional(readOnly = true)
     public GraphContext extract(String question) {
         log.debug("Extracting graph context for question: {}", question);
@@ -56,6 +65,7 @@ public class GraphContextExtractor {
         List<String> keywords = extractKeywords(question);
         Set<String> entityNames = new LinkedHashSet<>();
         List<String> contextLines = new ArrayList<>();
+        List<Citation> citations = new ArrayList<>();
 
         // ── 1. Full-text search across all node labels ──────────────────
         for (String keyword : keywords) {
@@ -66,15 +76,23 @@ public class GraphContextExtractor {
                 if (name != null) entityNames.add(name);
                 if (name != null && labels != null) {
                     contextLines.add("Found entity: " + name + " [" + labels + "]");
+                    citations.add(new Citation(labels.trim(), null, name, null));
                 }
             }
             if (entityNames.size() >= maxContextNodes) break;
         }
 
         // ── 2. Employee deep-context traversal ───────────────────────────
+        Set<Long> visitedEmployeeIds = new HashSet<>();
         for (String keyword : keywords) {
             employeeRepo.searchByKeyword(keyword).forEach(emp -> {
+                // Cycle-safe: skip employees already processed in this extraction
+                if (emp.getId() != null && !visitedEmployeeIds.add(emp.getId())) {
+                    return;
+                }
                 entityNames.add(emp.getName());
+                String empId = emp.getId() != null ? emp.getId().toString() : null;
+                citations.add(new Citation("Employee", empId, emp.getName(), null));
 
                 StringBuilder sb = new StringBuilder();
                 sb.append("Employee ").append(emp.getName())
@@ -82,6 +100,7 @@ public class GraphContextExtractor {
 
                 if (emp.getManager() != null) {
                     sb.append(" reports to ").append(emp.getManager().getName());
+                    citations.add(new Citation("Employee", empId, emp.getName(), "REPORTS_TO"));
                 }
                 if (emp.getSkills() != null && !emp.getSkills().isEmpty()) {
                     sb.append(". Skills: ").append(String.join(", ", emp.getSkills()));
@@ -93,6 +112,7 @@ public class GraphContextExtractor {
                                     .append(" as ").append(wa.getRole())
                                     .append(" (").append(wa.getAllocationPct()).append("% allocation)");
                             entityNames.add(wa.getProject().getName());
+                            citations.add(new Citation("Employee", empId, emp.getName(), "WORKS_ON"));
                         }
                     });
                 }
@@ -104,6 +124,9 @@ public class GraphContextExtractor {
         for (String keyword : keywords) {
             deptRepo.searchByKeyword(keyword).forEach(dept -> {
                 entityNames.add(dept.getName());
+                String deptId = dept.getId() != null ? dept.getId().toString() : null;
+                citations.add(new Citation("Department", deptId, dept.getName(), null));
+
                 StringBuilder sb = new StringBuilder();
                 sb.append("Department ").append(dept.getName())
                         .append(" (").append(dept.getHeadcount()).append(" headcount)");
@@ -113,18 +136,21 @@ public class GraphContextExtractor {
                             .map(t -> t.getName())
                             .collect(Collectors.joining(", "));
                     sb.append(". Teams: ").append(teams);
+                    citations.add(new Citation("Department", deptId, dept.getName(), "HAS_TEAM"));
                 }
                 if (dept.getCollaborators() != null && !dept.getCollaborators().isEmpty()) {
                     String collabs = dept.getCollaborators().stream()
                             .map(d -> d.getName())
                             .collect(Collectors.joining(", "));
                     sb.append(". Collaborates with: ").append(collabs);
+                    citations.add(new Citation("Department", deptId, dept.getName(), "COLLABORATES_WITH"));
                 }
                 if (dept.getProjects() != null && !dept.getProjects().isEmpty()) {
                     String projects = dept.getProjects().stream()
                             .map(p -> p.getName())
                             .collect(Collectors.joining(", "));
                     sb.append(". Owns projects: ").append(projects);
+                    citations.add(new Citation("Department", deptId, dept.getName(), "OWNS_PROJECT"));
                 }
                 contextLines.add(sb.toString());
             });
@@ -134,6 +160,9 @@ public class GraphContextExtractor {
         for (String keyword : keywords) {
             projectRepo.searchByKeyword(keyword).forEach(proj -> {
                 entityNames.add(proj.getName());
+                String projId = proj.getId() != null ? proj.getId().toString() : null;
+                citations.add(new Citation("Project", projId, proj.getName(), null));
+
                 StringBuilder sb = new StringBuilder();
                 sb.append("Project ").append(proj.getName())
                         .append(" (status: ").append(proj.getStatus()).append(")");
@@ -143,18 +172,23 @@ public class GraphContextExtractor {
                             .map(t -> t.getName())
                             .collect(Collectors.joining(", "));
                     sb.append(". Uses technologies: ").append(techs);
+                    citations.add(new Citation("Project", projId, proj.getName(), "USES_TECHNOLOGY"));
                 }
                 contextLines.add(sb.toString());
             });
 
             techRepo.searchByKeyword(keyword).forEach(tech -> {
                 entityNames.add(tech.getName());
+                String techId = tech.getId() != null ? tech.getId().toString() : null;
+                citations.add(new Citation("Technology", techId, tech.getName(), null));
                 contextLines.add("Technology " + tech.getName()
                         + " (" + tech.getCategory() + "): " + tech.getDescription());
             });
         }
 
         // ── 5. Pluggable extraction strategies (Strategy pattern) ────────
+        // Strategies return free-form natural-language sentences without structured node/relationship
+        // provenance, so they contribute to the formatted context but not to the citation list.
         for (GraphExtractionStrategy strategy : strategies) {
             contextLines.addAll(strategy.extract(keywords));
         }
@@ -164,11 +198,16 @@ public class GraphContextExtractor {
                 .distinct()
                 .limit(maxContextNodes * 3L)
                 .collect(Collectors.toList());
+        List<Citation> dedupedCitations = citations.stream()
+                .distinct()
+                .limit(maxContextNodes * 3L)
+                .collect(Collectors.toList());
 
         String formatted = formatContext(dedupedLines);
-        log.debug("Extracted {} context lines for {} entity matches", dedupedLines.size(), entityNames.size());
+        log.debug("Extracted {} context lines ({} citations) for {} entity matches",
+                dedupedLines.size(), dedupedCitations.size(), entityNames.size());
 
-        return new GraphContext(formatted, new ArrayList<>(entityNames));
+        return new GraphContext(formatted, new ArrayList<>(entityNames), dedupedCitations);
     }
 
     // ── Full-text search via Neo4j index ─────────────────────────────────
@@ -224,6 +263,6 @@ public class GraphContextExtractor {
 
     // ── Result record ─────────────────────────────────────────────────────
 
-    public record GraphContext(String formattedContext, List<String> entityNames) {
+    public record GraphContext(String formattedContext, List<String> entityNames, List<Citation> citations) {
     }
 }

@@ -184,7 +184,7 @@ app:
     mode: ${GENERATION_MODE:manual}       # manual (Section 7 pattern) | advisor (Section 12 pattern)
     top-k: 5
     include-citations: true
-    evaluate-faithfulness: ${EVALUATE_FAITHFULNESS:false}  # adds one extra LLM call per generation
+    evaluate-faithfulness: ${EVALUATE_FAITHFULNESS:true}  # adds one extra LLM call per generation
     advisor:
       similarity-threshold: 0.7
   cache:

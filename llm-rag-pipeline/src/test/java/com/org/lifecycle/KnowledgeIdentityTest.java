@@ -3,6 +3,7 @@ package com.org.lifecycle;
 import com.org.lifecycle.model.KnowledgeRequest;
 import com.org.lifecycle.model.SourceType;
 import com.org.support.IntegrationTest;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,6 +13,7 @@ public class KnowledgeIdentityTest extends IntegrationTest {
     private static final Logger log = LoggerFactory.getLogger(KnowledgeIdentityTest.class);
 
     @Test
+    @DisplayName("Computes a stable knowledge identity for PDF and database source requests")
     void testSourceIdentity() {
         KnowledgeRequest request = KnowledgeRequest.builder()
                 .sourceType(SourceType.PDF)

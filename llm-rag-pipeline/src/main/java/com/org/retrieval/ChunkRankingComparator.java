@@ -18,6 +18,10 @@ public class ChunkRankingComparator implements Comparator<Chunk> {
         return Objects.toString(value, "");
     }
 
+    /**
+     * Orders chunks by source priority (PDF &gt; DB &gt; WIKI &gt; other), then DB table priority,
+     * then recency (newer first) — used as a tie-breaker after relevance scoring.
+     */
     @Override
     public int compare(Chunk a, Chunk b) {
 

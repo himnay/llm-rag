@@ -9,6 +9,9 @@ import java.util.List;
 @Component
 public class DatabaseChunker {
 
+    /**
+     * Wraps a whole database row as a single chunk (rows are already atomic units of content).
+     */
     public List<Chunk> chunk(IngestedDocument document) {
         return List.of(
                 new Chunk(

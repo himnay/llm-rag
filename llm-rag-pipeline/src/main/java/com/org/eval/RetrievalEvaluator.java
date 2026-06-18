@@ -40,6 +40,9 @@ public class RetrievalEvaluator {
      */
     private final Gauges gauges = new Gauges();
 
+    /**
+     * Wires the retrieval service and registers the {@code rag.eval.*} Micrometer gauges.
+     */
     public RetrievalEvaluator(RetrievalService retrievalService,
                               ObjectMapper objectMapper,
                               MeterRegistry meterRegistry) {

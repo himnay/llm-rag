@@ -34,6 +34,9 @@ public class Company {
     @Relationship(type = "HAS_DEPARTMENT", direction = Relationship.Direction.OUTGOING)
     private List<Department> departments = new ArrayList<>();
 
+    /**
+     * Creates a company node with the given attributes (no relationships set).
+     */
     public Company(String name, String industry, String description, String founded, String headquarters) {
         this.name = name;
         this.industry = industry;

@@ -5,38 +5,45 @@ Generation (RAG)**: a production-grade vector pipeline, a vectorless keyword/tre
 service, and a knowledge-graph pipeline. Each module is an independent Spring Boot application;
 the root `pom.xml` is a plain aggregator.
 
-| Module | Approach | Storage | LLM usage |
-|--------|----------|---------|-----------|
-| [`llm-rag-pipeline`](llm-rag-pipeline/README.md) | Vector RAG (ingestion + retrieval) | OpenSearch (kNN) + PostgreSQL | Embeddings always; chunking / enrichment / reranking opt-in |
-| [`llm-rag-vectorless`](llm-rag-vectorless/README.md) | Vectorless RAG (BM25 + PageIndex) | In-memory index / PageIndex cloud | Claude for answer generation |
-| [`llm-rag-graph`](llm-rag-graph/README.md) | Graph RAG | Neo4j knowledge graph | Claude reasons over traversed graph context |
+| Module                                               | Approach                           | Storage                           | LLM usage                                                   |
+|------------------------------------------------------|------------------------------------|-----------------------------------|-------------------------------------------------------------|
+| [`llm-rag-pipeline`](llm-rag-pipeline/README.md)     | Vector RAG (ingestion + retrieval) | OpenSearch (kNN) + PostgreSQL     | Embeddings always; chunking / enrichment / reranking opt-in |
+| [`llm-rag-vectorless`](llm-rag-vectorless/README.md) | Vectorless RAG (BM25 + PageIndex)  | In-memory index / PageIndex cloud | Claude for answer generation                                |
+| [`llm-rag-graph`](llm-rag-graph/README.md)           | Graph RAG                          | Neo4j knowledge graph             | Claude reasons over traversed graph context                 |
 
 ## Modules
 
 ### [llm-rag-pipeline](llm-rag-pipeline/README.md) — Spring AI vector RAG backend
 
-- **Ingestion:** reads PDF/OCR, Markdown, Excel, and generic formats via Tika; normalises, deduplicates by content hash, and chunks via a pluggable `ChunkingStrategy`
+- **Ingestion:** reads PDF/OCR, Markdown, Excel, and generic formats via Tika; normalises, deduplicates by content hash,
+  and chunks via a pluggable `ChunkingStrategy`
 - **Storage:** vectors written to OpenSearch kNN index; structured source data and operational metadata in PostgreSQL
-- **Retrieval:** `SearchStrategy` interface with vector kNN, BM25 keyword, and hybrid RRF search; post-processor chain of filters, dedup, six reranking strategies, and MMR diversity
+- **Retrieval:** `SearchStrategy` interface with vector kNN, BM25 keyword, and hybrid RRF search; post-processor chain
+  of filters, dedup, six reranking strategies, and MMR diversity
 - **Security & reliability:** API-key auth, SHA-256 hashed, rate limiting, Resilience4j circuit breaker
 - **Observability:** Prometheus metrics, Grafana dashboards, Tempo distributed tracing, Loki structured logging
-- **Quality:** retrieval evaluation (MRR, P@k, R@k, RAGAS context precision); answer generation is out of scope — downstream consumers handle that
+- **Quality:** retrieval evaluation (MRR, P@k, R@k, RAGAS context precision); answer generation is out of scope —
+  downstream consumers handle that
 
 ### [llm-rag-vectorless](llm-rag-vectorless/README.md) — RAG without embeddings
 
 - **No vectors required:** works without an embedding model, vector database, or GPU
 - **BM25 retriever:** in-process inverted index built at startup (k1=1.2, b=0.75); always on
-- **PageIndex retriever:** cloud tree-reasoning service that navigates a hierarchical document index with LLM-guided reasoning; opt-in via `PAGEINDEX_API_KEY`
+- **PageIndex retriever:** cloud tree-reasoning service that navigates a hierarchical document index with LLM-guided
+  reasoning; opt-in via `PAGEINDEX_API_KEY`
 - **Generation:** Claude (via Spring AI `ChatClient`) produces grounded answers from retrieved chunks
 - **Comparison:** both retrievers feed the same prompt template, enabling side-by-side evaluation on identical questions
 
 ### [llm-rag-graph](llm-rag-graph/README.md) — Graph RAG on Neo4j
 
 - **Graph traversal:** answers questions by walking a knowledge graph rather than comparing vectors
-- **Schema:** 4-level corporate graph — Company → Department → Team → Employee — plus Projects, Technologies, and management/collaboration edges
+- **Schema:** 4-level corporate graph — Company → Department → Team → Employee — plus Projects, Technologies, and
+  management/collaboration edges
 - **Retrieval:** full-text APOC index for entity lookup, then multi-hop Cypher traversals for relationship paths
-- **Generation:** extracted subgraph context injected into a Claude prompt with extended thinking enabled; LLM narrates structured facts rather than inventing them
-- **Strength:** multi-hop questions flat RAG cannot answer, e.g. *"Who in Engineering works on ML projects and reports to the CTO?"*
+- **Generation:** extracted subgraph context injected into a Claude prompt with extended thinking enabled; LLM narrates
+  structured facts rather than inventing them
+- **Strength:** multi-hop questions flat RAG cannot answer, e.g. *"Who in Engineering works on ML projects and reports
+  to the CTO?"*
 
 ## Design patterns
 
@@ -45,49 +52,49 @@ Strategy, Chain of Responsibility, Factory, Template Method, Composite, Proxy, F
 plus several additional patterns added to improve correctness, extensibility, and observability.
 Patterns are deliberately *omitted* where no real variation point exists.
 
-| Pattern | Where | What it does |
-|---------|-------|-------------|
-| **Strategy** | `SearchStrategy`, `ChunkingStrategy`, `RetrievalPostProcessor`, `GraphExtractionStrategy`, `DocumentReaderStrategy` | Swap algorithms at runtime without touching callers |
-| **Template Method** | `DatabaseIngestionService.ingestTable()` | Shared SQL+map loop; table-specific row mapping supplied by subclass |
-| **Command** | `IngestionCommand`, `DeleteCommand`, `IngestAllCommand`, `CommandExecutor` | Lifecycle operations as first-class objects with audit logging |
-| **Observer** (Spring Events) | `IngestionCompletedEvent`, `VectorsStoredEvent` | Pipeline stages decouple via `ApplicationEventPublisher` |
-| **Decorator** | `MeteredReranker`, `CachedReranker` | Wrap any `Reranker` with metrics and cache without subclassing |
-| **Chain of Responsibility** | `RetrievalPostProcessor` chain | Filter → dedup → rerank pipeline composable at startup |
-| **Factory / Builder** | `ChatClient.Builder`, `QuestionAnswerAdvisor.Builder` | Spring AI advisor configuration |
-| **Facade** | `KnowledgeLifecycleService`, `GraphRAGService` | Hide multi-step orchestration behind a single interface |
+| Pattern                      | Where                                                                                                               | What it does                                                         |
+|------------------------------|---------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------|
+| **Strategy**                 | `SearchStrategy`, `ChunkingStrategy`, `RetrievalPostProcessor`, `GraphExtractionStrategy`, `DocumentReaderStrategy` | Swap algorithms at runtime without touching callers                  |
+| **Template Method**          | `DatabaseIngestionService.ingestTable()`                                                                            | Shared SQL+map loop; table-specific row mapping supplied by subclass |
+| **Command**                  | `IngestionCommand`, `DeleteCommand`, `IngestAllCommand`, `CommandExecutor`                                          | Lifecycle operations as first-class objects with audit logging       |
+| **Observer** (Spring Events) | `IngestionCompletedEvent`, `VectorsStoredEvent`                                                                     | Pipeline stages decouple via `ApplicationEventPublisher`             |
+| **Decorator**                | `MeteredReranker`, `CachedReranker`                                                                                 | Wrap any `Reranker` with metrics and cache without subclassing       |
+| **Chain of Responsibility**  | `RetrievalPostProcessor` chain                                                                                      | Filter → dedup → rerank pipeline composable at startup               |
+| **Factory / Builder**        | `ChatClient.Builder`, `QuestionAnswerAdvisor.Builder`                                                               | Spring AI advisor configuration                                      |
+| **Facade**                   | `KnowledgeLifecycleService`, `GraphRAGService`                                                                      | Hide multi-step orchestration behind a single interface              |
 
 ## Recent improvements
 
 ### llm-rag-pipeline
 
-| Area | Change |
-|------|--------|
-| **Multi-turn conversation** | `GenerationService` now holds a `MessageWindowChatMemory` (Spring AI 2.0.0). Pass `conversationId` in `GenerateRequest` to continue a session; omit it for single-turn (UUID generated per request). Conversation ID is injected via `ChatMemory.CONVERSATION_ID` advisor param. |
-| **Streaming generation (SSE)** | `POST /api/v1/generate/stream` returns `text/event-stream` via `Flux<String>`. Same RAG pipeline as the blocking endpoint — injection guard, context rebuild, ChatMemory advisor. |
-| **Async ingestion** | `POST /api/v1/upload/async` accepts a file and immediately returns HTTP 202 with a `jobId`. The ingestion runs in a dedicated `ThreadPoolTaskExecutor`. `GET /api/v1/upload/{jobId}/status` polls the `IngestionJob` (PENDING → RUNNING → DONE / FAILED). |
-| **Command pattern for lifecycle** | `IngestCommand`, `DeleteCommand`, `IngestAllCommand` wrap each lifecycle operation. `CommandExecutor` provides audit logging at a single point. |
-| **Spring Application Events** | `KnowledgeLifecycleService` publishes `IngestionCompletedEvent` and `VectorsStoredEvent` after each stage. Listeners can react to pipeline progress without coupling to the service. |
-| **Decorator on Reranker** | Every `Reranker` is wrapped at startup by `MeteredReranker` (Micrometer `Timer` + failure counter) then `CachedReranker` (score cache to avoid re-ranking identical query+chunk pairs). |
-| **Resilience4j circuit breaker** | `RerankingPostProcessor` uses Resilience4j `CircuitBreaker` (replacing a hand-rolled state machine). Metrics integrate automatically with Micrometer. |
-| **VectorMath utility** | `com.org.common.VectorMath.cosine()` consolidates duplicate cosine-similarity implementations from `SemanticCacheService`, `SemanticChunkingStrategy`, and `TextSimilarity`. |
-| **EmbeddingCacheService** | Fixed race condition (ConcurrentHashMap replaces synchronized LinkedHashMap). SHA-256 reused per-thread via `ThreadLocal<MessageDigest>`. |
-| **RateLimitFilter** | API key is hashed with SHA-256 before bucketing (was `hashCode()`, causing collisions across different keys). |
-| **Actuator security** | Health detail and component info only exposed to callers with `ACTUATOR` role (`when-authorized`). Previously always-visible. |
-| **CORS** | `PUT` and `PATCH` added to allowed methods in `SecurityConfig`. |
-| **@Transactional guard** | `KnowledgeLifecycleService.reingest()` now deletes existing vectors only after chunking succeeds and produces a non-empty list, preventing data loss on chunking failures. |
+| Area                                         | Change                                                                                                                                                                                                                                                                                                                                                             |
+|----------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Multi-turn conversation**                  | `GenerationService` now holds a `MessageWindowChatMemory` (Spring AI 2.0.0). Pass `conversationId` in `GenerateRequest` to continue a session; omit it for single-turn (UUID generated per request). Conversation ID is injected via `ChatMemory.CONVERSATION_ID` advisor param.                                                                                   |
+| **Streaming generation (SSE)**               | `POST /api/v1/generate/stream` returns `text/event-stream` via `Flux<String>`. Same RAG pipeline as the blocking endpoint — injection guard, context rebuild, ChatMemory advisor.                                                                                                                                                                                  |
+| **Async ingestion**                          | `POST /api/v1/upload/async` accepts a file and immediately returns HTTP 202 with a `jobId`. The ingestion runs in a dedicated `ThreadPoolTaskExecutor`. `GET /api/v1/upload/{jobId}/status` polls the `IngestionJob` (PENDING → RUNNING → DONE / FAILED).                                                                                                          |
+| **Command pattern for lifecycle**            | `IngestCommand`, `DeleteCommand`, `IngestAllCommand` wrap each lifecycle operation. `CommandExecutor` provides audit logging at a single point.                                                                                                                                                                                                                    |
+| **Spring Application Events**                | `KnowledgeLifecycleService` publishes `IngestionCompletedEvent` and `VectorsStoredEvent` after each stage. Listeners can react to pipeline progress without coupling to the service.                                                                                                                                                                               |
+| **Decorator on Reranker**                    | Every `Reranker` is wrapped at startup by `MeteredReranker` (Micrometer `Timer` + failure counter) then `CachedReranker` (score cache to avoid re-ranking identical query+chunk pairs).                                                                                                                                                                            |
+| **Resilience4j circuit breaker**             | `RerankingPostProcessor` uses Resilience4j `CircuitBreaker` (replacing a hand-rolled state machine). Metrics integrate automatically with Micrometer.                                                                                                                                                                                                              |
+| **VectorMath utility**                       | `com.org.common.VectorMath.cosine()` consolidates duplicate cosine-similarity implementations from `SemanticCacheService`, `SemanticChunkingStrategy`, and `TextSimilarity`.                                                                                                                                                                                       |
+| **EmbeddingCacheService**                    | Fixed race condition (ConcurrentHashMap replaces synchronized LinkedHashMap). SHA-256 reused per-thread via `ThreadLocal<MessageDigest>`.                                                                                                                                                                                                                          |
+| **RateLimitFilter**                          | API key is hashed with SHA-256 before bucketing (was `hashCode()`, causing collisions across different keys).                                                                                                                                                                                                                                                      |
+| **Actuator security**                        | Health detail and component info only exposed to callers with `ACTUATOR` role (`when-authorized`). Previously always-visible.                                                                                                                                                                                                                                      |
+| **CORS**                                     | `PUT` and `PATCH` added to allowed methods in `SecurityConfig`.                                                                                                                                                                                                                                                                                                    |
+| **@Transactional guard**                     | `KnowledgeLifecycleService.reingest()` now deletes existing vectors only after chunking succeeds and produces a non-empty list, preventing data loss on chunking failures.                                                                                                                                                                                         |
 | **DocumentReaderFactory — Strategy pattern** | File-type dispatch extracted from a monolithic switch into per-type `DocumentReaderStrategy` `@Component` beans (`PdfReaderStrategy`, `MarkdownReaderStrategy`, `ExcelReaderStrategy`, `TikaReaderStrategy`, …). `DocumentType` enum owns the extension→source-label mapping. Adding a new file type only requires a new `@Component` — no changes to the factory. |
-| **UnsupportedDocumentTypeException** | Custom exception replaces `IllegalArgumentException` for unknown file types. `GlobalExceptionHandler` maps it to HTTP 415 Unsupported Media Type. |
-| **Lombok boilerplate removed** | 9 `@ConfigurationProperties` classes converted from manual getters/setters to `@Data`. Command classes (`IngestCommand`, `DeleteCommand`, `IngestAllCommand`) use `@RequiredArgsConstructor`. Event classes (`IngestionCompletedEvent`, `VectorsStoredEvent`) use `@Getter` in place of manual accessors. |
+| **UnsupportedDocumentTypeException**         | Custom exception replaces `IllegalArgumentException` for unknown file types. `GlobalExceptionHandler` maps it to HTTP 415 Unsupported Media Type.                                                                                                                                                                                                                  |
+| **Lombok boilerplate removed**               | 9 `@ConfigurationProperties` classes converted from manual getters/setters to `@Data`. Command classes (`IngestCommand`, `DeleteCommand`, `IngestAllCommand`) use `@RequiredArgsConstructor`. Event classes (`IngestionCompletedEvent`, `VectorsStoredEvent`) use `@Getter` in place of manual accessors.                                                          |
 
 ### llm-rag-graph
 
-| Area | Change |
-|------|--------|
-| **Security layer** | API-key authentication and rate limiting added (mirrors pipeline module). Configured via `app.security.*` properties. |
-| **GlobalExceptionHandler** | `@RestControllerAdvice` returns RFC 9457 `ProblemDetail` JSON for validation errors, bad requests, and `LlmCallException`. |
-| **LLM error handling** | `AnthropicLLMService` wraps all SDK exceptions in `LlmCallException`. Callers see a typed exception instead of a raw `RuntimeException` with a raw stack trace. |
+| Area                                      | Change                                                                                                                                                                                     |
+|-------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Security layer**                        | API-key authentication and rate limiting added (mirrors pipeline module). Configured via `app.security.*` properties.                                                                      |
+| **GlobalExceptionHandler**                | `@RestControllerAdvice` returns RFC 9457 `ProblemDetail` JSON for validation errors, bad requests, and `LlmCallException`.                                                                 |
+| **LLM error handling**                    | `AnthropicLLMService` wraps all SDK exceptions in `LlmCallException`. Callers see a typed exception instead of a raw `RuntimeException` with a raw stack trace.                            |
 | **Strategy pattern for graph extraction** | `GraphExtractionStrategy` interface + `PathTraversalStrategy` implementation. New traversal approaches (semantic, embedding-based) can be added without modifying `GraphContextExtractor`. |
-| **Test coverage** | `AnthropicLLMServiceTest` — network failure and auth failure scenarios. `GraphRAGServiceTest` — LLM exception propagation test. |
+| **Test coverage**                         | `AnthropicLLMServiceTest` — network failure and auth failure scenarios. `GraphRAGServiceTest` — LLM exception propagation test.                                                            |
 
 ## Building and testing
 
@@ -104,6 +111,33 @@ mvn -pl llm-rag-graph test
 
 Each module's README documents its own runtime prerequisites (Docker infra, API keys) — those are
 needed to **run** the services, not to build or test them.
+
+### Java 25 / Spring AI 2.0 migration verification
+
+All three modules build against Java 25 and Spring AI 2.0.0 by inheritance from the shared
+`super-pom` → `llm-bom` parent chain (`java.version=25`, `spring-ai.version=2.0.0`); no module
+overrides either property, and the Dockerfiles for `llm-rag-pipeline`, `llm-rag-vectorless`, and
+`llm-rag-graph` now build and run on `eclipse-temurin:25-jdk`/`25-jre`/`25-jre-alpine`.
+
+What was verified in this pass (compiling and running with an Azul Zulu 25 JDK, offline `mvn -o`):
+
+- **Compile** — `mvn -o clean compile` succeeds for the aggregator and all three submodules.
+- **Test** — `mvn -o clean test` succeeds for all three submodules: `llm-rag-pipeline` (150 passed,
+  21 skipped — Testcontainers-backed Postgres/OpenSearch tests, no Docker available here),
+  `llm-rag-vectorless` (8 passed), `llm-rag-graph` (20 passed, 8 skipped — Testcontainers-backed
+  Neo4j tests). One genuine regression was found and fixed during this verification:
+  `GraphContextExtractorTest` mocked a `Neo4jClient.RunnableSpecThenProject` type that doesn't
+  exist on the Spring Data Neo4j version pulled in by Spring Boot 4.1; it now mocks
+  `Neo4jClient.UnboundRunnableSpec`, the type `Neo4jClient.query(...)` actually returns.
+- **Boot attempt** (`mvn spring-boot:run`, no Docker) — `llm-rag-vectorless` and `llm-rag-graph`
+  both start cleanly (Tomcat up on :8080, full context loaded); `llm-rag-graph` logs and continues
+  past failed Neo4j index creation (`localhost:7687` unreachable) rather than failing hard.
+  `llm-rag-pipeline` fails context startup only at the Postgres/Flyway step (`localhost:5432`
+  refused) — every bean up to that point wires correctly, confirming the Java 25 / Spring AI 2.0
+  bump didn't break dependency injection.
+- **Not verified** — full integration against live Postgres, OpenSearch, or Neo4j, and anything
+  requiring Docker/Testcontainers or `docker compose up`, since Docker is unavailable in this
+  environment.
 
 ---
 

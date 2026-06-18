@@ -39,6 +39,9 @@ public class GraphDataSeeder {
     private final TechnologyRepository techRepo;
     private final Neo4jClient neo4jClient;
 
+    /**
+     * Seeds the sample TechCorp knowledge graph on application startup, unless data already exists.
+     */
     @EventListener(ApplicationReadyEvent.class)
     @Transactional
     public void seed() {

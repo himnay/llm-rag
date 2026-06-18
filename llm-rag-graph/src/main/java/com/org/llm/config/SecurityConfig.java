@@ -28,6 +28,11 @@ public class SecurityConfig {
 
     private final SecurityProperties properties;
 
+    /**
+     * Configures the stateless security filter chain: disables session-based auth mechanisms,
+     * applies CORS and security headers, and gates {@code /api/**} behind API-key auth when
+     * {@code app.security.auth-enabled=true}.
+     */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -56,6 +61,9 @@ public class SecurityConfig {
                 .build();
     }
 
+    /**
+     * Builds the CORS policy for {@code /api/**} from {@code app.security.allowed-origins}.
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();

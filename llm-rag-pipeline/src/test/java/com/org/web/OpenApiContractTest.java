@@ -3,6 +3,7 @@ package com.org.web;
 import io.swagger.v3.parser.OpenAPIV3Parser;
 import io.swagger.v3.parser.core.models.ParseOptions;
 import io.swagger.v3.parser.core.models.SwaggerParseResult;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
 
@@ -18,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class OpenApiContractTest {
 
     @Test
+    @DisplayName("Shipped OpenAPI spec parses without errors and all API paths are versioned under /api/v1")
     void openApiSpecIsValidAndVersioned() throws Exception {
         String spec;
         try (InputStream in = new ClassPathResource("static/openapi.yaml").getInputStream()) {

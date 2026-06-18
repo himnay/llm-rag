@@ -25,6 +25,10 @@ public class ChunkEnricher {
     private final KeywordMetadataEnricher keywordEnricher;
     private final SummaryMetadataEnricher summaryEnricher;
 
+    /**
+     * Builds the keyword/summary enrichers from the available {@link ChatModel}, if any. Both
+     * enrichers stay {@code null} when no chat model is configured, making {@link #enrich} a no-op.
+     */
     public ChunkEnricher(EnrichmentProperties properties, ObjectProvider<ChatModel> chatModelProvider) {
         this.properties = properties;
         ChatModel chatModel = chatModelProvider.getIfAvailable();
@@ -34,6 +38,14 @@ public class ChunkEnricher {
                 ? new SummaryMetadataEnricher(chatModel, List.of(SummaryMetadataEnricher.SummaryType.CURRENT)) : null;
     }
 
+    /**
+     * Adds LLM-derived {@code excerpt_keywords} and/or {@code section_summary} metadata to each
+     * chunk. Returns the input list unchanged if enrichment is disabled, the input is empty, no
+     * chat model is available, or the underlying LLM call fails.
+     *
+     * @param chunks chunks to enrich, in order
+     * @return the same chunks with enriched metadata, or the original list on no-op/failure
+     */
     public List<Chunk> enrich(List<Chunk> chunks) {
         if (!properties.isEnabled() || chunks.isEmpty() || keywordEnricher == null) {
             return chunks;

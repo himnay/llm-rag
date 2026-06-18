@@ -19,6 +19,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Configuration
 class VectorStoreWriteConfig {
 
+    /**
+     * Builds the bounded, caller-runs-backpressured executor shared by all vector-store writes.
+     */
     @Bean(destroyMethod = "shutdown")
     ExecutorService vectorStoreWriteExecutor(VectorStoreWriteProperties props) {
         int threads = Math.max(1, props.getConcurrency());

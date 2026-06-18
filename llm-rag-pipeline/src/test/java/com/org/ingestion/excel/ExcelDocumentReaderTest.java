@@ -4,6 +4,7 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.document.Document;
 import org.springframework.core.io.FileSystemResource;
@@ -25,6 +26,7 @@ class ExcelDocumentReaderTest {
     }
 
     @Test
+    @DisplayName("Renders an Excel sheet's header and data rows as a markdown table")
     void rendersSheetAsMarkdownTable() throws Exception {
         Path file = Files.createTempFile("test-", ".xlsx");
         try (Workbook workbook = new XSSFWorkbook()) {

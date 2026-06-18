@@ -22,6 +22,11 @@ public final class CircuitBreaker {
     private final AtomicInteger consecutiveFailures = new AtomicInteger();
     private final AtomicReference<State> state = new AtomicReference<>(State.CLOSED);
     private volatile long openedAtMillis;
+
+    /**
+     * Creates a circuit breaker that opens after {@code failureThreshold} consecutive failures
+     * and allows one probe request after {@code cooldown} has elapsed.
+     */
     public CircuitBreaker(int failureThreshold, Duration cooldown) {
         this.failureThreshold = Math.max(1, failureThreshold);
         this.cooldownMillis = cooldown.toMillis();
@@ -47,11 +52,18 @@ public final class CircuitBreaker {
         return false;
     }
 
+    /**
+     * Records a successful call: resets the failure count and closes the circuit.
+     */
     public void recordSuccess() {
         consecutiveFailures.set(0);
         state.set(State.CLOSED);
     }
 
+    /**
+     * Records a failed call, opening the circuit once {@code failureThreshold} consecutive
+     * failures have been recorded.
+     */
     public void recordFailure() {
         if (consecutiveFailures.incrementAndGet() >= failureThreshold) {
             openedAtMillis = System.currentTimeMillis();

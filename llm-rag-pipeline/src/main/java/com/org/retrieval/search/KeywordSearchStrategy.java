@@ -26,11 +26,14 @@ import java.util.Map;
 @Component
 public class KeywordSearchStrategy implements SearchStrategy {
 
-    private final OpenSearchClient client;
+    private final OpenSearchClient openSearchClient;
     private final String indexName;
 
-    public KeywordSearchStrategy(OpenSearchClient client, OpenSearchProperties openSearchProperties) {
-        this.client = client;
+    /**
+     * Wires the OpenSearch client and resolves the index name to search.
+     */
+    public KeywordSearchStrategy(OpenSearchClient openSearchClient, OpenSearchProperties openSearchProperties) {
+        this.openSearchClient = openSearchClient;
         this.indexName = openSearchProperties.getIndexName();
     }
 
@@ -44,7 +47,7 @@ public class KeywordSearchStrategy implements SearchStrategy {
     public List<Document> search(String query, int topK) {
         SearchResponse<Map> response = Resilience.withRetry("keyword match search", 3, 200L, () -> {
             try {
-                return client.search(s -> s
+                return openSearchClient.search(s -> s
                                 .index(indexName)
                                 .size(topK)
                                 .query(q -> q.match(m -> m.field("content").query(v -> v.stringValue(query)))),

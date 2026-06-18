@@ -5,6 +5,9 @@ package com.org.llm.service;
  */
 public class LlmCallException extends RuntimeException {
 
+    /**
+     * Wraps the underlying SDK/network failure with a descriptive message.
+     */
     public LlmCallException(String message, Throwable cause) {
         super(message, cause);
     }

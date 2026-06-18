@@ -43,6 +43,9 @@ public class DatabaseIngestionService {
         };
     }
 
+    /**
+     * Ingests all rows from every supported table (faqs, release_notes, announcements).
+     */
     public List<IngestedDocument> ingestDatabaseContent() {
         List<IngestedDocument> docs = new ArrayList<>();
         docs.addAll(ingestFaqs());
@@ -53,6 +56,9 @@ public class DatabaseIngestionService {
 
     // ── Table-specific methods ────────────────────────────────────────────────
 
+    /**
+     * Ingests all rows from the {@code faqs} table.
+     */
     public List<IngestedDocument> ingestFaqs() {
         return ingestTable(
                 "SELECT id, question, answer, department, visibility FROM faqs",
@@ -68,6 +74,9 @@ public class DatabaseIngestionService {
                 });
     }
 
+    /**
+     * Ingests all rows from the {@code release_notes} table.
+     */
     public List<IngestedDocument> ingestReleaseNotes() {
         return ingestTable(
                 "SELECT id, version, summary, details, release_date FROM release_notes",
@@ -85,6 +94,9 @@ public class DatabaseIngestionService {
                 });
     }
 
+    /**
+     * Ingests all rows from the {@code announcements} table.
+     */
     public List<IngestedDocument> ingestAnnouncements() {
         return ingestTable(
                 "SELECT id, subject, body, category, effective_from, effective_to, source_type FROM announcements",

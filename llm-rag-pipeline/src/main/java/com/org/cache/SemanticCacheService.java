@@ -25,6 +25,10 @@ public class SemanticCacheService {
     private final EmbeddingCacheService embeddingCacheService;
     private final SemanticCacheProperties properties;
     private final List<CacheEntry> entries = new ArrayList<>();
+
+    /**
+     * Wires the embedding service used to vectorize incoming queries.
+     */
     public SemanticCacheService(EmbeddingCacheService embeddingCacheService,
                                 SemanticCacheProperties properties) {
         this.embeddingCacheService = embeddingCacheService;

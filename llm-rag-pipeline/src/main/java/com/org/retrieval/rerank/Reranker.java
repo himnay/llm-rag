@@ -27,5 +27,8 @@ public interface Reranker {
      */
     RerankStrategy strategy();
 
+    /**
+     * Re-orders the candidates by their relevance to the query, stamping each chunk's new score.
+     */
     List<Chunk> rerank(String query, List<Chunk> chunks);
 }

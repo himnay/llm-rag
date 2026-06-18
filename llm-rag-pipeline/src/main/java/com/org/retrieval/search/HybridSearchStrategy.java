@@ -31,6 +31,13 @@ public class HybridSearchStrategy implements SearchStrategy {
     private final VectorSearchStrategy vectorSearch;
     private final KeywordSearchStrategy keywordSearch;
 
+    /**
+     * Accumulates the RRF score for each document in the given side, keyed by document ID or text.
+     * 1/(K + rank) is added to the fused score for each document, and the document is stored in byId if it hasn't been seen before.
+     * rank starts from 0 for the top-ranked document, so the top document contributes 1/(K+1) to the fused score.
+     * sum of 1/(K + rank) for rank=0..N-1 is approximately ln(N)/K for large N,
+     * so the fused score is roughly proportional to the number of times a document appears in the two sides, with a logarithmic discount for lower ranks.
+     */
     private static void accumulate(List<Document> side, Map<String, Document> byId, Map<String, Double> fused) {
         for (int rank = 0; rank < side.size(); rank++) {
             Document document = side.get(rank);
@@ -58,6 +65,10 @@ public class HybridSearchStrategy implements SearchStrategy {
         return SearchMode.HYBRID;
     }
 
+    /**
+     * Runs both dense and lexical search, fuses the rankings with RRF, and returns the topK results.
+     * If one side fails, the other side's results are used alone.
+     */
     @Override
     public List<Document> search(String query, int topK) {
         List<Document> dense = sideOf("vector", () -> vectorSearch.search(query, topK));
@@ -79,4 +90,5 @@ public class HybridSearchStrategy implements SearchStrategy {
         }
         return result;
     }
+
 }

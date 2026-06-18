@@ -12,6 +12,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class CommandExecutor {
 
+    /**
+     * Runs the command with timing and error logging, rethrowing any {@link java.io.IOException}.
+     */
     public void execute(IngestionCommand command) throws java.io.IOException {
         long start = System.currentTimeMillis();
         log.info("Executing command: {}", command.describe());

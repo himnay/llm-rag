@@ -1,5 +1,6 @@
 package com.org.retrieval.search;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.document.Document;
 
@@ -30,6 +31,7 @@ class HybridSearchStrategyTest {
     }
 
     @Test
+    @DisplayName("A document ranked well by both vector and keyword search wins the RRF fusion")
     void documentRankedWellByBothSidesWinsTheFusion() {
         // "b" is mid-table on both sides; "a" and "c" each top one side but miss the other.
         List<Document> result = hybrid(
@@ -43,6 +45,7 @@ class HybridSearchStrategyTest {
     }
 
     @Test
+    @DisplayName("A document found on both sides is deduplicated and returned only once")
     void duplicatesAcrossSidesAreReturnedOnce() {
         List<Document> result = hybrid(
                 List.of(doc("a", "alpha")),
@@ -52,6 +55,7 @@ class HybridSearchStrategyTest {
     }
 
     @Test
+    @DisplayName("When one search side throws, results degrade to just the other side")
     void aFailingSideDegradesToTheOtherSide() {
         VectorSearchStrategy vector = mock(VectorSearchStrategy.class);
         KeywordSearchStrategy keyword = mock(KeywordSearchStrategy.class);
@@ -63,6 +67,7 @@ class HybridSearchStrategyTest {
     }
 
     @Test
+    @DisplayName("Fused results are truncated to the requested topK size")
     void truncatesToTopK() {
         List<Document> result = hybrid(
                 List.of(doc("a", "alpha"), doc("b", "beta"), doc("c", "charlie")),

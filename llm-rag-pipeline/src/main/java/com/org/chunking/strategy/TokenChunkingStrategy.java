@@ -19,11 +19,18 @@ public class TokenChunkingStrategy extends AbstractChunkingStrategy {
 
     private final ChunkingProperties properties;
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String name() {
         return "token";
     }
 
+    /**
+     * Splits the document into chunks sized by token count, using Spring AI's
+     * {@code TokenTextSplitter} configured with {@code app.chunking.token.chunk-size}.
+     */
     @Override
     public List<Chunk> chunk(IngestedDocument document) {
         TokenTextSplitter splitter = TokenTextSplitter.builder()

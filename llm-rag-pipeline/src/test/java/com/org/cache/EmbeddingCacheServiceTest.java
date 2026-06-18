@@ -1,5 +1,6 @@
 package com.org.cache;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -35,6 +36,7 @@ class EmbeddingCacheServiceTest {
     }
 
     @Test
+    @DisplayName("When cache is disabled, every embed call delegates to the model")
     void whenDisabledAlwaysDelegatesToModel() {
         when(embeddingModel.embed(anyString())).thenReturn(new float[]{1f, 0f});
         EmbeddingCacheService service = new EmbeddingCacheService(embeddingModel, disabled());
@@ -46,6 +48,7 @@ class EmbeddingCacheServiceTest {
     }
 
     @Test
+    @DisplayName("Repeated embed call for the same text hits the cache instead of the model")
     void cacheHitAvoidsDelegation() {
         when(embeddingModel.embed("hello")).thenReturn(new float[]{0.1f, 0.9f});
         EmbeddingCacheService service = new EmbeddingCacheService(embeddingModel, enabled());
@@ -58,6 +61,7 @@ class EmbeddingCacheServiceTest {
     }
 
     @Test
+    @DisplayName("Cache miss calls the model and stores the result for later reuse")
     void cacheMissCallsModelAndStoresResult() {
         when(embeddingModel.embed("foo")).thenReturn(new float[]{1f});
         when(embeddingModel.embed("bar")).thenReturn(new float[]{2f});
@@ -74,6 +78,7 @@ class EmbeddingCacheServiceTest {
     }
 
     @Test
+    @DisplayName("Batch embed only fetches texts that are not already cached")
     void batchEmbedOnlyFetchesUncachedTexts() {
         when(embeddingModel.embed("foo")).thenReturn(new float[]{1f});
         when(embeddingModel.embed(List.of("bar"))).thenReturn(List.of(new float[]{2f}));
@@ -90,6 +95,7 @@ class EmbeddingCacheServiceTest {
     }
 
     @Test
+    @DisplayName("Batch embed delegates straight to the model when cache is disabled")
     void batchEmbedWhenDisabledDelegatesToModel() {
         List<float[]> vectors = List.of(new float[]{1f}, new float[]{2f});
         when(embeddingModel.embed(List.of("a", "b"))).thenReturn(vectors);

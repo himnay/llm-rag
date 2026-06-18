@@ -31,6 +31,10 @@ public class TextNormalizer {
 
     private final PiiRedactor piiRedactor;
 
+    /**
+     * Cleans raw extracted text: Unicode normalization, control-char/whitespace cleanup, PII
+     * redaction, and trimming. Returns an empty string for null/blank input.
+     */
     public String normalize(String text) {
         if (text == null || text.isBlank()) {
             return "";

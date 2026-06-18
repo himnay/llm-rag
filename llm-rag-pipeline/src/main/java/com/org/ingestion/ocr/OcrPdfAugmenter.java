@@ -40,6 +40,10 @@ public class OcrPdfAugmenter {
         }
     }
 
+    /**
+     * Replaces near-empty page text with OCR'd text for scanned pages; returns {@code pages}
+     * unchanged when OCR is disabled, there are no pages, or augmentation fails.
+     */
     public List<Document> augment(Resource resource, List<Document> pages) {
         if (!ocrService.isEnabled() || pages.isEmpty()) {
             return pages;

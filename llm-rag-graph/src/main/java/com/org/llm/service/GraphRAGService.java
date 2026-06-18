@@ -6,6 +6,7 @@ import com.org.llm.dto.RagResponse;
 import com.org.llm.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.neo4j.core.Neo4jClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,7 +29,13 @@ public class GraphRAGService {
     private final ProjectRepository projectRepo;
     private final TechnologyRepository techRepo;
     private final Neo4jClient neo4jClient;
+    @Value("${app.rag.evaluate-groundedness:false}")
+    private boolean evaluateGroundedness;
 
+    /**
+     * Runs the Graph RAG pipeline for a question: extract graph context, ask the LLM, optionally
+     * verify groundedness, and assemble the timed {@link RagResponse}.
+     */
     @Transactional(readOnly = true)
     public RagResponse query(RagRequest request) {
         long start = System.currentTimeMillis();
@@ -41,6 +48,13 @@ public class GraphRAGService {
         // Step 2: Call LLM with enriched context
         String answer = llmService.answer(request.question(), ctx.formattedContext());
 
+        // Step 3 (optional, off by default): groundedness/faithfulness check — costs one extra
+        // LLM call per request, so it is gated behind app.rag.evaluate-groundedness.
+        Boolean groundedness = null;
+        if (evaluateGroundedness) {
+            groundedness = llmService.checkGroundedness(ctx.formattedContext(), answer);
+        }
+
         long elapsed = System.currentTimeMillis() - start;
         log.info("RAG query completed in {}ms", elapsed);
 
@@ -49,10 +63,15 @@ public class GraphRAGService {
                 answer,
                 ctx.formattedContext(),
                 ctx.entityNames(),
+                ctx.citations(),
+                groundedness,
                 elapsed
         );
     }
 
+    /**
+     * Returns aggregate node and relationship counts across the whole graph.
+     */
     public GraphStats getStats() {
         long companies = companyRepo.count();
         long departments = deptRepo.count();

@@ -4,6 +4,8 @@ import com.org.dto.GenerateRequest;
 import com.org.dto.GenerateResponse;
 import com.org.generation.GenerationService;
 import io.micrometer.core.annotation.Timed;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -27,11 +29,16 @@ import reactor.core.publisher.Flux;
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
 @ConditionalOnBean(GenerationService.class)
+@Tag(name = "RAG Pipeline", description = "Vector retrieval and generation endpoints for the RAG pipeline")
 class GenerationController {
 
     private final GenerationService generationService;
 
+    @Operation(summary = "Generate a full RAG answer (retrieve + augment + generate) for a question")
     @Timed(value = "rag.generation", description = "End-to-end RAG generation latency", histogram = true)
+    /**
+     * Runs the full retrieve-augment-generate pipeline and returns the answer with citations.
+     */
     @PostMapping("/generate")
     public GenerateResponse generate(@Valid @RequestBody GenerateRequest request) {
         return generationService.generate(request);
@@ -40,6 +47,7 @@ class GenerationController {
     /**
      * Streaming variant — tokens arrive via Server-Sent Events as they are generated.
      */
+    @Operation(summary = "Stream a RAG-generated answer token-by-token via Server-Sent Events")
     @PostMapping(value = "/generate/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> generateStream(@Valid @RequestBody GenerateRequest request) {
         return generationService.stream(request);

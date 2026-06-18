@@ -42,6 +42,10 @@ public class AnthropicLLMService {
     @Value("${app.anthropic.max-tokens:4096}")
     private int maxTokens;
 
+    /**
+     * Sends the question and graph context to Claude and returns its answer. Falls back to a
+     * canned unavailability message via {@code answerFallback} if the circuit breaker is open.
+     */
     @CircuitBreaker(name = "llm-rag-graph", fallbackMethod = "answerFallback")
     @Retry(name = "llm-rag-graph")
     public String answer(String question, String graphContext) {
@@ -69,6 +73,49 @@ public class AnthropicLLMService {
     private String answerFallback(String question, String graphContext, Throwable t) {
         log.warn("AnthropicLLMService circuit breaker fallback for question='{}': {}", question, t.getMessage());
         return "The knowledge graph assistant is temporarily unavailable. Please try again in a moment.";
+    }
+
+    /**
+     * LLM-as-judge groundedness ("faithfulness") check: asks Claude whether every factual claim in
+     * {@code answer} is supported by {@code graphContext}. Costs one extra LLM call per invocation,
+     * so callers must gate this behind a config flag (see {@code app.rag.evaluate-groundedness}).
+     * <p>
+     * This module talks to Claude via the raw Anthropic Java SDK and does not have Spring AI's
+     * {@code ChatClient}/{@code FactCheckingEvaluator} on its classpath (the sibling llm-rag-pipeline
+     * module uses Spring AI, but with the OpenAI starter, not Anthropic — there is no
+     * spring-ai-anthropic starter available to reuse here). Rather than pull in Spring AI solely for
+     * this one evaluator, we implement the same "is the answer entailed by the context" check as a
+     * second direct Claude call with a constrained PASS/FAIL prompt.
+     */
+    public boolean checkGroundedness(String graphContext, String answer) {
+        String prompt = """
+                Context:
+                %s
+                
+                Answer:
+                %s
+                
+                Is every factual claim in the Answer supported by the Context above? \
+                Respond with only one word: PASS if every claim is supported, or FAIL if any claim \
+                is not supported or is unsupported speculation.
+                """.formatted(graphContext, answer);
+
+        try {
+            Message response = anthropicClient.messages().create(
+                    MessageCreateParams.builder()
+                            .model(model)
+                            .maxTokens(16)
+                            .addUserMessage(prompt)
+                            .build()
+            );
+            String verdict = extractText(response).trim().toUpperCase();
+            boolean pass = verdict.startsWith("PASS");
+            log.debug("Groundedness check: {}", pass ? "PASS" : "FAIL");
+            return pass;
+        } catch (Exception e) {
+            log.warn("Groundedness check failed ({}); defaulting to groundedness=true", e.getMessage());
+            return true;
+        }
     }
 
     private String buildUserMessage(String question, String graphContext) {

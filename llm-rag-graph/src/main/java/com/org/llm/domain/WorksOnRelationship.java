@@ -26,6 +26,9 @@ public class WorksOnRelationship {
     @TargetNode
     private Project project;
 
+    /**
+     * Creates a WORKS_ON relationship with the given role, start date, allocation, and target project.
+     */
     public WorksOnRelationship(String role, String since, int allocationPct, Project project) {
         this.role = role;
         this.since = since;

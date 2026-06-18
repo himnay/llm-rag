@@ -4,6 +4,7 @@ import com.org.llm.dto.GraphStats;
 import com.org.llm.dto.RagRequest;
 import com.org.llm.dto.RagResponse;
 import com.org.llm.repository.*;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
@@ -50,10 +51,11 @@ class GraphRAGServiceTest {
     @InjectMocks
     private GraphRAGService service;
 
+    @DisplayName("Query retrieves graph context and answers using the LLM")
     @Test
     void queryRetrievesGraphContextAndAnswersWithLlm() {
         var ctx = new GraphContextExtractor.GraphContext(
-                "Alice Chen is in the Backend Team.", List.of("Alice Chen"));
+                "Alice Chen is in the Backend Team.", List.of("Alice Chen"), List.of());
         when(graphContextExtractor.extract("Who is Alice?")).thenReturn(ctx);
         when(llmService.answer("Who is Alice?", ctx.formattedContext()))
                 .thenReturn("Alice Chen is a Principal Engineer on the Backend Team.");
@@ -68,9 +70,10 @@ class GraphRAGServiceTest {
         verify(llmService).answer("Who is Alice?", ctx.formattedContext());
     }
 
+    @DisplayName("LLM call failure propagates as LlmCallException")
     @Test
     void llmCallFailurePropagatesAsLlmCallException() {
-        var ctx = new GraphContextExtractor.GraphContext("context", List.of("Alice"));
+        var ctx = new GraphContextExtractor.GraphContext("context", List.of("Alice"), List.of());
         when(graphContextExtractor.extract(anyString())).thenReturn(ctx);
         when(llmService.answer(anyString(), anyString()))
                 .thenThrow(new LlmCallException("Connection refused", new RuntimeException()));
@@ -80,6 +83,7 @@ class GraphRAGServiceTest {
                 .hasMessageContaining("Connection refused");
     }
 
+    @DisplayName("Stats aggregates node and relationship counts across repositories")
     @Test
     void statsAggregatesNodeAndRelationshipCounts() {
         when(companyRepo.count()).thenReturn(1L);

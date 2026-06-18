@@ -58,24 +58,36 @@ class LifecycleController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    /**
+     * Ingests a single non-file knowledge source described by {@code request} (e.g. DB row, wiki page).
+     */
     @PostMapping("/ingest")
     public ResponseEntity<Object> ingest(@Valid @RequestBody KnowledgeRequest request) throws IOException {
         commandExecutor.execute(new com.org.lifecycle.command.IngestCommand(knowledgeLifecycleService, request));
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * Deletes the chunks belonging to the knowledge source described by {@code request}.
+     */
     @DeleteMapping("/delete")
     public ResponseEntity<Object> delete(@Valid @RequestBody KnowledgeRequest request) throws IOException {
         commandExecutor.execute(new com.org.lifecycle.command.DeleteCommand(knowledgeLifecycleService, request));
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * Ingests all known knowledge sources.
+     */
     @PostMapping("/ingest-all")
     public ResponseEntity<Object> ingestAll() throws IOException {
         commandExecutor.execute(new com.org.lifecycle.command.IngestAllCommand(knowledgeLifecycleService));
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * Deletes all ingested chunks from the vector store.
+     */
     @DeleteMapping("/delete-all")
     public ResponseEntity<Object> deleteAll() throws IOException {
         commandExecutor.execute(knowledgeLifecycleService::deleteAll);

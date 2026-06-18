@@ -22,6 +22,10 @@ public class GroundingPolicy {
             "No relevant context was retrieved from the knowledge base. "
                     + "Inform the user that you do not have enough information to answer their question.";
 
+    /**
+     * Returns the grounding instructions to inject into the prompt, depending on whether any
+     * context was retrieved.
+     */
     public String groundingRules(boolean hasContext) {
         return hasContext ? WITH_CONTEXT : NO_CONTEXT;
     }

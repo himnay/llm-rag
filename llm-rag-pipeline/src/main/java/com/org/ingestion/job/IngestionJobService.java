@@ -36,6 +36,9 @@ public class IngestionJobService {
         return jobId;
     }
 
+    /**
+     * Returns the current snapshot of the job, if it exists.
+     */
     public Optional<IngestionJob> getJob(String jobId) {
         return Optional.ofNullable(jobs.get(jobId));
     }

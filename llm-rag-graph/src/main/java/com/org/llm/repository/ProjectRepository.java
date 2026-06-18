@@ -11,8 +11,14 @@ import java.util.Optional;
 @Repository
 public interface ProjectRepository extends Neo4jRepository<Project, Long> {
 
+    /**
+     * Finds a project by exact name match.
+     */
     Optional<Project> findByName(String name);
 
+    /**
+     * Finds projects whose name, description, or goal contains the keyword (case-insensitive).
+     */
     @Query("""
             MATCH (p:Project)
             WHERE toLower(p.name) CONTAINS toLower($keyword)
@@ -22,12 +28,18 @@ public interface ProjectRepository extends Neo4jRepository<Project, Long> {
             """)
     List<Project> searchByKeyword(String keyword);
 
+    /**
+     * Finds the name of the department that owns the named project.
+     */
     @Query("""
             MATCH (d:Department)-[:OWNS_PROJECT]->(p:Project {name: $name})
             RETURN d.name AS departmentName
             """)
     String findOwningDepartment(String name);
 
+    /**
+     * Finds projects that use the named technology.
+     */
     @Query("""
             MATCH (p:Project)-[:USES_TECHNOLOGY]->(t:Technology {name: $techName})
             RETURN p

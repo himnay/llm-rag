@@ -40,11 +40,18 @@ public class LlmChunkingStrategy extends AbstractChunkingStrategy {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String name() {
         return "llm";
     }
 
+    /**
+     * Asks the chat model to segment the document into coherent chunks delimited by
+     * {@code ---CHUNK---}, falling back to a single whole-document chunk if the call fails.
+     */
     @Override
     public List<Chunk> chunk(IngestedDocument document) {
         try {

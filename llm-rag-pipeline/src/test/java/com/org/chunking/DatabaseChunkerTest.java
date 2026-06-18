@@ -4,6 +4,7 @@ import com.org.chunking.model.Chunk;
 import com.org.ingestion.IngestionOrchestrator;
 import com.org.ingestion.model.IngestedDocument;
 import com.org.support.IntegrationTest;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +23,7 @@ public class DatabaseChunkerTest extends IntegrationTest {
     private DatabaseChunker databaseChunker;
 
     @Test
+    @DisplayName("Chunks database-sourced documents into chunks with metadata")
     void testDatabaseChunking() throws Exception {
         List<IngestedDocument> documents = ingestionOrchestrator.ingestAll();
 

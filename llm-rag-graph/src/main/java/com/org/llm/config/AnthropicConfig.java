@@ -13,6 +13,10 @@ public class AnthropicConfig {
     @Value("${app.anthropic.api-key:}")
     private String apiKey;
 
+    /**
+     * Builds the Anthropic SDK client, using {@code app.anthropic.api-key} if set, otherwise
+     * falling back to the {@code ANTHROPIC_API_KEY} environment variable.
+     */
     @Bean
     public AnthropicClient anthropicClient() {
         if (StringUtils.hasText(apiKey)) {

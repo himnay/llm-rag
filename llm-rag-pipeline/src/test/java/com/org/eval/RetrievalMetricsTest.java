@@ -1,5 +1,6 @@
 package com.org.eval;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -22,6 +23,7 @@ class RetrievalMetricsTest {
     }
 
     @Test
+    @DisplayName("Computes precision at K for a ranked relevance list")
     void precisionAtK() {
         assertThat(RetrievalMetrics.precisionAtK(REL, 1)).isCloseTo(1.0, within());   // 1/1
         assertThat(RetrievalMetrics.precisionAtK(REL, 2)).isCloseTo(0.5, within());   // 1/2
@@ -30,6 +32,7 @@ class RetrievalMetricsTest {
     }
 
     @Test
+    @DisplayName("Handles an empty list and a K larger than the list size for precision")
     void precisionHandlesEmptyAndOversizedK() {
         assertThat(RetrievalMetrics.precisionAtK(List.of(), 5)).isZero();
         // k larger than list size clamps to list size (2 relevant / 5 returned)
@@ -37,6 +40,7 @@ class RetrievalMetricsTest {
     }
 
     @Test
+    @DisplayName("Computes recall at K against the total relevant count, capped at 1.0")
     void recallAtK() {
         assertThat(RetrievalMetrics.recallAtK(REL, 5, 4)).isCloseTo(0.5, within());  // 2 of 4
         assertThat(RetrievalMetrics.recallAtK(REL, 1, 4)).isCloseTo(0.25, within()); // 1 of 4
@@ -46,6 +50,7 @@ class RetrievalMetricsTest {
     }
 
     @Test
+    @DisplayName("Computes the reciprocal rank of the first relevant result, or zero if none")
     void reciprocalRank() {
         assertThat(RetrievalMetrics.reciprocalRank(REL)).isCloseTo(1.0, within());          // first hit rank 1
         assertThat(RetrievalMetrics.reciprocalRank(List.of(false, false, true))).isCloseTo(1.0 / 3, within());
@@ -53,6 +58,7 @@ class RetrievalMetricsTest {
     }
 
     @Test
+    @DisplayName("Scores context precision higher when relevant hits rank earlier")
     void contextPrecisionIsRankAware() {
         // hits at ranks 1 and 3 → (1/1 + 2/3) / 2 = 0.8333...
         assertThat(RetrievalMetrics.contextPrecision(REL, 2)).isCloseTo((1.0 + 2.0 / 3) / 2, within());
@@ -64,12 +70,14 @@ class RetrievalMetricsTest {
     }
 
     @Test
+    @DisplayName("Computes the mean of a list of values, returning zero for an empty list")
     void mean() {
         assertThat(RetrievalMetrics.mean(List.of(1.0, 0.0, 0.5))).isCloseTo(0.5, within());
         assertThat(RetrievalMetrics.mean(List.of())).isZero();
     }
 
     @Test
+    @DisplayName("Computes hit rate at K, true only when a relevant result appears within K")
     void hitRate() {
         assertThat(RetrievalMetrics.hitRate(REL, 1)).isCloseTo(1.0, within()); // first result is relevant
         assertThat(RetrievalMetrics.hitRate(List.of(false, false, true), 2)).isZero(); // relevant only at rank 3
@@ -79,6 +87,7 @@ class RetrievalMetricsTest {
     }
 
     @Test
+    @DisplayName("Computes normalized discounted cumulative gain, rewarding higher-ranked hits")
     void nDcg() {
         // Single relevant hit at rank 1: DCG = 1/log2(2) = 1, IDCG = 1, nDCG = 1.0
         assertThat(RetrievalMetrics.nDcg(List.of(true, false, false), 3)).isCloseTo(1.0, within());

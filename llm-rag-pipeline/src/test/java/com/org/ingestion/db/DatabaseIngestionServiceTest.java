@@ -2,6 +2,7 @@ package com.org.ingestion.db;
 
 import com.org.support.IntegrationTest;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -10,6 +11,7 @@ public class DatabaseIngestionServiceTest extends IntegrationTest {
     private DatabaseIngestionService databaseIngestionService;
 
     @Test
+    @DisplayName("Ingests FAQs, release notes, and announcements from the database without throwing")
     public void testDatabaseIngestionService() {
         databaseIngestionService.ingestFaqs();
         databaseIngestionService.ingestReleaseNotes();

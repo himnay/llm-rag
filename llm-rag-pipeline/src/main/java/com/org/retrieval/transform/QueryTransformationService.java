@@ -19,6 +19,9 @@ public class QueryTransformationService {
 
     private final Map<QueryTransformMode, QueryTransformer> transformers;
 
+    /**
+     * Indexes the auto-discovered transformers by the {@link QueryTransformMode} each one handles.
+     */
     public QueryTransformationService(List<QueryTransformer> transformerList) {
         this.transformers = new EnumMap<>(QueryTransformMode.class);
         transformerList.forEach(t -> this.transformers.put(t.mode(), t));
@@ -38,6 +41,11 @@ public class QueryTransformationService {
             return List.of(query);
         }
         log.debug("Applying {} query transformation to: '{}'", mode, query);
-        return transformer.transform(query);
+        try {
+            return transformer.transform(query);
+        } catch (Exception e) {
+            log.warn("Query transform failed, falling back to original query: {}", e.getMessage());
+            return List.of(query);
+        }
     }
 }

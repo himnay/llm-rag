@@ -15,6 +15,9 @@ public class IngestionLogRepository {
 
     private final JdbcTemplate jdbc;
 
+    /**
+     * Hashes the input with SHA-256 (hex-encoded), used as the content fingerprint for change detection.
+     */
     public static String sha256(String input) {
         return DigestUtils.sha256Hex(input);
     }
@@ -43,10 +46,16 @@ public class IngestionLogRepository {
                 """, identity, contentHash, chunkCount);
     }
 
+    /**
+     * Removes the log entry for an identity (called when its source is deleted).
+     */
     public void deleteByIdentity(String identity) {
         jdbc.update("DELETE FROM ingestion_log WHERE identity = ?", identity);
     }
 
+    /**
+     * Clears all ingestion log entries.
+     */
     public void deleteAll() {
         jdbc.update("TRUNCATE TABLE ingestion_log");
     }

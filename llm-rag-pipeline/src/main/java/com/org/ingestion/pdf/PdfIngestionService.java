@@ -27,6 +27,11 @@ public class PdfIngestionService {
     private final DocumentReaderFactory readerFactory;
     private final ResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
 
+    /**
+     * Ingests the named PDF from {@code app.ingestion.pdf-location}.
+     *
+     * @throws IOException if the file does not exist there
+     */
     public List<IngestedDocument> ingest(String fileName) throws IOException {
         Resource resource = resolver.getResource(properties.getPdfLocation() + fileName);
         if (!resource.exists()) {
@@ -35,6 +40,9 @@ public class PdfIngestionService {
         return readerFactory.read(resource);
     }
 
+    /**
+     * Ingests every {@code *.pdf} file under {@code app.ingestion.pdf-location}.
+     */
     public List<IngestedDocument> ingestPdfs() throws IOException {
         List<IngestedDocument> docs = new ArrayList<>();
         for (Resource resource : resolver.getResources(properties.getPdfLocation() + "*.pdf")) {

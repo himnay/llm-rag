@@ -29,6 +29,9 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(pd);
     }
 
+    /**
+     * Returns 400 with all field-level validation messages joined into one detail string.
+     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ProblemDetail> handleValidation(MethodArgumentNotValidException ex) {
         String detail = ex.getBindingResult().getFieldErrors().stream()
@@ -37,17 +40,26 @@ public class GlobalExceptionHandler {
         return problem(HttpStatus.BAD_REQUEST, "Validation failed", detail);
     }
 
+    /**
+     * Returns 400 for bean-validation constraint violations (e.g. on path/query parameters).
+     */
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ProblemDetail> handleConstraint(ConstraintViolationException ex) {
         return problem(HttpStatus.BAD_REQUEST, "Validation failed", ex.getMessage());
     }
 
+    /**
+     * Returns 400 when the request body is missing or not valid JSON.
+     */
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ProblemDetail> handleUnreadable(HttpMessageNotReadableException ex) {
         return problem(HttpStatus.BAD_REQUEST, "Malformed request",
                 "Request body is missing or not valid JSON");
     }
 
+    /**
+     * Returns 400 for illegal-argument failures raised by application code.
+     */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ProblemDetail> handleIllegalArgument(IllegalArgumentException ex) {
         return problem(HttpStatus.BAD_REQUEST, "Bad request", ex.getMessage());

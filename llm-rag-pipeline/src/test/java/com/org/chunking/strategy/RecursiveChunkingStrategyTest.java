@@ -2,6 +2,7 @@ package com.org.chunking.strategy;
 
 import com.org.chunking.model.Chunk;
 import com.org.ingestion.model.IngestedDocument;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -19,6 +20,7 @@ class RecursiveChunkingStrategyTest {
     }
 
     @Test
+    @DisplayName("Text shorter than maxChars produces a single chunk tagged with the recursive strategy")
     void shortTextProducesSingleChunk() {
         IngestedDocument doc = new IngestedDocument("FILE", "short text", Map.of("identity", "FILE#x"));
         List<Chunk> chunks = strategy(1000, 100).chunk(doc);
@@ -28,6 +30,7 @@ class RecursiveChunkingStrategyTest {
     }
 
     @Test
+    @DisplayName("Long text splits into multiple bounded chunks with sequential indexes")
     void longTextSplitsIntoMultipleBoundedChunks() {
         String para = "Sentence one is here. Sentence two follows it. ".repeat(20);
         String text = para + "\n\n" + para;

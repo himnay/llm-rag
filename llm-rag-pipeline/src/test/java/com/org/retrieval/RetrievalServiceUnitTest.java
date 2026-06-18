@@ -5,6 +5,7 @@ import com.org.retrieval.postprocess.BusinessRuleFilter;
 import com.org.retrieval.postprocess.ScoreAwareRanker;
 import com.org.retrieval.search.VectorSearchStrategy;
 import com.org.retrieval.transform.QueryTransformationService;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
@@ -38,6 +39,7 @@ class RetrievalServiceUnitTest {
     }
 
     @Test
+    @DisplayName("Allows non-database sourced documents through the visibility filter unconditionally")
     void nonDbSourcesAreAlwaysAllowed() {
         RetrievalResult result = newService(List.of(
                 new Document("wiki content", Map.of("source", "WIKI", "chunkIndex", 0))
@@ -47,6 +49,7 @@ class RetrievalServiceUnitTest {
     }
 
     @Test
+    @DisplayName("Filters out restricted-visibility FAQ rows while keeping public ones")
     void restrictedFaqIsFilteredOut() {
         RetrievalResult result = newService(List.of(
                 new Document("public", Map.of("source", "DB", "table", "faqs", "visibility", "PUBLIC", "chunkIndex", 0)),
@@ -57,6 +60,7 @@ class RetrievalServiceUnitTest {
     }
 
     @Test
+    @DisplayName("Tolerates documents with missing metadata keys without throwing")
     void missingMetadataKeysDoNotThrow() {
         // DB announcement with no effective dates, and a doc missing 'source' entirely
         RetrievalResult result = newService(List.of(

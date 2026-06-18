@@ -12,6 +12,9 @@ public class IngestionCompletedEvent extends ApplicationEvent {
     private final int documentCount;
     private final int chunkCount;
 
+    /**
+     * Creates the event with the counts from the completed ingestion batch.
+     */
     public IngestionCompletedEvent(Object source, int documentCount, int chunkCount) {
         super(source);
         this.documentCount = documentCount;

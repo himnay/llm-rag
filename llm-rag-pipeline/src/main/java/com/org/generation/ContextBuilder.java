@@ -15,6 +15,9 @@ import java.util.List;
 @Component
 public class ContextBuilder {
 
+    /**
+     * Renders each retrieved chunk as a numbered, citation-prefixed context block.
+     */
     public String build(RetrievalResult result) {
         List<Chunk> chunks = result.chunks();
         List<Citation> citations = result.citations();
@@ -30,6 +33,9 @@ public class ContextBuilder {
         return sb.toString().strip();
     }
 
+    /**
+     * Returns whether the retrieval result has no chunks to render as context.
+     */
     public boolean isEmpty(RetrievalResult result) {
         return result.chunks().isEmpty();
     }

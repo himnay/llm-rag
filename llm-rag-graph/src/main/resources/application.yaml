@@ -31,6 +31,8 @@ app:
     seed-data: ${GRAPH_SEED_DATA:false}
     context-depth: 4
     max-context-nodes: 20
+  rag:
+    evaluate-groundedness: ${EVALUATE_GROUNDEDNESS:false}  # adds one extra LLM call per generation
   security:
     auth-enabled: ${API_AUTH_ENABLED:true}   # secure by default; set API_AUTH_ENABLED=false for local dev
     header: X-API-Key
@@ -96,4 +98,5 @@ resilience4j:
 logging:
   level:
     com.org.llm: DEBUG
-    org.springframework.data.neo4j: INFO
+    org.neo4j.driver: WARN
+    org.springframework.data.neo4j: DEBUG

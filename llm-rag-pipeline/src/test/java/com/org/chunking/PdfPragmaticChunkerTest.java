@@ -4,6 +4,7 @@ import com.org.chunking.model.Chunk;
 import com.org.ingestion.IngestionOrchestrator;
 import com.org.ingestion.model.IngestedDocument;
 import com.org.support.IntegrationTest;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +22,7 @@ public class PdfPragmaticChunkerTest extends IntegrationTest {
     private PdfPragmaticChunker pdfChunker;
 
     @Test
+    @DisplayName("Chunks an ingested PDF document using the pragmatic chunking strategy")
     void chunk_pdf_with_pragmatic_strategy() throws Exception {
         List<IngestedDocument> documents = ingestionOrchestrator.ingestAll();
 

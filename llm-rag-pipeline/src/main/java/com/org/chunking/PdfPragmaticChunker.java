@@ -19,6 +19,10 @@ public class PdfPragmaticChunker {
 
     private final FixedSizeChunker fixedSizeChunker;
 
+    /**
+     * Fixed-size chunks a PDF document and tags each chunk's metadata with the PDF chunking
+     * strategy and size/overlap used.
+     */
     public List<Chunk> chunk(IngestedDocument document) {
 
         List<Chunk> rawChunks = fixedSizeChunker.chunk(document, PDF_CHUNK_SIZE, PDF_CHUNK_OVERLAP);

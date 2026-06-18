@@ -24,6 +24,10 @@ public class CrossEncoderReranker implements Reranker {
     private final RetrievalProperties properties;
     private final RestClient restClient;
 
+    /**
+     * Builds the REST client used to call the Cohere-compatible rerank API, with a bounded read
+     * timeout from {@code app.retrieval.rerank.timeout}.
+     */
     public CrossEncoderReranker(RetrievalProperties properties) {
         this.properties = properties;
         // A bounded read timeout so a slow rerank vendor degrades to pass-through instead of

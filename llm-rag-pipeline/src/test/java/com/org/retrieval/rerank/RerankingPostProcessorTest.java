@@ -3,6 +3,7 @@ package com.org.retrieval.rerank;
 import com.org.chunking.model.Chunk;
 import com.org.retrieval.RetrievalProperties;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -38,18 +39,21 @@ class RerankingPostProcessorTest {
     }
 
     @Test
+    @DisplayName("Passes chunks through unchanged when reranking is disabled")
     void disabledPassesThroughUnchanged() {
         RetrievalProperties props = new RetrievalProperties(); // rerank disabled by default
         assertThat(processor(props, new Bm25Reranker()).process("q", chunks)).isEqualTo(chunks);
     }
 
     @Test
+    @DisplayName("Passes chunks through unchanged when no reranker matches the configured strategy")
     void unknownStrategyPassesThrough() {
         RerankingPostProcessor p = processor(enabled(RerankStrategy.CROSS_ENCODER), new Bm25Reranker());
         assertThat(p.process("q", chunks)).isEqualTo(chunks);
     }
 
     @Test
+    @DisplayName("Fails open and passes chunks through unchanged when the reranker throws")
     void rerankerFailurePassesThrough() {
         CountingReranker failing = new CountingReranker(RerankStrategy.BM25, true);
         RerankingPostProcessor p = processor(enabled(RerankStrategy.BM25), failing);
@@ -57,6 +61,7 @@ class RerankingPostProcessorTest {
     }
 
     @Test
+    @DisplayName("Delegates reranking to the reranker matching the configured strategy")
     void delegatesToSelectedStrategy() {
         RerankingPostProcessor p = processor(enabled(RerankStrategy.BM25), new Bm25Reranker());
         List<Chunk> result = p.process("gamma", chunks);
@@ -65,6 +70,7 @@ class RerankingPostProcessorTest {
     }
 
     @Test
+    @DisplayName("Rescores only the top-N head and leaves the tail in its original slot")
     void topNRescoresOnlyTheHeadAndKeepsTheTail() {
         RetrievalProperties props = enabled(RerankStrategy.BM25);
         props.getRerank().setTopN(2);
@@ -74,6 +80,7 @@ class RerankingPostProcessorTest {
     }
 
     @Test
+    @DisplayName("Opens the circuit breaker after consecutive failures and skips the vendor afterward")
     void breakerOpensAfterConsecutiveFailuresAndSkipsTheVendor() {
         RetrievalProperties props = enabled(RerankStrategy.BM25);
         props.getRerank().getBreaker().setFailureThreshold(2);
@@ -88,6 +95,7 @@ class RerankingPostProcessorTest {
     }
 
     @Test
+    @DisplayName("Caches scores from costly strategies so a repeat call reuses them")
     void costlyStrategyScoresAreCachedAcrossCalls() {
         CountingReranker counting = new CountingReranker(RerankStrategy.CROSS_ENCODER, false);
         RerankingPostProcessor p = processor(enabled(RerankStrategy.CROSS_ENCODER), counting);
@@ -101,6 +109,7 @@ class RerankingPostProcessorTest {
     }
 
     @Test
+    @DisplayName("Bypasses the score cache for cheap strategies, calling the reranker every time")
     void cheapStrategiesBypassTheCache() {
         CountingReranker counting = new CountingReranker(RerankStrategy.BM25, false);
         RerankingPostProcessor p = processor(enabled(RerankStrategy.BM25), counting);
@@ -110,6 +119,7 @@ class RerankingPostProcessorTest {
     }
 
     @Test
+    @DisplayName("Drops chunks below the configured minimum score threshold")
     void minScoreDropsChunksTheRerankerJudgedIrrelevant() {
         RetrievalProperties props = enabled(RerankStrategy.BM25);
         props.getRerank().setMinScore(0.5);

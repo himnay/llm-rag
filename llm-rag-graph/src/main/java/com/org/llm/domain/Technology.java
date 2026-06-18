@@ -25,6 +25,9 @@ public class Technology {
     private String description;
     private String version;
 
+    /**
+     * Creates a technology node with the given attributes.
+     */
     public Technology(String name, String category, String description, String version) {
         this.name = name;
         this.category = category;

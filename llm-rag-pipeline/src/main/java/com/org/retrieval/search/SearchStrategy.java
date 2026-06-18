@@ -17,5 +17,8 @@ public interface SearchStrategy {
      */
     SearchMode mode();
 
+    /**
+     * Returns up to {@code topK} best-first candidate documents for the query.
+     */
     List<Document> search(String query, int topK);
 }

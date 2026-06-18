@@ -8,6 +8,9 @@ package com.org.lifecycle.command;
 @FunctionalInterface
 public interface IngestionCommand {
 
+    /**
+     * Runs the encapsulated knowledge-base operation.
+     */
     void execute() throws java.io.IOException;
 
     /**

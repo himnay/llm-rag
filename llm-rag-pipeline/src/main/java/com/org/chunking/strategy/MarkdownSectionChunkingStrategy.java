@@ -12,11 +12,17 @@ import java.util.List;
 @Component
 public class MarkdownSectionChunkingStrategy extends AbstractChunkingStrategy {
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String name() {
         return "markdown";
     }
 
+    /**
+     * Splits the document into one chunk per markdown heading section.
+     */
     @Override
     public List<Chunk> chunk(IngestedDocument document) {
         // Split before any line that starts a markdown heading.

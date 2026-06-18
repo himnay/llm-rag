@@ -16,10 +16,17 @@ import java.util.Map;
 @Service
 public class FixedSizeChunker {
 
+    /**
+     * Splits the document into fixed-size chunks with no overlap.
+     */
     public List<Chunk> chunk(IngestedDocument document, int chunkSize) {
         return chunk(document, chunkSize, 0);
     }
 
+    /**
+     * Splits the document into fixed-size character windows, carrying {@code overlap} characters
+     * of the previous window into the next.
+     */
     public List<Chunk> chunk(IngestedDocument document, int chunkSize, int overlap) {
         List<Chunk> chunks = new ArrayList<>();
 

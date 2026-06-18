@@ -3,6 +3,7 @@ package com.rag.vectorless.rag;
 import com.rag.vectorless.config.RagProperties;
 import com.rag.vectorless.dto.Chunk;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.document.Document;
 
@@ -24,11 +25,12 @@ class BM25RetrieverTest {
                 new Chunk("Spring Boot makes it easy to build standalone Java applications.", "spring.txt", 0),
                 new Chunk("Vector databases store embeddings for semantic similarity search.", "vectors.txt", 0)
         ));
-        retriever = new BM25Retriever(new RagProperties(500, 100, 5), loader);
+        retriever = new BM25Retriever(new RagProperties(500, 100, 5, false), loader);
         retriever.buildIndex();
     }
 
     @Test
+    @DisplayName("Ranks the chunk with the most matching keywords first")
     void ranksKeywordMatchingChunkFirst() {
         List<Document> results = retriever.retrieve("How does BM25 keyword ranking work?");
 
@@ -40,11 +42,13 @@ class BM25RetrieverTest {
     }
 
     @Test
+    @DisplayName("Returns an empty result list when no terms match any chunk")
     void returnsEmptyForQueryWithNoMatchingTerms() {
         assertThat(retriever.retrieve("quantum entanglement teleportation")).isEmpty();
     }
 
     @Test
+    @DisplayName("Excludes stop words and short tokens from scoring, yielding no results")
     void stopWordsAndShortTokensDoNotMatch() {
         // every term is a stop word or <= 2 chars, so nothing should score
         assertThat(retriever.retrieve("the and of it is")).isEmpty();

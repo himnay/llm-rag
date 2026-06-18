@@ -11,14 +11,23 @@ import java.util.Optional;
 @Repository
 public interface TeamRepository extends Neo4jRepository<Team, Long> {
 
+    /**
+     * Finds a team by exact name match.
+     */
     Optional<Team> findByName(String name);
 
+    /**
+     * Finds the name of the department that owns the named team.
+     */
     @Query("""
             MATCH (d:Department)-[:HAS_TEAM]->(t:Team {name: $teamName})
             RETURN d.name AS departmentName
             """)
     String findDepartmentNameForTeam(String teamName);
 
+    /**
+     * Finds teams whose name or purpose contains the keyword (case-insensitive).
+     */
     @Query("""
             MATCH (t:Team)
             WHERE toLower(t.name) CONTAINS toLower($keyword)

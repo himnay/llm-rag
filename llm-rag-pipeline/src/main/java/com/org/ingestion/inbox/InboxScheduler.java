@@ -31,6 +31,10 @@ public class InboxScheduler {
     private final FileIngestionService fileIngestionService;
     private final DocumentReaderFactory readerFactory;
 
+    /**
+     * Polls the inbox folder, ingesting each ready file and moving it to {@code processed/} on
+     * success or {@code failed/} on error or unsupported type.
+     */
     @Scheduled(fixedDelayString = "${app.ingestion.inbox.poll-interval:30s}")
     public void scan() {
         Path inbox = Path.of(properties.getPath());

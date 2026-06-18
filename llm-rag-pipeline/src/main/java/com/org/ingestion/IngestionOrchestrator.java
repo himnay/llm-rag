@@ -22,6 +22,10 @@ public class IngestionOrchestrator {
     private final WikiIngestionService wikiIngestionService;
     private final DatabaseIngestionService databaseIngestionService;
 
+    /**
+     * Ingests the single named source described by {@code request} (PDF, wiki page, or DB table),
+     * returning an empty list for unrecognized source types.
+     */
     public List<IngestedDocument> ingest(KnowledgeRequest request) throws IOException {
         SourceType source = request.sourceType();
         if (source.equals(SourceType.PDF)) {
@@ -36,6 +40,9 @@ public class IngestionOrchestrator {
         return Collections.emptyList();
     }
 
+    /**
+     * Ingests every PDF, wiki file, and database row across all configured sources.
+     */
     public List<IngestedDocument> ingestAll() throws IOException {
         List<IngestedDocument> docs = new ArrayList<>();
         docs.addAll(pdfIngestionService.ingestPdfs());

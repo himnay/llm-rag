@@ -1,6 +1,7 @@
 package com.org.retrieval.rerank;
 
 import com.org.chunking.model.Chunk;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.client.ChatClient;
 
@@ -28,12 +29,14 @@ class LlmListwiseRerankerTest {
     }
 
     @Test
+    @DisplayName("Reorders chunks according to the permutation returned by the LLM")
     void appliesTheReturnedPermutation() {
         List<Chunk> result = rerankerReplying("2, 0, 1").rerank("q", chunks);
         assertThat(result).extracting(Chunk::content).containsExactly("gamma", "alpha", "beta");
     }
 
     @Test
+    @DisplayName("Keeps every document even when the LLM reply has duplicate or invalid indices")
     void sloppyReplyNeverLosesDocuments() {
         // Duplicate index, out-of-range index, and a missing index: 'beta' must survive at the tail.
         List<Chunk> result = rerankerReplying("2, 2, 9, 0").rerank("q", chunks);
@@ -41,6 +44,7 @@ class LlmListwiseRerankerTest {
     }
 
     @Test
+    @DisplayName("Keeps the original chunk order when the LLM reply cannot be parsed")
     void unparseableReplyKeepsOriginalOrder() {
         List<Chunk> result = rerankerReplying("sorry, I cannot rank these").rerank("q", chunks);
         assertThat(result).extracting(Chunk::content).containsExactly("alpha", "beta", "gamma");

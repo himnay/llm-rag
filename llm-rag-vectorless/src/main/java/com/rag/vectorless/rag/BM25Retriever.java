@@ -2,6 +2,7 @@ package com.rag.vectorless.rag;
 
 import com.rag.vectorless.config.RagProperties;
 import com.rag.vectorless.dto.Chunk;
+import io.github.resilience4j.retry.annotation.Retry;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -84,6 +85,7 @@ public class BM25Retriever {
         log.info("BM25 index built: {} chunks, {} unique terms, avg length {}", n, idf.size(), String.format("%.1f", avgDocLength));
     }
 
+    @Retry(name = "llm-vectorless")
     public List<Document> retrieve(String query) {
         if (chunks == null || chunks.isEmpty()) {
             return List.of();

@@ -281,6 +281,70 @@ app:
 
 ---
 
+## Query Transformation Modes
+
+Before retrieval, the raw query can be rewritten to improve recall. Controlled by `app.retrieval.query-transform.mode`:
+
+| Mode          | Class                         | Mechanism                                                                                                                   | Best for                                               |
+|---------------|-------------------------------|-----------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------|
+| `NONE`        | —                             | Query passed through unchanged                                                                                              | Fast lookups, exact keyword queries                    |
+| `REWRITE`     | `RewriteQueryTransformerImpl` | LLM rephrases the query (grammar fix, abbreviation expansion)                                                               | Conversational or ambiguous queries                    |
+| `MULTI_QUERY` | `MultiQueryExpanderImpl`      | LLM generates N alternative phrasings (default 3); all N result sets are merged and deduplicated                            | Broad topics where one phrasing misses relevant chunks |
+| `HYDE`        | `HydeQueryTransformer`        | LLM generates a *hypothetical* answer passage; that passage's embedding is used as the retrieval key (not the query itself) | Sparse corpora, highly technical questions             |
+| `STEP_BACK`   | `StepBackQueryTransformer`    | LLM reformulates the query at a higher abstraction level before retrieving                                                  | Multi-hop or overly specific queries                   |
+
+**HyDE mechanism in detail:**
+
+```
+User query: "How many days notice for resignation?"
+         │
+         ▼  ChatClient call
+Hypothetical passage: "Employees must give at least two weeks' notice per section 4.3..."
+         │
+         ▼  EmbeddingModel
+Hypothetical vector ──► similarity search ──► actual policy chunks
+```
+
+The passage is never returned to the user — only its embedding is used as the retrieval key.
+
+---
+
+## Chunking Strategies
+
+Six `ChunkingStrategy` implementations, selected via `app.chunking.strategy`:
+
+| Strategy                          | Config value | Split logic                                                                                                     | Ideal content                                            |
+|-----------------------------------|--------------|-----------------------------------------------------------------------------------------------------------------|----------------------------------------------------------|
+| `FixedSizeChunkingStrategy`       | `fixed`      | Splits at character boundary every `max-chars` with `overlap` carry-over                                        | Simple text with uniform density                         |
+| `RecursiveChunkingStrategy`       | `recursive`  | Tries `\n\n` → `\n` → `.` → ` ` until chunk fits; preserves natural boundaries                                  | General prose documents                                  |
+| `TokenChunkingStrategy`           | `token`      | Splits on tiktoken token count (`chunk-size` tokens)                                                            | Any LLM-bound content; correct for context-window limits |
+| `SemanticChunkingStrategy`        | `semantic`   | Embeds each sentence; splits where cosine similarity drops below `threshold`; merges similar adjacent sentences | Long-form content where topic boundaries matter          |
+| `MarkdownSectionChunkingStrategy` | `markdown`   | Splits on `#`/`##`/`###` headings; each section is one chunk                                                    | Structured documentation, wikis                          |
+| `LlmChunkingStrategy`             | `llm`        | LLM identifies natural segment boundaries; most accurate, highest cost                                          | Complex specs, mixed-format documents                    |
+
+`auto` picks `markdown` for `.md` sources, `token` for database rows, and `recursive` for everything else.
+
+---
+
+## Reranking Strategies
+
+A second-stage reranker re-scores candidates after first-stage retrieval. Controlled by
+`app.retrieval.rerank.strategy` (requires `rerank.enabled: true`):
+
+| Strategy        | `isCostly()` | Mechanism                                                                            | Latency  | Best for                                                  |
+|-----------------|--------------|--------------------------------------------------------------------------------------|----------|-----------------------------------------------------------|
+| `cross-encoder` | `true`       | Jointly encodes (query, chunk) via a cross-encoder model; most accurate              | Medium   | When precision matters more than throughput               |
+| `bi-encoder`    | `false`      | Re-embeds query + chunks separately, scores by cosine; faster but lower accuracy     | Low      | High-throughput retrieval                                 |
+| `llm-pointwise` | `true`       | Each chunk scored individually by LLM (0–100 scale); N parallel virtual-thread calls | High     | Authoritative answers where one misranked chunk is costly |
+| `llm-listwise`  | `true`       | All candidates sent to LLM in one prompt; fewer API calls than pointwise             | High     | Final precision pass for generation endpoints             |
+| `bm25`          | `false`      | Re-scores vector-retrieved candidates by BM25 term frequency in-process              | Very low | Keyword-heavy technical queries as cheap second pass      |
+| `rrf`           | `false`      | Reciprocal Rank Fusion (k=60) merges vector + keyword rank lists                     | Very low | Default safe choice with hybrid search                    |
+
+`RerankingPostProcessor` wraps any reranker behind a Resilience4j circuit breaker, a score cache (`rerank.cache.ttl`),
+and a cost-cap guard (`isCostly()` strategies bypass automatically when the circuit is open).
+
+---
+
 ## Design Patterns
 
 | Pattern                     | Where                                                                                                                                           | Why                                               |

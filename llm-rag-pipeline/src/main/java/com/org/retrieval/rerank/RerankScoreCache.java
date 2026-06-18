@@ -19,6 +19,7 @@ final class RerankScoreCache {
 
     private final Map<String, CachedScore> entries;
     private final long ttlMillis;
+
     RerankScoreCache(int maxSize, Duration ttl) {
         this.ttlMillis = ttl.toMillis();
         this.entries = new LinkedHashMap<>(64, 0.75f, true) {

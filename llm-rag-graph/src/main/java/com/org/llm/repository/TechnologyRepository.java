@@ -11,8 +11,14 @@ import java.util.Optional;
 @Repository
 public interface TechnologyRepository extends Neo4jRepository<Technology, Long> {
 
+    /**
+     * Finds a technology by exact name match.
+     */
     Optional<Technology> findByName(String name);
 
+    /**
+     * Finds technologies whose name, category, or description contains the keyword (case-insensitive).
+     */
     @Query("""
             MATCH (t:Technology)
             WHERE toLower(t.name) CONTAINS toLower($keyword)
@@ -22,5 +28,8 @@ public interface TechnologyRepository extends Neo4jRepository<Technology, Long> 
             """)
     List<Technology> searchByKeyword(String keyword);
 
+    /**
+     * Finds technologies in the given category.
+     */
     List<Technology> findByCategory(String category);
 }

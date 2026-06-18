@@ -18,6 +18,9 @@ public class MeteredReranker implements Reranker {
     private final Reranker delegate;
     private final MeterRegistry meterRegistry;
 
+    /**
+     * Wraps {@code delegate}, recording duration/failure metrics via {@code meterRegistry}.
+     */
     public MeteredReranker(Reranker delegate, MeterRegistry meterRegistry) {
         this.delegate = delegate;
         this.meterRegistry = meterRegistry;

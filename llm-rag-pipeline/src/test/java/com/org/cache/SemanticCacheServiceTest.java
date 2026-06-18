@@ -1,5 +1,6 @@
 package com.org.cache;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -34,6 +35,7 @@ class SemanticCacheServiceTest {
     }
 
     @Test
+    @DisplayName("When cache is disabled, get always returns empty")
     void whenDisabledGetAlwaysReturnsEmpty() {
         SemanticCacheService cache = new SemanticCacheService(embeddingCacheService, props(false, 0.9, 10));
         cache.put("hello", "world");
@@ -41,6 +43,7 @@ class SemanticCacheServiceTest {
     }
 
     @Test
+    @DisplayName("An identical query hits the cache and returns the stored answer")
     void identicalQueryHitsCache() {
         float[] v = unit(1f, 0f);
         when(embeddingCacheService.embed("hello")).thenReturn(v);
@@ -52,6 +55,7 @@ class SemanticCacheServiceTest {
     }
 
     @Test
+    @DisplayName("A query with an orthogonal embedding misses the cache")
     void orthogonalQueryMissesCache() {
         when(embeddingCacheService.embed("question")).thenReturn(unit(1f, 0f));
         when(embeddingCacheService.embed("unrelated")).thenReturn(unit(0f, 1f));
@@ -64,6 +68,7 @@ class SemanticCacheServiceTest {
     }
 
     @Test
+    @DisplayName("Put is a no-op and does not call the embedding service when cache is disabled")
     void putWhenDisabledDoesNothing() {
         SemanticCacheService cache = new SemanticCacheService(embeddingCacheService, props(false, 0.9, 10));
         // Should not throw or call embeddingCacheService
@@ -71,6 +76,7 @@ class SemanticCacheServiceTest {
     }
 
     @Test
+    @DisplayName("Evicts the oldest entry once the cache reaches max size")
     void evictsOldestEntryWhenFull() {
         // q1 → distinct vector; q2, q3 → shared vector so they are "similar" to each other
         when(embeddingCacheService.embed("q1")).thenReturn(unit(1f, 0f));
@@ -89,6 +95,7 @@ class SemanticCacheServiceTest {
     }
 
     @Test
+    @DisplayName("A query whose similarity is below the threshold misses the cache")
     void belowThresholdQueryMisses() {
         // Both queries in the same quadrant but slightly off — use a strict threshold
         when(embeddingCacheService.embed("original")).thenReturn(unit(1f, 0f));

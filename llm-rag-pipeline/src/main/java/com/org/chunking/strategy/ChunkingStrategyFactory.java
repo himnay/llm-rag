@@ -26,6 +26,11 @@ public class ChunkingStrategyFactory {
                 .collect(Collectors.toMap(s -> s.name().toLowerCase(Locale.ROOT), Function.identity()));
     }
 
+    /**
+     * Looks up a strategy by name (case-insensitive).
+     *
+     * @throws UnknownChunkingStrategyException if no strategy with that name is registered
+     */
     public ChunkingStrategy get(String name) {
         ChunkingStrategy strategy = strategies.get(name == null ? "" : name.toLowerCase(Locale.ROOT));
         if (strategy == null) {
@@ -34,6 +39,9 @@ public class ChunkingStrategyFactory {
         return strategy;
     }
 
+    /**
+     * Returns whether a strategy with the given name (case-insensitive) is registered.
+     */
     public boolean has(String name) {
         return name != null && strategies.containsKey(name.toLowerCase(Locale.ROOT));
     }

@@ -15,6 +15,9 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record QueryRelevance(String query, List<String> relevantSources) {
 
+    /**
+     * Returns the relevant source labels, or an empty list if the field was omitted in the JSON.
+     */
     public List<String> relevantSources() {
         return relevantSources == null ? List.of() : relevantSources;
     }

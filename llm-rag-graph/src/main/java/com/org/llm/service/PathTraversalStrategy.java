@@ -26,6 +26,10 @@ public class PathTraversalStrategy implements GraphExtractionStrategy {
         return "path-traversal";
     }
 
+    /**
+     * Runs hierarchy, project/technology, management-chain, and collaboration path queries for
+     * each keyword and returns the combined natural-language context lines.
+     */
     @Override
     public List<String> extract(List<String> keywords) {
         List<String> lines = new ArrayList<>();

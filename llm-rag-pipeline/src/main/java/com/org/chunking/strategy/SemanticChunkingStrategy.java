@@ -39,11 +39,19 @@ public class SemanticChunkingStrategy extends AbstractChunkingStrategy {
         return VectorMath.cosine(a, b);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String name() {
         return "semantic";
     }
 
+    /**
+     * Splits the document into sentences and groups consecutive sentences into a chunk until
+     * embedding cosine similarity drops below the configured threshold or the chunk hits the
+     * character cap.
+     */
     @Override
     public List<Chunk> chunk(IngestedDocument document) {
         List<String> sentences = splitSentences(document.content());

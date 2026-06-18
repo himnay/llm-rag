@@ -73,6 +73,10 @@ public class GenerationService {
                 .build();
     }
 
+    /**
+     * Answers the request, serving from the semantic cache on a hit, otherwise running either the
+     * manual or advisor pipeline depending on {@code app.generation.mode}.
+     */
     public GenerateResponse generate(GenerateRequest request) {
         String query = request.query();
         int topK = request.topK() != null ? request.topK() : properties.getTopK();

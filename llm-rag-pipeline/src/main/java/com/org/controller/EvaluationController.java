@@ -35,6 +35,10 @@ class EvaluationController {
     private final RetrievalEvaluator retrievalEvaluator;
     private final GenerationEvaluator generationEvaluator;
 
+    /**
+     * Runs the retrieval-quality evaluation (MRR, Precision/Recall/Hit Rate/nDCG@k, context
+     * precision) over the gold set, retrieving the top {@code k} chunks per query.
+     */
     @PostMapping("/run")
     public EvaluationReport run(@RequestParam(name = "k", defaultValue = "10") int k) throws IOException {
         return retrievalEvaluator.evaluate(k);

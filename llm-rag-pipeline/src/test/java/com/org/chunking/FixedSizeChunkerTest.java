@@ -4,6 +4,7 @@ import com.org.chunking.model.Chunk;
 import com.org.ingestion.IngestionOrchestrator;
 import com.org.ingestion.model.IngestedDocument;
 import com.org.support.IntegrationTest;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +33,7 @@ public class FixedSizeChunkerTest extends IntegrationTest {
     }
 
     @Test
+    @DisplayName("Splits a document into fixed-size chunks with and without overlap")
     public void chunkerTest() throws Exception {
         List<IngestedDocument> documents = ingestionOrchestrator.ingestAll();
 

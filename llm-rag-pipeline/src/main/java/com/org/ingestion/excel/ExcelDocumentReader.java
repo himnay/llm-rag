@@ -21,10 +21,17 @@ public class ExcelDocumentReader implements DocumentReader {
     private final Resource resource;
     private final DataFormatter formatter = new DataFormatter();
 
+    /**
+     * Creates a reader for the given Excel resource.
+     */
     public ExcelDocumentReader(Resource resource) {
         this.resource = resource;
     }
 
+    /**
+     * Reads the workbook and returns one {@link Document} per non-empty sheet, rendered as a
+     * markdown table.
+     */
     @Override
     public List<Document> get() {
         List<Document> documents = new ArrayList<>();

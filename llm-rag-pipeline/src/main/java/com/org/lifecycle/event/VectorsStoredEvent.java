@@ -15,6 +15,10 @@ public class VectorsStoredEvent extends ApplicationEvent {
      */
     private final String identity;
 
+    /**
+     * Creates the event for a write of {@code chunkCount} vectors for the given identity (or
+     * {@code null} for a full rebuild).
+     */
     public VectorsStoredEvent(Object source, int chunkCount, String identity) {
         super(source);
         this.chunkCount = chunkCount;

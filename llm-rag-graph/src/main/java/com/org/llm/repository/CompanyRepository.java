@@ -11,6 +11,9 @@ import java.util.Optional;
 @Repository
 public interface CompanyRepository extends Neo4jRepository<Company, Long> {
 
+    /**
+     * Finds a company by exact name match.
+     */
     Optional<Company> findByName(String name);
 
     /**
@@ -25,6 +28,9 @@ public interface CompanyRepository extends Neo4jRepository<Company, Long> {
             """)
     Optional<Company> findWithFullHierarchy(String name);
 
+    /**
+     * Finds companies whose name or description contains the keyword (case-insensitive).
+     */
     @Query("MATCH (c:Company) WHERE toLower(c.name) CONTAINS toLower($keyword) OR toLower(c.description) CONTAINS toLower($keyword) RETURN c")
     List<Company> searchByKeyword(String keyword);
 }

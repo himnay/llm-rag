@@ -19,14 +19,23 @@ public class OcrService {
 
     private final OcrProperties properties;
 
+    /**
+     * Whether OCR is enabled via {@code app.ingestion.ocr.enabled}.
+     */
     public boolean isEnabled() {
         return properties.isEnabled();
     }
 
+    /**
+     * Minimum extracted-text length below which a page is treated as scanned.
+     */
     public int minCharsPerPage() {
         return properties.getMinCharsPerPage();
     }
 
+    /**
+     * Render DPI used to rasterize PDF pages before OCR.
+     */
     public int dpi() {
         return properties.getDpi();
     }

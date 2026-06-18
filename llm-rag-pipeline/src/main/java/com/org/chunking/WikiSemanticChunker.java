@@ -12,6 +12,9 @@ import java.util.Map;
 @Service
 public class WikiSemanticChunker {
 
+    /**
+     * Splits a wiki document into one chunk per markdown heading section.
+     */
     public List<Chunk> chunk(IngestedDocument document) {
         List<Chunk> chunks = new ArrayList<>();
 

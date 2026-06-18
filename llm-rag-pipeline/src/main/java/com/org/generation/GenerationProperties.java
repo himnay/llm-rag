@@ -29,7 +29,7 @@ public class GenerationProperties {
     /**
      * Evaluate faithfulness after every generation (adds one extra LLM call).
      */
-    private boolean evaluateFaithfulness = false;
+    private boolean evaluateFaithfulness = true;
 
     @Data
     public static class Advisor {

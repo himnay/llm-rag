@@ -15,6 +15,10 @@ public final class Resilience {
     private Resilience() {
     }
 
+    /**
+     * Retries {@code action} up to {@code maxAttempts} times with exponential backoff
+     * ({@code baseBackoffMillis * 2^(attempt-1)}), re-throwing the last exception if all attempts fail.
+     */
     public static <T> T withRetry(String operation, int maxAttempts, long baseBackoffMillis, Supplier<T> action) {
         RuntimeException last = null;
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {

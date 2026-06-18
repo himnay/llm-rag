@@ -10,6 +10,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @ConfigurationPropertiesScan
 public class RagPipelineApplication {
 
+    /**
+     * Application entry point.
+     */
     public static void main(String[] args) {
         SpringApplication.run(RagPipelineApplication.class, args);
     }

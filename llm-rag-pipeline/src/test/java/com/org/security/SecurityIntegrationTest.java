@@ -1,6 +1,7 @@
 package com.org.security;
 
 import com.org.support.IntegrationTest;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -35,6 +36,7 @@ class SecurityIntegrationTest extends IntegrationTest {
     }
 
     @Test
+    @DisplayName("Protected endpoint rejects requests with no API key with 401")
     void protectedEndpointRejectsMissingKey() throws Exception {
         mvc().perform(post("/api/v1/retrieve")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -43,6 +45,7 @@ class SecurityIntegrationTest extends IntegrationTest {
     }
 
     @Test
+    @DisplayName("Protected endpoint accepts requests with a valid provisioned API key")
     void protectedEndpointAcceptsValidKey() throws Exception {
         String raw = "integration-test-key";
         jdbc.update("INSERT INTO api_keys (key_hash, label) VALUES (?, 'it') ON CONFLICT DO NOTHING",
@@ -56,6 +59,7 @@ class SecurityIntegrationTest extends IntegrationTest {
     }
 
     @Test
+    @DisplayName("Actuator health endpoint stays accessible without an API key")
     void actuatorHealthStaysOpen() throws Exception {
         mvc().perform(get("/actuator/health")).andExpect(status().isOk());
     }

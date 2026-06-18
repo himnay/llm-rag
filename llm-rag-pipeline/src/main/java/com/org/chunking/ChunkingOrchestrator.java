@@ -22,6 +22,10 @@ public class ChunkingOrchestrator {
     private final ChunkingProperties properties;
     private final DatabaseChunker databaseChunker;
 
+    /**
+     * Chunks the document using the configured strategy, or a per-source default when
+     * {@code app.chunking.strategy=auto}.
+     */
     public List<Chunk> chunk(IngestedDocument document) {
         String configured = properties.getStrategy();
         if (configured != null && !configured.isBlank() && !"auto".equalsIgnoreCase(configured)) {

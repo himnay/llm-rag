@@ -1,27 +1,33 @@
 package com.rag.vectorless.controller;
 
+import com.rag.vectorless.config.RagProperties;
 import com.rag.vectorless.dto.ChatRequest;
 import com.rag.vectorless.dto.ChatResponse;
 import com.rag.vectorless.dto.Chunk;
+import com.rag.vectorless.dto.Citation;
+import com.rag.vectorless.eval.GenerationEvaluator;
 import com.rag.vectorless.rag.BM25Retriever;
 import com.rag.vectorless.rag.DocumentLoader;
 import com.rag.vectorless.rag.PageIndexClient;
 import com.rag.vectorless.rag.PageIndexDocumentManager;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.document.Document;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/rag")
+@Tag(name = "Vector-less RAG", description = "BM25-based retrieval-augmented generation without vector stores")
 public class RagController {
 
     private final ChatClient chatClient;
@@ -29,40 +35,40 @@ public class RagController {
     private final DocumentLoader documentLoader;
     private final Optional<PageIndexClient> pageIndexClient;
     private final Optional<PageIndexDocumentManager> pageIndexManager;
+    private final GenerationEvaluator generationEvaluator;
+    private final RagProperties ragProperties;
 
+    @Operation(summary = "Answer a question using BM25 retrieval over local documents")
     @PostMapping("/chat")
     public ChatResponse chat(@Valid @RequestBody ChatRequest request) {
         List<Document> docs = bm25Retriever.retrieve(request.question());
 
         if (docs.isEmpty()) {
-            return new ChatResponse("I don't have information about that in my knowledge base.", List.of());
+            return new ChatResponse("I don't have information about that in my knowledge base.", List.of(), null);
         }
 
         String context = docs.stream()
                 .map(Document::getText)
                 .collect(Collectors.joining("\n\n---\n\n"));
 
-        List<String> sources = docs.stream()
-                .map(d -> (String) d.getMetadata().get("source"))
-                .filter(s -> s != null)
-                .distinct().sorted()
-                .toList();
+        List<Citation> citations = toCitations(docs);
 
-        return generate(context, sources, request.question());
+        return generate(context, docs, citations, request.question());
     }
 
+    @Operation(summary = "Answer a question using PageIndex cloud retrieval")
     @PostMapping("/chat-pageindex")
     public ChatResponse chatPageIndex(@Valid @RequestBody ChatRequest request) {
         if (pageIndexClient.isEmpty() || pageIndexManager.isEmpty()) {
             return new ChatResponse(
                     "PageIndex is not enabled. Set RAG_PAGEINDEX_ENABLED=true and PAGEINDEX_API_KEY.",
-                    List.of()
+                    List.of(), null
             );
         }
 
         Map<String, String> docIds = pageIndexManager.get().getDocIds();
         if (docIds.isEmpty()) {
-            return new ChatResponse("No documents have been indexed in PageIndex yet.", List.of());
+            return new ChatResponse("No documents have been indexed in PageIndex yet.", List.of(), null);
         }
 
         List<String> allContent = new ArrayList<>();
@@ -77,19 +83,25 @@ public class RagController {
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                return new ChatResponse("Retrieval interrupted.", List.of());
+                return new ChatResponse("Retrieval interrupted.", List.of(), null);
             }
         }
 
         if (allContent.isEmpty()) {
-            return new ChatResponse("I don't have information about that in my knowledge base.", List.of());
+            return new ChatResponse("I don't have information about that in my knowledge base.", List.of(), null);
         }
 
         String context = String.join("\n\n---\n\n", allContent);
-        sources = sources.stream().distinct().sorted().toList();
-        return generate(context, sources, request.question());
+        // PageIndex doesn't expose a per-chunk score/index — filename-only citations.
+        List<Citation> citations = sources.stream()
+                .distinct().sorted()
+                .map(source -> new Citation(source, null, null))
+                .toList();
+        List<Document> contextDocs = allContent.stream().map(Document::new).toList();
+        return generate(context, contextDocs, citations, request.question());
     }
 
+    @Operation(summary = "List all indexed documents and total chunk count")
     @GetMapping("/documents")
     public Map<String, Object> documents() {
         List<Chunk> chunks = documentLoader.getChunks();
@@ -100,6 +112,7 @@ public class RagController {
         return Map.of("documents", sources, "totalChunks", chunks.size());
     }
 
+    @Operation(summary = "Check the health of the RAG service and document index")
     @GetMapping("/health")
     public Map<String, Object> health() {
         int chunks = documentLoader.getChunks().size();
@@ -113,7 +126,8 @@ public class RagController {
 
     // ── shared prompt + Claude call ──────────────────────────────────────────
 
-    private ChatResponse generate(String context, List<String> sources, String question) {
+    @CircuitBreaker(name = "llm-vectorless", fallbackMethod = "generateFallback")
+    ChatResponse generate(String context, List<Document> contextDocs, List<Citation> citations, String question) {
         String userMessage = """
                 Use only the context below to answer the question.
                 If the context does not contain the answer, say "I don't have information about that."
@@ -129,6 +143,29 @@ public class RagController {
                 .call()
                 .content();
 
-        return new ChatResponse(answer, sources);
+        Boolean faithful = null;
+        if (ragProperties.evaluateFaithfulness()) {
+            faithful = generationEvaluator.isFaithful(question, contextDocs, answer);
+        }
+
+        return new ChatResponse(answer, citations, faithful);
+    }
+
+    @SuppressWarnings("unused")
+    ChatResponse generateFallback(String context, List<Document> contextDocs, List<Citation> citations, String question, Throwable t) {
+        log.warn("LLM circuit breaker triggered for question='{}': {}", question, t.getMessage());
+        return new ChatResponse("Service temporarily unavailable. Please try again in a moment.", List.of(), null);
+    }
+
+    private List<Citation> toCitations(List<Document> docs) {
+        Map<String, Citation> bySourceAndChunk = new LinkedHashMap<>();
+        for (Document d : docs) {
+            String source = (String) d.getMetadata().get("source");
+            Integer chunkIndex = (Integer) d.getMetadata().get("chunkIndex");
+            Double score = (Double) d.getMetadata().get("score");
+            if (source == null) continue;
+            bySourceAndChunk.putIfAbsent(source + "#" + chunkIndex, new Citation(source, chunkIndex, score));
+        }
+        return List.copyOf(bySourceAndChunk.values());
     }
 }

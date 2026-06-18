@@ -21,6 +21,10 @@ public class CachedReranker implements Reranker {
     private final RerankScoreCache cache;
     private final MeterRegistry meterRegistry;
 
+    /**
+     * Wraps {@code delegate}, scoring from {@code cache} on a full hit and recording metrics via
+     * {@code meterRegistry} otherwise.
+     */
     public CachedReranker(Reranker delegate, RerankScoreCache cache, MeterRegistry meterRegistry) {
         this.delegate = delegate;
         this.cache = cache;

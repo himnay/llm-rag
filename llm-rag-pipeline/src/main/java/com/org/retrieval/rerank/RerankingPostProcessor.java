@@ -49,6 +49,17 @@ public class RerankingPostProcessor implements RetrievalPostProcessor {
     private final Map<RerankStrategy, Reranker> rerankers = new EnumMap<>(RerankStrategy.class);
     private CircuitBreaker breaker;
 
+    private static List<Chunk> combine(RetrievalProperties.Rerank cfg, List<Chunk> reranked, List<Chunk> tail) {
+        List<Chunk> result = new ArrayList<>(reranked.size() + tail.size());
+        for (Chunk chunk : reranked) {
+            if (cfg.getMinScore() <= 0 || RetrievalPostProcessor.score(chunk) >= cfg.getMinScore()) {
+                result.add(chunk);
+            }
+        }
+        result.addAll(tail);
+        return result;
+    }
+
     @PostConstruct
     void init() {
         RetrievalProperties.Rerank cfg = properties.getRerank();
@@ -62,17 +73,6 @@ public class RerankingPostProcessor implements RetrievalPostProcessor {
             }
             rerankers.put(r.strategy(), decorated);
         }
-    }
-
-    private static List<Chunk> combine(RetrievalProperties.Rerank cfg, List<Chunk> reranked, List<Chunk> tail) {
-        List<Chunk> result = new ArrayList<>(reranked.size() + tail.size());
-        for (Chunk chunk : reranked) {
-            if (cfg.getMinScore() <= 0 || RetrievalPostProcessor.score(chunk) >= cfg.getMinScore()) {
-                result.add(chunk);
-            }
-        }
-        result.addAll(tail);
-        return result;
     }
 
     @Override

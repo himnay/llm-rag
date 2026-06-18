@@ -2,6 +2,7 @@ package com.org.chunking.strategy;
 
 import com.org.chunking.model.Chunk;
 import com.org.ingestion.model.IngestedDocument;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -34,6 +35,7 @@ class ChunkingStrategyFactoryTest {
     }
 
     @Test
+    @DisplayName("Resolves a registered strategy by name regardless of case")
     void resolvesByNameCaseInsensitively() {
         assertThat(factory.get("RECURSIVE").name()).isEqualTo("recursive");
         assertThat(factory.has("token")).isTrue();
@@ -41,6 +43,7 @@ class ChunkingStrategyFactoryTest {
     }
 
     @Test
+    @DisplayName("Requesting an unknown strategy name throws UnknownChunkingStrategyException")
     void unknownStrategyThrows() {
         assertThatThrownBy(() -> factory.get("nope"))
                 .isInstanceOf(UnknownChunkingStrategyException.class)

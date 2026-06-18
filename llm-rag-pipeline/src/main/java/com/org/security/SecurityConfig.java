@@ -36,6 +36,10 @@ public class SecurityConfig {
     private final RestAuthenticationEntryPoint authenticationEntryPoint;
     private final SecurityProperties properties;
 
+    /**
+     * Configures the stateless filter chain: security headers, CORS, rate limiting (always on),
+     * and API-key auth on {@code /api/**} when {@code app.security.auth-enabled=true}.
+     */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -70,6 +74,9 @@ public class SecurityConfig {
                 .build();
     }
 
+    /**
+     * Builds the CORS policy for {@code /api/**} from {@code app.security.allowed-origins}.
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();

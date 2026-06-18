@@ -39,6 +39,9 @@ public class Department {
     @Relationship(type = "OWNS_PROJECT", direction = Relationship.Direction.OUTGOING)
     private List<Project> projects = new ArrayList<>();
 
+    /**
+     * Creates a department node with the given attributes (no relationships set).
+     */
     public Department(String name, String focus, String description, int headcount) {
         this.name = name;
         this.focus = focus;

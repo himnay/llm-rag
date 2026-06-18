@@ -33,8 +33,10 @@ A **Graph RAG** (Retrieval-Augmented Generation) pipeline built on **Neo4j** and
 
 ### Why relationships matter
 
-- Traditional RAG retrieves the most similar text chunks, which requires the full answer to be co-located in a single chunk
-- Multi-hop questions (e.g., *"Which engineers on the fraud detection project report to Eve?"*) cannot be answered reliably this way
+- Traditional RAG retrieves the most similar text chunks, which requires the full answer to be co-located in a single
+  chunk
+- Multi-hop questions (e.g., *"Which engineers on the fraud detection project report to Eve?"*) cannot be answered
+  reliably this way
 - In a knowledge graph the same question becomes a 3-hop Cypher traversal:
 
 ```
@@ -287,11 +289,58 @@ app:
 
 ## 🧩 Design patterns
 
-- `GraphRAGService` acts as a **Facade** over the full multi-step flow: keyword extraction → graph traversal → prompt assembly → LLM call
-  - Callers interact with a single `query(String question)` method; none of the internal steps are exposed
+- `GraphRAGService` acts as a **Facade** over the full multi-step flow: keyword extraction → graph traversal → prompt
+  assembly → LLM call
+    - Callers interact with a single `query(String question)` method; none of the internal steps are exposed
 - Spring Data Neo4j repositories follow the **Repository** pattern, keeping Cypher queries isolated from service logic
-- There is a single LLM provider (`AnthropicLLMService`), so a Strategy interface for LLM providers is deliberately not introduced — adding one would be speculative abstraction
-- See the [Design patterns section](../llm-rag-pipeline/README.md#-design-patterns-gof) in `llm-rag-pipeline` for the full GoF pattern inventory used across the llm-rag modules and the reasoning about where patterns are deliberately not applied
+- There is a single LLM provider (`AnthropicLLMService`), so a Strategy interface for LLM providers is deliberately not
+  introduced — adding one would be speculative abstraction
+- See the [Design patterns section](../llm-rag-pipeline/README.md#-design-patterns-gof) in `llm-rag-pipeline` for the
+  full GoF pattern inventory used across the llm-rag modules and the reasoning about where patterns are deliberately not
+  applied
+
+## LLM Integration — Anthropic Java SDK (not Spring AI)
+
+`AnthropicLLMService` calls Claude via the **`anthropic-java` SDK** (version 2.34) directly, bypassing Spring AI's
+`ChatClient` abstraction entirely. This is intentional: Anthropic-specific features — extended thinking mode and
+fine-grained token budget control — were not surfaced through the Spring AI model options at the time of development.
+
+```java
+// Extended thinking — lets Claude reason silently before composing the final answer
+ThinkingConfigAdaptive.builder().build()
+```
+
+The service builds a `MessageCreateParams` with:
+
+- System prompt (graph-context block injected before the user question)
+- User question
+- `ThinkingConfigAdaptive` — enables Claude's hidden chain-of-thought; the model produces a reasoning trace that is not
+  visible in the response but improves answer accuracy on multi-hop graph questions
+- Model: `claude-opus-4-8` (configured in `app.anthropic.model`)
+- `AnthropicOkHttpClient.fromEnv()` — picks up `ANTHROPIC_API_KEY` automatically; no manual client wiring required
+
+### Why not Spring AI's ChatClient?
+
+| Spring AI `ChatClient`                   | Anthropic Java SDK                                        |
+|------------------------------------------|-----------------------------------------------------------|
+| Provider-neutral abstraction             | Direct access to all Anthropic-specific parameters        |
+| Does not expose `ThinkingConfigAdaptive` | `ThinkingConfigAdaptive` built into `MessageCreateParams` |
+| Adds transitive Spring AI dependencies   | Lightweight; only `anthropic-java` jar required           |
+| Good fit for multi-provider or advisors  | Good fit when you need precise model control              |
+
+### Resilience
+
+All Anthropic calls are guarded by Resilience4j via Spring AOP annotations:
+
+| Decorator                                                                    | Configuration key                                       | Behaviour                                                                                                                                         |
+|------------------------------------------------------------------------------|---------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
+| `@CircuitBreaker(name = "llm-rag-graph", fallbackMethod = "fallbackAnswer")` | `resilience4j.circuitbreaker.instances.llm-rag-graph.*` | Opens after consecutive failures; returns a graceful degradation message from `fallbackAnswer` — the endpoint never throws 500 during LLM outages |
+| `@Retry(name = "llm-rag-graph")`                                             | `resilience4j.retry.instances.llm-rag-graph.*`          | Retries transient network errors before the circuit-breaker counts a failure; uses exponential back-off                                           |
+
+The `fallbackAnswer` method returns a structured `RagResponse` with a "service temporarily unavailable" message so
+clients always receive a valid JSON response.
+
+---
 
 ## 🏗️ Build & test
 
@@ -302,7 +351,7 @@ mvn test
 - Tests run **offline** — the `test` profile disables graph seeding and supplies a dummy Anthropic key
 - No running Neo4j instance or real API key is required to execute the test suite
 - `GraphRAGServiceTest` unit-tests the full RAG orchestration path:
-  - Context extraction → LLM answer → response assembly
-  - Graph-stats aggregation logic
-  - All collaborators (Neo4j repositories, `AnthropicLLMService`) are mocked with Mockito
+    - Context extraction → LLM answer → response assembly
+    - Graph-stats aggregation logic
+    - All collaborators (Neo4j repositories, `AnthropicLLMService`) are mocked with Mockito
 - `LlmRagGraphApplicationTests` verifies that the Spring application context assembles cleanly without errors

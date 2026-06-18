@@ -17,11 +17,18 @@ public class FixedSizeChunkingStrategy extends AbstractChunkingStrategy {
 
     private final ChunkingProperties properties;
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String name() {
         return "fixed";
     }
 
+    /**
+     * Splits the document into character windows of {@code app.chunking.max-chars} with
+     * {@code app.chunking.overlap} characters carried into the next window.
+     */
     @Override
     public List<Chunk> chunk(IngestedDocument document) {
         int size = properties.getMaxChars();

@@ -4,6 +4,7 @@ import com.org.chunking.model.Chunk;
 import com.org.ingestion.IngestionOrchestrator;
 import com.org.ingestion.model.IngestedDocument;
 import com.org.support.IntegrationTest;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +35,7 @@ public class WikiSemanticChunkerTest extends IntegrationTest {
     }
 
     @Test
+    @DisplayName("Compares fixed-size and wiki semantic chunking on a wiki document")
     public void testChunker() throws Exception {
         List<IngestedDocument> documents = ingestionOrchestrator.ingestAll();
 

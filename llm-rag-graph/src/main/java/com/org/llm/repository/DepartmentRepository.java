@@ -11,11 +11,20 @@ import java.util.Optional;
 @Repository
 public interface DepartmentRepository extends Neo4jRepository<Department, Long> {
 
+    /**
+     * Finds a department by exact name match.
+     */
     Optional<Department> findByName(String name);
 
+    /**
+     * Finds a department by name, with its owned projects loaded.
+     */
     @Query("MATCH (c:Company)-[:HAS_DEPARTMENT]->(d:Department) WHERE d.name = $name RETURN d")
     Optional<Department> findByNameWithProjects(String name);
 
+    /**
+     * Finds departments whose name, description, or focus contains the keyword (case-insensitive).
+     */
     @Query("""
             MATCH (d:Department)
             WHERE toLower(d.name) CONTAINS toLower($keyword)
@@ -25,6 +34,9 @@ public interface DepartmentRepository extends Neo4jRepository<Department, Long> 
             """)
     List<Department> searchByKeyword(String keyword);
 
+    /**
+     * Finds departments that the named department collaborates with.
+     */
     @Query("MATCH (d1:Department)-[:COLLABORATES_WITH]->(d2:Department) WHERE d1.name = $name RETURN d2")
     List<Department> findCollaborators(String name);
 }

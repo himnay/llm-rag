@@ -9,6 +9,7 @@ import com.org.retrieval.model.Citation;
 import com.org.retrieval.model.RetrievalResult;
 import com.org.security.PromptInjectionGuard;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
@@ -68,6 +69,7 @@ class GenerationServiceTest {
     // ── Semantic cache ──────────────────────────────────────────────────────────
 
     @Test
+    @DisplayName("Semantic cache hit returns the cached answer and skips retrieval and generation")
     void semanticCacheHitBypassesRetrievalAndGeneration() {
         when(semanticCache.get("cached question")).thenReturn(Optional.of("cached answer"));
 
@@ -82,6 +84,7 @@ class GenerationServiceTest {
     // ── Manual mode ─────────────────────────────────────────────────────────────
 
     @Test
+    @DisplayName("Manual mode returns the generated answer along with its citations")
     void manualModeReturnsAnswerWithCitations() {
         String query = "What is the leave policy?";
         String expectedAnswer = "You get 25 days annual leave.";
@@ -110,6 +113,7 @@ class GenerationServiceTest {
     }
 
     @Test
+    @DisplayName("Manual mode omits citations from the response when citations are disabled")
     void manualModeOmitsCitationsWhenDisabled() {
         String query = "query";
         Chunk chunk = new Chunk("PDF", "content", Map.of(), 0);
@@ -134,6 +138,7 @@ class GenerationServiceTest {
     }
 
     @Test
+    @DisplayName("Manual mode uses the topK value from the request when explicitly provided")
     void manualModeUsesRequestTopKWhenProvided() {
         Chunk chunk = new Chunk("PDF", "content", Map.of(), 0);
         RetrievalResult retrieval = new RetrievalResult(List.of(chunk), List.of());
@@ -156,6 +161,7 @@ class GenerationServiceTest {
     }
 
     @Test
+    @DisplayName("Manual mode stores the generated answer in the semantic cache")
     void manualModeStoresAnswerInSemanticCache() {
         String query = "policy question";
         Chunk chunk = new Chunk("PDF", "content", Map.of(), 0);
@@ -179,6 +185,7 @@ class GenerationServiceTest {
     }
 
     @Test
+    @DisplayName("Injection guard filters out unsafe chunks before they reach generation")
     void injectionGuardFiltersUnsafeChunksBeforeGeneration() {
         String query = "safe question";
         Chunk safe = new Chunk("PDF", "safe content", Map.of(), 0);

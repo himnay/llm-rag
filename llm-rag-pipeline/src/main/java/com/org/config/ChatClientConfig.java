@@ -15,6 +15,9 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 class ChatClientConfig {
 
+    /**
+     * Builds the shared {@link ChatClient} used by LLM-based chunking, enrichment, and reranking.
+     */
     @Bean
     ChatClient chatClient(ChatModel chatModel) {
         return ChatClient.builder(chatModel).build();

@@ -34,6 +34,9 @@ public class Project {
     @Relationship(type = "USES_TECHNOLOGY", direction = Relationship.Direction.OUTGOING)
     private List<Technology> technologies = new ArrayList<>();
 
+    /**
+     * Creates a project node with the given attributes (no relationships set).
+     */
     public Project(String name, String description, String status, String startDate, String goal) {
         this.name = name;
         this.description = description;

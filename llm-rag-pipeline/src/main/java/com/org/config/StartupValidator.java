@@ -24,6 +24,10 @@ public class StartupValidator implements ApplicationRunner {
     private final OpenAiProperties openAiProperties;
     private final OpenSearchProperties openSearchProperties;
 
+    /**
+     * Warns if the OpenAI API key is missing/placeholder and fails startup if the configured
+     * OpenSearch vector dimension doesn't match the embedding model's actual dimension.
+     */
     @Override
     public void run(ApplicationArguments args) {
         String openAiApiKey = openAiProperties.getApiKey();

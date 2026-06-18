@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ---- build stage ----
-FROM eclipse-temurin:21-jdk AS build
+FROM eclipse-temurin:25-jdk AS build
 WORKDIR /app
 COPY .mvn/ .mvn/
 COPY mvnw pom.xml ./
@@ -10,13 +10,13 @@ COPY src ./src
 RUN ./mvnw -q -B -DskipTests clean package
 
 # ---- layer extraction stage ----
-FROM eclipse-temurin:21-jre AS extract
+FROM eclipse-temurin:25-jre AS extract
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 RUN java -Djarmode=layertools -jar app.jar extract
 
 # ---- runtime stage ----
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:25-jre
 WORKDIR /app
 # Install Tesseract OCR native libraries required by Tess4J
 RUN apt-get update && apt-get install -y --no-install-recommends \

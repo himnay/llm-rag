@@ -1,5 +1,6 @@
 package com.org.retrieval.transform;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.client.ChatClient;
 
@@ -19,12 +20,14 @@ class MultiQueryExpanderImplTest {
     }
 
     @Test
+    @DisplayName("Reports MULTI_QUERY as its query transform mode")
     void modeIsMultiQuery() {
         assertThat(new MultiQueryExpanderImpl(mock(ChatClient.class), 3).mode())
                 .isEqualTo(QueryTransformMode.MULTI_QUERY);
     }
 
     @Test
+    @DisplayName("Returns LLM-generated query variants and always includes the original query")
     void returnsVariantsAndAlwaysIncludesOriginal() {
         MultiQueryExpanderImpl expander = expanderReturning(
                 "Annual leave entitlement rules?\nHow many days off per year?", 3);
@@ -35,6 +38,7 @@ class MultiQueryExpanderImplTest {
     }
 
     @Test
+    @DisplayName("Prepends the original query when it is not already among the variants")
     void originalQueryIsPrependedWhenNotAlreadyPresent() {
         MultiQueryExpanderImpl expander = expanderReturning("Variant A\nVariant B", 2);
         List<String> result = expander.transform("original");
@@ -43,6 +47,7 @@ class MultiQueryExpanderImplTest {
     }
 
     @Test
+    @DisplayName("Does not duplicate the original query when it is already among the variants")
     void doesNotDuplicateOriginalWhenAlreadyInVariants() {
         MultiQueryExpanderImpl expander = expanderReturning("original\nVariant A", 2);
         List<String> result = expander.transform("original");
@@ -52,6 +57,7 @@ class MultiQueryExpanderImplTest {
     }
 
     @Test
+    @DisplayName("Limits the number of variants to the configured count")
     void limitsVariantsToConfiguredCount() {
         // LLM returns 5 lines but count=2 → at most 2 variants + 1 original = 3 total
         MultiQueryExpanderImpl expander = expanderReturning("A\nB\nC\nD\nE", 2);
@@ -61,18 +67,21 @@ class MultiQueryExpanderImplTest {
     }
 
     @Test
+    @DisplayName("Falls back to the original query when the LLM response is blank")
     void fallsBackToOriginalOnBlankResponse() {
         MultiQueryExpanderImpl expander = expanderReturning("", 3);
         assertThat(expander.transform("my query")).containsExactly("my query");
     }
 
     @Test
+    @DisplayName("Falls back to the original query when the LLM response is null")
     void fallsBackToOriginalOnNullResponse() {
         MultiQueryExpanderImpl expander = expanderReturning(null, 3);
         assertThat(expander.transform("my query")).containsExactly("my query");
     }
 
     @Test
+    @DisplayName("Falls back to the original query when the LLM call throws")
     void fallsBackToOriginalOnLlmException() {
         ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
         when(chatClient.prompt().system(anyString()).user(anyString()).call().content())
@@ -82,6 +91,7 @@ class MultiQueryExpanderImplTest {
     }
 
     @Test
+    @DisplayName("Filters out blank lines from the LLM response when building variants")
     void filtersBlankLinesFromResponse() {
         MultiQueryExpanderImpl expander = expanderReturning("Variant A\n\n  \nVariant B", 3);
         List<String> result = expander.transform("original");

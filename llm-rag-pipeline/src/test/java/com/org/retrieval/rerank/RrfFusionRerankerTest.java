@@ -2,6 +2,7 @@ package com.org.retrieval.rerank;
 
 import com.org.chunking.model.Chunk;
 import com.org.retrieval.postprocess.RetrievalPostProcessor;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -14,6 +15,7 @@ class RrfFusionRerankerTest {
     private final RrfFusionReranker reranker = new RrfFusionReranker();
 
     @Test
+    @DisplayName("Fuses dense ranking order with lexical evidence using RRF")
     void fusesDenseOrderWithLexicalEvidence() {
         // Dense ranking (incoming order) puts the lexical match last. RRF credits both rankings:
         // winning BM25 lifts it above the lexically-irrelevant chunk ranked just above it, while
@@ -33,6 +35,7 @@ class RrfFusionRerankerTest {
     }
 
     @Test
+    @DisplayName("Keeps the dense ranking order unchanged when the query is blank")
     void blankQueryKeepsDenseOrder() {
         List<Chunk> chunks = List.of(
                 new Chunk("WIKI", "first", new HashMap<>(), 0),

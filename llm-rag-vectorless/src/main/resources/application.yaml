@@ -4,19 +4,6 @@ server:
 spring:
   lifecycle:
     timeout-per-shutdown-phase: 30s
-
-app:
-  metadata:
-    project-name: LLM Vectorless RAG
-    description: Vector-free document intelligence using BM25 retrieval and Spring AI
-    group-id: com.rag.vectorless
-    artifact-id: llm-vectorless-rag
-    project-version: 0.0.1-SNAPSHOT
-    spring-ai-version: 2.0.0
-    ai-provider: Anthropic Claude (claude-opus-4-8)
-    rag-strategy: BM25 (No Vector Store)
-
-spring:
   application:
     name: llm-vectorless-rag
   threads:
@@ -32,10 +19,55 @@ spring:
         options:
           model: claude-opus-4-8
           max-tokens: 1024
+
+app:
+  metadata:
+    project-name: LLM Vectorless RAG
+    description: Vector-free document intelligence using BM25 retrieval and Spring AI
+    group-id: com.rag.vectorless
+    artifact-id: llm-vectorless-rag
+    project-version: 0.0.1-SNAPSHOT
+    spring-ai-version: 2.0.0
+    ai-provider: Anthropic Claude (claude-opus-4-8)
+    rag-strategy: BM25 (No Vector Store)
 rag:
   chunk-size: 500
   chunk-overlap: 100
   top-k: 5
+  # Faithfulness check (Spring AI FactCheckingEvaluator) costs one extra LLM call per /chat
+  # request — keep disabled unless you need groundedness scoring on every answer.
+  evaluate-faithfulness: ${RAG_EVALUATE_FAITHFULNESS:false}
   pageindex:
     enabled: ${RAG_PAGEINDEX_ENABLED:false}
     api-key: ${PAGEINDEX_API_KEY:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+  tracing:
+    sampling:
+      probability: 1.0
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      llm-vectorless:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+  retry:
+    instances:
+      llm-vectorless:
+        max-attempts: 2
+        wait-duration: 500ms
+
+logging:
+  level:
+    org.neo4j.driver: WARN
+    org.springframework.data.neo4j: DEBUG

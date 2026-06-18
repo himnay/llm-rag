@@ -21,11 +21,17 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class ObservabilityConfig {
 
+    /**
+     * Enables {@code @Timed} methods to record Micrometer timers.
+     */
     @Bean
     TimedAspect timedAspect(MeterRegistry registry) {
         return new TimedAspect(registry);
     }
 
+    /**
+     * Enables {@code @Observed} methods to open tracing/observation spans.
+     */
     @Bean
     ObservedAspect observedAspect(ObservationRegistry registry) {
         return new ObservedAspect(registry);

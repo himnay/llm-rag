@@ -5,6 +5,7 @@ import com.org.chunking.model.Chunk;
 import com.org.ingestion.IngestionOrchestrator;
 import com.org.ingestion.model.IngestedDocument;
 import com.org.support.IntegrationTest;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -22,6 +23,7 @@ public class ChunkVectorStoreServiceTest extends IntegrationTest {
     private ChunkVectorStoreService vectorStoreService;
 
     @Test
+    @DisplayName("Ingests and chunks all documents then stores the resulting chunks in the vector store")
     void testVectorStore() throws Exception {
         List<IngestedDocument> documents = ingestionOrchestrator.ingestAll();
 

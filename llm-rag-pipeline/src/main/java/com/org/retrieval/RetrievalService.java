@@ -40,14 +40,6 @@ public class RetrievalService {
     private final Map<SearchMode, SearchStrategy> searchStrategies = new EnumMap<>(SearchMode.class);
     private List<RetrievalPostProcessor> postProcessors;
 
-    @PostConstruct
-    void init() {
-        searchStrategyList.forEach(s -> searchStrategies.put(s.mode(), s));
-        postProcessors = rawPostProcessors.stream()
-                .sorted(Comparator.comparingInt(RetrievalPostProcessor::getOrder))
-                .toList();
-    }
-
     private static Integer pageOf(Map<String, Object> metadata) {
         Object page = metadata.getOrDefault("page_number", metadata.get("page"));
         if (page instanceof Number n) {
@@ -78,6 +70,14 @@ public class RetrievalService {
 
     private static String str(Object value) {
         return Objects.toString(value, "");
+    }
+
+    @PostConstruct
+    void init() {
+        searchStrategyList.forEach(s -> searchStrategies.put(s.mode(), s));
+        postProcessors = rawPostProcessors.stream()
+                .sorted(Comparator.comparingInt(RetrievalPostProcessor::getOrder))
+                .toList();
     }
 
     /**

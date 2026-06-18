@@ -31,6 +31,9 @@ public class Team {
     @Relationship(type = "HAS_MEMBER", direction = Relationship.Direction.OUTGOING)
     private List<Employee> members = new ArrayList<>();
 
+    /**
+     * Creates a team node with the given attributes (no relationships set).
+     */
     public Team(String name, String purpose, String methodology) {
         this.name = name;
         this.purpose = purpose;

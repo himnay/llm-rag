@@ -43,6 +43,10 @@ public class PromptOrchestrator {
         }
     }
 
+    /**
+     * Retrieves relevant chunks for the question and assembles the full {@link ChatPrompt}
+     * (system instructions, rendered context, grounding rules, and the underlying retrieval result).
+     */
     public ChatPrompt build(String userQuestion, int topK) {
         RetrievalResult retrievalResult = retrievalService.retrieve(userQuestion, topK);
         String context = contextBuilder.build(retrievalResult);

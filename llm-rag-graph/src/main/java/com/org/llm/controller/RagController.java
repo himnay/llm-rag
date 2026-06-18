@@ -18,6 +18,9 @@ public class RagController {
 
     private final GraphRAGService ragService;
 
+    /**
+     * Answers a natural-language question using the Graph RAG pipeline.
+     */
     @PostMapping("/query")
     public ResponseEntity<RagResponse> query(@Valid @RequestBody RagRequest request) {
         return ResponseEntity.ok(ragService.query(request));

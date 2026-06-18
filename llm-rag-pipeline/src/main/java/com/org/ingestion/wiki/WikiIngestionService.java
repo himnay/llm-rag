@@ -27,6 +27,11 @@ public class WikiIngestionService {
     private final DocumentReaderFactory readerFactory;
     private final ResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
 
+    /**
+     * Ingests the named markdown wiki file from {@code app.ingestion.wiki-location}.
+     *
+     * @throws IOException if the file does not exist there
+     */
     public List<IngestedDocument> ingest(String fileName) throws IOException {
         Resource resource = resolver.getResource(properties.getWikiLocation() + fileName);
         if (!resource.exists()) {
@@ -35,6 +40,9 @@ public class WikiIngestionService {
         return readerFactory.read(resource);
     }
 
+    /**
+     * Ingests every {@code *.md} file under {@code app.ingestion.wiki-location}.
+     */
     public List<IngestedDocument> ingestWikiFiles() throws IOException {
         List<IngestedDocument> docs = new ArrayList<>();
         for (Resource resource : resolver.getResources(properties.getWikiLocation() + "*.md")) {

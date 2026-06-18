@@ -49,6 +49,9 @@ public class PromptInjectionGuard {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Returns {@code true} if the text matches none of the known prompt-injection patterns.
+     */
     public boolean isSafe(String text) {
         if (text == null || text.isBlank()) return true;
         return INJECTION_PATTERNS.stream().noneMatch(p -> p.matcher(text).find());

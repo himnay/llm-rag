@@ -21,5 +21,8 @@ public interface RetrievalPostProcessor extends Ordered {
         return v instanceof Number n ? n.doubleValue() : 0.0;
     }
 
+    /**
+     * Transforms the candidate chunk list for the given query (filter, rank, diversify, or rerank).
+     */
     List<Chunk> process(String query, List<Chunk> chunks);
 }

@@ -21,11 +21,18 @@ public class RecursiveChunkingStrategy extends AbstractChunkingStrategy {
 
     private final ChunkingProperties properties;
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String name() {
         return "recursive";
     }
 
+    /**
+     * Splits the document by trying paragraph, then line, then space, then hard-cut separators,
+     * greedily packing pieces into {@code maxChars}-sized chunks with overlap.
+     */
     @Override
     public List<Chunk> chunk(IngestedDocument document) {
         return toChunks(document, split(document.content(), 0, properties.getMaxChars(), properties.getOverlap()));

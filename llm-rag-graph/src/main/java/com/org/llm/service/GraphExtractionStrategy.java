@@ -9,6 +9,9 @@ import java.util.List;
  */
 public interface GraphExtractionStrategy {
 
+    /**
+     * Lower/kebab-case identifier for this strategy, e.g. {@code path-traversal}.
+     */
     String name();
 
     /**

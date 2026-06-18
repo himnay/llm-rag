@@ -11,6 +11,9 @@ import java.util.concurrent.Executor;
 @EnableAsync
 class AsyncConfig {
 
+    /**
+     * Bounded thread pool used to process ingestion identity groups concurrently.
+     */
     @Bean("ingestionExecutor")
     public Executor ingestionExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();

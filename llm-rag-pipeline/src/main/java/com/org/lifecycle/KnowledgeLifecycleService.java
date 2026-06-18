@@ -42,10 +42,17 @@ public class KnowledgeLifecycleService {
     @Qualifier("ingestionExecutor")
     private final Executor ingestionExecutor;
 
+    /**
+     * Ingests the single source described by {@code request} through the clean → chunk → enrich
+     * → store pipeline.
+     */
     public void ingest(KnowledgeRequest request) throws IOException {
         process(ingestionOrchestrator.ingest(request), false);
     }
 
+    /**
+     * Wipes the vector store and re-ingests every known knowledge source from scratch.
+     */
     public void ingestAll() throws IOException {
         deleteAll();
         process(ingestionOrchestrator.ingestAll(), true);
@@ -58,12 +65,18 @@ public class KnowledgeLifecycleService {
         process(documents, false);
     }
 
+    /**
+     * Deletes the vectors and ingestion-log entry for the source described by {@code request}.
+     */
     public void delete(KnowledgeRequest request) {
         String identity = KnowledgeIdentity.from(request);
         vectorStoreService.deleteByIdentity(identity);
         ingestionLog.deleteByIdentity(identity);
     }
 
+    /**
+     * Deletes every vector and ingestion-log entry.
+     */
     public void deleteAll() {
         vectorStoreService.deleteAll();
         ingestionLog.deleteAll();

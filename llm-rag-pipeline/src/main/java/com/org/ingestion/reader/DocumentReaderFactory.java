@@ -23,6 +23,9 @@ public class DocumentReaderFactory {
 
     private final Map<DocumentType, DocumentReaderStrategy> strategies;
 
+    /**
+     * Indexes the auto-discovered strategies by the {@link DocumentType} each one handles.
+     */
     public DocumentReaderFactory(List<DocumentReaderStrategy> strategies) {
         this.strategies = strategies.stream()
                 .collect(Collectors.toMap(DocumentReaderStrategy::documentType, Function.identity()));

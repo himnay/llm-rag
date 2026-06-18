@@ -2,6 +2,7 @@ package com.org.retrieval.rerank;
 
 import com.org.chunking.model.Chunk;
 import com.org.retrieval.postprocess.RetrievalPostProcessor;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.client.ChatClient;
 
@@ -38,6 +39,7 @@ class LlmPointwiseRerankerTest {
     }
 
     @Test
+    @DisplayName("Grades chunks in parallel via the LLM and orders results by grade")
     void gradesInParallelAndOrdersByGrade() {
         List<Chunk> chunks = List.of(
                 new Chunk("WIKI", "company picnic announcement", new HashMap<>(), 0),
@@ -52,6 +54,7 @@ class LlmPointwiseRerankerTest {
     }
 
     @Test
+    @DisplayName("Scores a chunk zero instead of failing when the LLM grade is unparseable")
     void unparseableGradeScoresZeroInsteadOfFailing() {
         List<Chunk> chunks = List.of(
                 new Chunk("WIKI", "alpha", new HashMap<>(), 0),
