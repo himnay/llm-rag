@@ -35,6 +35,7 @@ import java.util.function.Consumer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -44,8 +45,6 @@ class GenerationServiceTest {
     GenerationProperties properties;
     @Mock
     PromptOrchestrator promptOrchestrator;
-    @Mock
-    ContextBuilder contextBuilder;
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     ChatClient chatClient;
     @Mock
@@ -72,7 +71,7 @@ class GenerationServiceTest {
         lenient().when(sufficiencyJudge.isSufficient(any(), any())).thenReturn(true);
 
         service = new GenerationService(
-                properties, promptOrchestrator, contextBuilder,
+                properties, promptOrchestrator,
                 chatClient, chatClientBuilder, vectorStore,
                 semanticCache, injectionGuard, generationEvaluator, sufficiencyJudge,
                 new SafeGuardProperties());
@@ -105,7 +104,7 @@ class GenerationServiceTest {
         Citation citation = new Citation("PDF", "leave.pdf", "PDF#leave.pdf", null, 0, null);
         RetrievalResult retrieval = new RetrievalResult(List.of(chunk), List.of(citation));
         PromptOrchestrator.ChatPrompt chatPrompt = new PromptOrchestrator.ChatPrompt(
-                "system instructions", "context text", "grounding rules", retrieval);
+                "system instructions", "context text", "user message", retrieval);
 
         when(semanticCache.get(query)).thenReturn(Optional.empty());
         when(properties.getMode()).thenReturn("manual");
@@ -113,7 +112,7 @@ class GenerationServiceTest {
         when(properties.isIncludeCitations()).thenReturn(true);
         when(promptOrchestrator.build(query, 5)).thenReturn(chatPrompt);
         when(injectionGuard.filter(List.of(chunk))).thenReturn(List.of(chunk));
-        when(contextBuilder.build(any())).thenReturn("context text");
+        when(promptOrchestrator.rebuild(eq(query), any())).thenReturn(chatPrompt);
         when(chatClient.prompt().system(anyString()).user(anyString()).advisors(any(Consumer.class)).call().content())
                 .thenReturn(expectedAnswer);
 
@@ -133,7 +132,7 @@ class GenerationServiceTest {
         Citation citation = new Citation("PDF", "doc.pdf", "PDF#doc.pdf", null, 0, null);
         RetrievalResult retrieval = new RetrievalResult(List.of(chunk), List.of(citation));
         PromptOrchestrator.ChatPrompt chatPrompt = new PromptOrchestrator.ChatPrompt(
-                "sys", "ctx", "rules", retrieval);
+                "sys", "ctx", "user message", retrieval);
 
         when(semanticCache.get(query)).thenReturn(Optional.empty());
         when(properties.getMode()).thenReturn("manual");
@@ -141,7 +140,7 @@ class GenerationServiceTest {
         when(properties.isIncludeCitations()).thenReturn(false);
         when(promptOrchestrator.build(query, 5)).thenReturn(chatPrompt);
         when(injectionGuard.filter(List.of(chunk))).thenReturn(List.of(chunk));
-        when(contextBuilder.build(any())).thenReturn("ctx");
+        when(promptOrchestrator.rebuild(eq(query), any())).thenReturn(chatPrompt);
         when(chatClient.prompt().system(anyString()).user(anyString()).advisors(any(Consumer.class)).call().content())
                 .thenReturn("answer");
 
@@ -156,7 +155,7 @@ class GenerationServiceTest {
         Chunk chunk = new Chunk("PDF", "content", Map.of(), 0);
         RetrievalResult retrieval = new RetrievalResult(List.of(chunk), List.of());
         PromptOrchestrator.ChatPrompt chatPrompt = new PromptOrchestrator.ChatPrompt(
-                "sys", "ctx", "rules", retrieval);
+                "sys", "ctx", "user message", retrieval);
 
         when(semanticCache.get("q")).thenReturn(Optional.empty());
         when(properties.getMode()).thenReturn("manual");
@@ -164,7 +163,7 @@ class GenerationServiceTest {
         when(properties.isIncludeCitations()).thenReturn(false);
         when(promptOrchestrator.build("q", 3)).thenReturn(chatPrompt);
         when(injectionGuard.filter(any())).thenReturn(List.of(chunk));
-        when(contextBuilder.build(any())).thenReturn("ctx");
+        when(promptOrchestrator.rebuild(eq("q"), any())).thenReturn(chatPrompt);
         when(chatClient.prompt().system(anyString()).user(anyString()).advisors(any(Consumer.class)).call().content())
                 .thenReturn("answer");
 
@@ -180,7 +179,7 @@ class GenerationServiceTest {
         Chunk chunk = new Chunk("PDF", "content", Map.of(), 0);
         RetrievalResult retrieval = new RetrievalResult(List.of(chunk), List.of());
         PromptOrchestrator.ChatPrompt chatPrompt = new PromptOrchestrator.ChatPrompt(
-                "sys", "ctx", "rules", retrieval);
+                "sys", "ctx", "user message", retrieval);
 
         when(semanticCache.get(query)).thenReturn(Optional.empty());
         when(properties.getMode()).thenReturn("manual");
@@ -188,7 +187,7 @@ class GenerationServiceTest {
         when(properties.isIncludeCitations()).thenReturn(false);
         when(promptOrchestrator.build(query, 5)).thenReturn(chatPrompt);
         when(injectionGuard.filter(any())).thenReturn(List.of(chunk));
-        when(contextBuilder.build(any())).thenReturn("ctx");
+        when(promptOrchestrator.rebuild(eq(query), any())).thenReturn(chatPrompt);
         when(chatClient.prompt().system(anyString()).user(anyString()).advisors(any(Consumer.class)).call().content())
                 .thenReturn("the answer");
 
@@ -206,7 +205,7 @@ class GenerationServiceTest {
         Citation citation = new Citation("PDF", "doc.pdf", "PDF#doc.pdf", null, 0, null);
         RetrievalResult retrieval = new RetrievalResult(List.of(safe, unsafe), List.of(citation));
         PromptOrchestrator.ChatPrompt chatPrompt = new PromptOrchestrator.ChatPrompt(
-                "sys", "ctx", "rules", retrieval);
+                "sys", "ctx", "user message", retrieval);
 
         when(semanticCache.get(query)).thenReturn(Optional.empty());
         when(properties.getMode()).thenReturn("manual");
@@ -215,7 +214,7 @@ class GenerationServiceTest {
         when(promptOrchestrator.build(query, 5)).thenReturn(chatPrompt);
         // guard removes the unsafe chunk
         when(injectionGuard.filter(List.of(safe, unsafe))).thenReturn(List.of(safe));
-        when(contextBuilder.build(any())).thenReturn("ctx");
+        when(promptOrchestrator.rebuild(eq(query), any())).thenReturn(chatPrompt);
         when(chatClient.prompt().system(anyString()).user(anyString()).advisors(any(Consumer.class)).call().content())
                 .thenReturn("answer");
 
@@ -234,13 +233,13 @@ class GenerationServiceTest {
         Chunk chunk = new Chunk("PDF", "unrelated content", Map.of(), 0);
         RetrievalResult retrieval = new RetrievalResult(List.of(chunk), List.of());
         PromptOrchestrator.ChatPrompt chatPrompt = new PromptOrchestrator.ChatPrompt(
-                "sys", "ctx", "rules", retrieval);
+                "sys", "ctx", "user message", retrieval);
 
         when(semanticCache.get(query)).thenReturn(Optional.empty());
         when(properties.getMode()).thenReturn("manual");
         when(promptOrchestrator.build(query, 5)).thenReturn(chatPrompt);
         when(injectionGuard.filter(List.of(chunk))).thenReturn(List.of(chunk));
-        when(contextBuilder.build(any())).thenReturn("ctx");
+        when(promptOrchestrator.rebuild(eq(query), any())).thenReturn(chatPrompt);
         when(sufficiencyJudge.isSufficient(query, "ctx")).thenReturn(false);
 
         GenerateResponse response = service.generate(new GenerateRequest(query, null, null));
@@ -258,7 +257,7 @@ class GenerationServiceTest {
         Chunk chunk = new Chunk("PDF", "content", Map.of(), 0);
         RetrievalResult retrieval = new RetrievalResult(List.of(chunk), List.of());
         PromptOrchestrator.ChatPrompt chatPrompt = new PromptOrchestrator.ChatPrompt(
-                "sys", "ctx", "rules", retrieval);
+                "sys", "ctx", "user message", retrieval);
 
         GenerationProperties.Judge disabledJudge = new GenerationProperties.Judge();
         disabledJudge.setEnabled(false);
@@ -270,7 +269,7 @@ class GenerationServiceTest {
         when(properties.getJudge()).thenReturn(disabledJudge);
         when(promptOrchestrator.build(query, 5)).thenReturn(chatPrompt);
         when(injectionGuard.filter(List.of(chunk))).thenReturn(List.of(chunk));
-        when(contextBuilder.build(any())).thenReturn("ctx");
+        when(promptOrchestrator.rebuild(eq(query), any())).thenReturn(chatPrompt);
         when(chatClient.prompt().system(anyString()).user(anyString()).advisors(any(Consumer.class)).call().content())
                 .thenReturn("answer");
 

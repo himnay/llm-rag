@@ -113,7 +113,7 @@ app:
     pdf-reader: ${PDF_READER:page}          # page | paragraph
     inbox: # drop-folder watcher (hybrid with the REST API)
       enabled: ${INBOX_ENABLED:false}
-      path: ${INBOX_PATH:/Users/himansu/REPOS/LLM/llm-rag/llm-rag-pipeline/data/inbox}
+      path: ${INBOX_PATH:/Users/himansu/REPOS/LLM/llm-rag/mail-folder/pdfs}
       poll-interval: 30s
       min-age: 5s
     ocr: # OCR for scanned/image PDF pages — opt-in (needs the native tesseract library)

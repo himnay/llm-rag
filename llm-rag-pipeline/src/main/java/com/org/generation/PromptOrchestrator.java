@@ -17,8 +17,8 @@ import java.nio.charset.StandardCharsets;
  *
  * <ol>
  *   <li>Retrieve relevant chunks via {@link RetrievalService}.</li>
- *   <li>Build the prompt context string from the retrieved chunks.</li>
- *   <li>Derive grounding rules based on whether context was found.</li>
+ *   <li>Augment the question with the retrieved context via {@link PromptAugmenter} (grounding
+ *       rules, citation headers, and the no-context fallback).</li>
  *   <li>Load the system instructions from {@code prompts/system-prompt.st}.</li>
  *   <li>Return a {@link ChatPrompt} that the generation service passes to the LLM.</li>
  * </ol>
@@ -29,8 +29,7 @@ import java.nio.charset.StandardCharsets;
 public class PromptOrchestrator {
 
     private final RetrievalService retrievalService;
-    private final ContextBuilder contextBuilder;
-    private final GroundingPolicy groundingPolicy;
+    private final PromptAugmenter promptAugmenter;
     private final String systemInstructions = loadSystemPrompt();
 
     private static String loadSystemPrompt() {
@@ -44,32 +43,32 @@ public class PromptOrchestrator {
     }
 
     /**
-     * Retrieves relevant chunks for the question and assembles the full {@link ChatPrompt}
-     * (system instructions, rendered context, grounding rules, and the underlying retrieval result).
+     * Retrieves relevant chunks for the question and assembles the full {@link ChatPrompt}.
      */
     public ChatPrompt build(String userQuestion, int topK) {
         RetrievalResult retrievalResult = retrievalService.retrieve(userQuestion, topK);
-        String context = contextBuilder.build(retrievalResult);
-        boolean hasContext = !contextBuilder.isEmpty(retrievalResult);
-        String rules = groundingPolicy.groundingRules(hasContext);
-        log.debug("PromptOrchestrator: retrieved {} chunk(s), hasContext={}", retrievalResult.chunks().size(), hasContext);
-        return new ChatPrompt(systemInstructions, context, rules, retrievalResult);
+        return rebuild(userQuestion, retrievalResult);
     }
 
     /**
-     * Immutable prompt assembled by the orchestrator.
+     * Re-assembles the {@link ChatPrompt} from an already-known retrieval result (e.g. after the
+     * injection guard has filtered unsafe chunks) without retrieving again.
+     */
+    public ChatPrompt rebuild(String userQuestion, RetrievalResult retrievalResult) {
+        PromptAugmenter.Augmented augmented = promptAugmenter.augment(userQuestion, retrievalResult);
+        log.debug("PromptOrchestrator: {} chunk(s), hasContext={}",
+                retrievalResult.chunks().size(), !augmented.context().isEmpty());
+        return new ChatPrompt(systemInstructions, augmented.context(), augmented.userMessage(), retrievalResult);
+    }
+
+    /**
+     * Assembled prompt: system instructions, plain context text (for the sufficiency judge), the
+     * full user-turn message to send to the LLM, and the underlying retrieval result.
      */
     public record ChatPrompt(
             String systemInstructions,
             String context,
-            String groundingRules,
-            com.org.retrieval.model.RetrievalResult retrievalResult) {
-
-        /**
-         * Builds the user-turn message combining grounding rules, context, and the question.
-         */
-        public String toLlmUserMessage(String userQuestion) {
-            return groundingRules + "\n\nContext:\n```\n" + context + "\n```\n\nQuestion: " + userQuestion;
-        }
+            String userMessage,
+            RetrievalResult retrievalResult) {
     }
 }

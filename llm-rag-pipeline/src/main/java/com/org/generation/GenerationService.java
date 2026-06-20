@@ -58,7 +58,6 @@ public class GenerationService {
 
     private final GenerationProperties properties;
     private final PromptOrchestrator promptOrchestrator;
-    private final ContextBuilder contextBuilder;
     private final ChatClient chatClient;
     private final ChatClient.Builder chatClientBuilder;
     private final VectorStore vectorStore;
@@ -119,12 +118,7 @@ public class GenerationService {
 
         List<com.org.chunking.model.Chunk> safeChunks = injectionGuard.filter(retrieval.chunks());
         RetrievalResult safeRetrieval = new RetrievalResult(safeChunks, retrieval.citations());
-
-        PromptOrchestrator.ChatPrompt safePrompt = new PromptOrchestrator.ChatPrompt(
-                chatPrompt.systemInstructions(),
-                rebuildContext(safeChunks, retrieval),
-                chatPrompt.groundingRules(),
-                safeRetrieval);
+        PromptOrchestrator.ChatPrompt safePrompt = promptOrchestrator.rebuild(query, safeRetrieval);
 
         if (properties.getJudge().isEnabled() && !sufficiencyJudge.isSufficient(query, safePrompt.context())) {
             log.info("Context sufficiency judge: INSUFFICIENT — skipping generation | query='{}'", query);
@@ -133,7 +127,7 @@ public class GenerationService {
 
         String answer = chatClient.prompt()
                 .system(safePrompt.systemInstructions())
-                .user(safePrompt.toLlmUserMessage(query))
+                .user(safePrompt.userMessage())
                 .advisors(spec -> spec
                         .advisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
                         .param(ChatMemory.CONVERSATION_ID, conversationId))
@@ -171,15 +165,12 @@ public class GenerationService {
         PromptOrchestrator.ChatPrompt chatPrompt = promptOrchestrator.build(query, topK);
         RetrievalResult retrieval = chatPrompt.retrievalResult();
         List<com.org.chunking.model.Chunk> safeChunks = injectionGuard.filter(retrieval.chunks());
-        PromptOrchestrator.ChatPrompt safePrompt = new PromptOrchestrator.ChatPrompt(
-                chatPrompt.systemInstructions(),
-                rebuildContext(safeChunks, retrieval),
-                chatPrompt.groundingRules(),
-                new RetrievalResult(safeChunks, retrieval.citations()));
+        RetrievalResult safeRetrieval = new RetrievalResult(safeChunks, retrieval.citations());
+        PromptOrchestrator.ChatPrompt safePrompt = promptOrchestrator.rebuild(query, safeRetrieval);
 
         return chatClient.prompt()
                 .system(safePrompt.systemInstructions())
-                .user(safePrompt.toLlmUserMessage(query))
+                .user(safePrompt.userMessage())
                 .advisors(spec -> spec
                         .advisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
                         .param(ChatMemory.CONVERSATION_ID, conversationId))
@@ -219,12 +210,5 @@ public class GenerationService {
                     identity.isEmpty() ? null : identity, page, chunkIndex, doc.getScore()));
         }
         return new ArrayList<>(seen.values());
-    }
-
-    private String rebuildContext(List<com.org.chunking.model.Chunk> chunks,
-                                  RetrievalResult original) {
-        RetrievalResult toRender = chunks.size() == original.chunks().size()
-                ? original : new RetrievalResult(chunks, original.citations());
-        return contextBuilder.build(toRender);
     }
 }
