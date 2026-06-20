@@ -1,31 +1,28 @@
 package com.org.retrieval.transform;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.rag.Query;
+import org.springframework.ai.rag.preretrieval.query.transformation.RewriteQueryTransformer;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 /**
- * Rewrites a messy or conversational user query into a clean, standalone search query using the
- * LLM. Particularly valuable in multi-turn chat where the question depends on prior context.
- *
- * <p>Maps to Spring AI's {@code RewriteQueryTransformer}; implemented directly with
- * {@link ChatClient} for full control over the prompt.</p>
+ * Rewrites a messy or conversational user query into a clean, standalone search query. Delegates
+ * to Spring AI's {@link RewriteQueryTransformer} rather than hand-rolling the prompt.
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class RewriteQueryTransformerImpl implements QueryTransformer {
 
-    private static final String SYSTEM = """
-                                            You are a search query optimization assistant. 
-                                            Rewrite the user's question into a concise, standalone search query optimised for semantic retrieval. 
-                                            Remove conversational filler. Return ONLY the rewritten query, nothing else.
-                                        """;
+    private final RewriteQueryTransformer delegate;
 
-    private final ChatClient chatClient;
+    public RewriteQueryTransformerImpl(ChatClient.Builder chatClientBuilder) {
+        this.delegate = RewriteQueryTransformer.builder()
+                .chatClientBuilder(chatClientBuilder)
+                .build();
+    }
 
     @Override
     public QueryTransformMode mode() {
@@ -35,14 +32,9 @@ public class RewriteQueryTransformerImpl implements QueryTransformer {
     @Override
     public List<String> transform(String query) {
         try {
-            String rewritten = chatClient.prompt()
-                    .system(SYSTEM)
-                    .user(query)
-                    .call()
-                    .content();
-            String result = (rewritten == null || rewritten.isBlank()) ? query : rewritten.strip();
-            log.debug("QueryRewrite: '{}' -> '{}'", query, result);
-            return List.of(result);
+            Query result = delegate.transform(new Query(query));
+            log.debug("QueryRewrite: '{}' -> '{}'", query, result.text());
+            return List.of(result.text());
         } catch (Exception e) {
             log.warn("QueryRewrite failed ({}), using original query", e.getMessage());
             return List.of(query);

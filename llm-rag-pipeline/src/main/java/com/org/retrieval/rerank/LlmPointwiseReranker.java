@@ -20,8 +20,10 @@ import java.util.concurrent.Future;
  * dedicated rerank vendor, but costs <em>one LLM call per candidate</em> — cap the spend (and the
  * burst of concurrent calls) with {@code app.retrieval.rerank.top-n}. Grades are fetched in
  * parallel on virtual threads, so latency is one LLM round-trip instead of N. Candidates are
- * truncated to {@value #MAX_DOC_CHARS} chars to bound prompt cost; an unparseable grade scores 0
- * rather than failing the request.
+ * truncated to {@value #MAX_DOC_CHARS} chars to bound prompt cost; an unparseable/missing grade
+ * scores 0 rather than failing the request. Uses Spring AI's structured-output API ({@code
+ * .entity(...)} with {@code useProviderStructuredOutput()}) so the grade is parsed from a real
+ * JSON response rather than regexed out of free text.
  */
 @Slf4j
 @Component
@@ -33,30 +35,23 @@ public class LlmPointwiseReranker implements Reranker {
     private static final String PROMPT = """
             You grade search results. Rate how relevant the document is to the query \
             on a scale of 0 (irrelevant) to 100 (perfectly answers it).
-            Respond with ONLY the integer.
-            
+
             Query: %s
-            
+
             Document:
             %s
             """;
 
     private final ChatClient chatClient;
 
-    static String truncate(String content) {
-        return content.length() <= MAX_DOC_CHARS ? content : content.substring(0, MAX_DOC_CHARS);
+    /**
+     * Structured-output target for {@link #grade}. Package-private so the test can construct one.
+     */
+    record RelevanceGrade(int score) {
     }
 
-    private static double parseGrade(String reply) {
-        if (reply == null) {
-            return 0;
-        }
-        java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\d{1,3}").matcher(reply);
-        if (!m.find()) {
-            log.warn("LLM pointwise reranker returned no grade ('{}') — scoring 0", reply);
-            return 0;
-        }
-        return Math.min(100, Double.parseDouble(m.group()));
+    static String truncate(String content) {
+        return content.length() <= MAX_DOC_CHARS ? content : content.substring(0, MAX_DOC_CHARS);
     }
 
     @Override
@@ -87,10 +82,14 @@ public class LlmPointwiseReranker implements Reranker {
     }
 
     private double grade(String query, Chunk chunk) {
-        String reply = chatClient.prompt()
+        RelevanceGrade grade = chatClient.prompt()
                 .user(PROMPT.formatted(query, truncate(chunk.content())))
                 .call()
-                .content();
-        return parseGrade(reply) / 100.0;
+                .entity(RelevanceGrade.class, spec -> spec.useProviderStructuredOutput());
+        if (grade == null) {
+            log.warn("LLM pointwise reranker returned no grade — scoring 0");
+            return 0;
+        }
+        return Math.min(100, Math.max(0, grade.score())) / 100.0;
     }
 }

@@ -5,24 +5,32 @@ import com.org.dto.GenerateRequest;
 import com.org.dto.GenerateResponse;
 import com.org.eval.ContextSufficiencyJudge;
 import com.org.eval.GenerationEvaluator;
+import com.org.retrieval.model.Citation;
 import com.org.retrieval.model.RetrievalResult;
 import com.org.security.PromptInjectionGuard;
+import com.org.security.SafeGuardProperties;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.ChatClientResponse;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
-import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
+import org.springframework.ai.chat.client.advisor.SafeGuardAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.InMemoryChatMemoryRepository;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.document.Document;
-import org.springframework.ai.vectorstore.SearchRequest;
+import org.springframework.ai.rag.advisor.RetrievalAugmentationAdvisor;
+import org.springframework.ai.rag.retrieval.search.VectorStoreDocumentRetriever;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -34,9 +42,11 @@ import java.util.UUID;
  * directly via {@link ChatClient}. Supports citation tracking, semantic caching, and optional
  * faithfulness evaluation.</p>
  *
- * <p><b>Advisor mode</b> (Section 12 pattern): delegates everything to Spring AI's
- * {@link QuestionAnswerAdvisor}, which handles retrieval, augmentation, and generation internally.
- * Simpler but bypasses the custom filtering and citation chain.</p>
+ * <p><b>Advisor mode</b> (Section 12 pattern): delegates retrieval, augmentation, and generation to
+ * Spring AI's modular RAG advisor pipeline ({@link RetrievalAugmentationAdvisor} +
+ * {@link VectorStoreDocumentRetriever}). Simpler than manual mode — bypasses the custom
+ * post-processing chain — but does track real citations from the documents the advisor
+ * retrieved.</p>
  *
  * <p>Enable this service via {@code app.generation.enabled=true}.</p>
  */
@@ -56,23 +66,30 @@ public class GenerationService {
     private final PromptInjectionGuard injectionGuard;
     private final GenerationEvaluator generationEvaluator;
     private final ContextSufficiencyJudge sufficiencyJudge;
-
+    private final SafeGuardProperties safeGuardProperties;
     private final MessageWindowChatMemory chatMemory = MessageWindowChatMemory.builder()
-            .chatMemoryRepository(new InMemoryChatMemoryRepository())
-            .build();
+                        .chatMemoryRepository(new InMemoryChatMemoryRepository())
+                        .build();
+
     private ChatClient advisorClient;
 
     @PostConstruct
     void init() {
-        advisorClient = chatClientBuilder
-                .defaultAdvisors(
-                        QuestionAnswerAdvisor.builder(vectorStore)
-                                .searchRequest(SearchRequest.builder()
-                                        .topK(properties.getTopK())
-                                        .similarityThreshold(properties.getAdvisor().getSimilarityThreshold())
-                                        .build())
+        chatClientBuilder.defaultAdvisors(
+                RetrievalAugmentationAdvisor.builder()
+                        .documentRetriever(VectorStoreDocumentRetriever.builder()
+                                .vectorStore(vectorStore)
+                                .topK(properties.getTopK())
+                                .similarityThreshold(properties.getAdvisor().getSimilarityThreshold())
                                 .build())
-                .build();
+                        .build());
+        if (safeGuardProperties.isEnabled()) {
+            chatClientBuilder.defaultAdvisors(SafeGuardAdvisor.builder()
+                    .sensitiveWords(safeGuardProperties.getSensitiveWords())
+                    .failureResponse(safeGuardProperties.getFailureResponse())
+                    .build());
+        }
+        advisorClient = chatClientBuilder.build();
     }
 
     /**
@@ -171,9 +188,37 @@ public class GenerationService {
     }
 
     private GenerateResponse generateWithAdvisor(String query) {
-        String answer = advisorClient.prompt().user(query).call().content();
+        ChatClientResponse response = advisorClient.prompt().user(query).call().chatClientResponse();
+        String answer = response.chatResponse() != null
+                ? response.chatResponse().getResult().getOutput().getText() : null;
+        List<Citation> citations = toCitations(response.context().get(RetrievalAugmentationAdvisor.DOCUMENT_CONTEXT));
         semanticCache.put(query, answer);
-        return new GenerateResponse(answer, List.of(), null, false, false);
+        return new GenerateResponse(answer, citations, null, false, false);
+    }
+
+    /**
+     * Builds citations from the documents {@link RetrievalAugmentationAdvisor} retrieved (exposed
+     * via its {@code rag_document_context} response-context entry) — the same field extraction
+     * {@code RetrievalService.toCitations} does for manual mode, adapted for {@link Document}.
+     */
+    @SuppressWarnings("unchecked")
+    private List<Citation> toCitations(Object documentContext) {
+        if (!(documentContext instanceof List<?> rawDocuments)) {
+            return List.of();
+        }
+        LinkedHashMap<String, Citation> seen = new LinkedHashMap<>();
+        for (Document doc : (List<Document>) rawDocuments) {
+            Map<String, Object> m = doc.getMetadata();
+            String identity = Objects.toString(m.get("identity"), "");
+            Object pageRaw = m.getOrDefault("page_number", m.get("page"));
+            Integer page = pageRaw instanceof Number n ? n.intValue() : null;
+            int chunkIndex = m.get("chunkIndex") instanceof Number n ? n.intValue() : 0;
+            String key = identity + "#" + page + "#" + chunkIndex;
+            seen.putIfAbsent(key, new Citation(
+                    Objects.toString(m.get("source"), ""), Objects.toString(m.get("fileName"), ""),
+                    identity.isEmpty() ? null : identity, page, chunkIndex, doc.getScore()));
+        }
+        return new ArrayList<>(seen.values());
     }
 
     private String rebuildContext(List<com.org.chunking.model.Chunk> chunks,

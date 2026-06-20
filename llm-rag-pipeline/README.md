@@ -16,6 +16,14 @@ Chunks are dual-written at ingestion: **OpenSearch** holds the vector + filter f
 **hydrates** the real text from Mongo before reranking. **Redis** caches a content hash per chunk
 so re-ingesting unchanged content is skipped without a database round-trip.
 
+Where Spring AI ships a real building block, this project uses it instead of a hand-rolled
+equivalent: structured-output parsing (`.entity(...)`) instead of regex over free text for every
+LLM classifier/judge/reranker, Spring AI's `RewriteQueryTransformer`/`MultiQueryExpander` instead
+of custom prompt code, `RetrievalAugmentationAdvisor` for advisor-mode generation, and
+`SafeGuardAdvisor` as an opt-in content-moderation gate. Custom code remains where Spring AI has no
+equivalent yet (keyword/hybrid search, HyDE/step-back transforms, the post-processing/rerank chain,
+Mongo chunk hydration).
+
 ---
 
 ## High-level Architecture
@@ -171,7 +179,7 @@ Client           RetrievalController      RetrievalService      OpenSearch      
   │  {chunks[], citations[]}                      │                                   │              │
 ```
 
-### Generation (`POST /api/v1/generate`)
+### Generation — manual mode (default, `POST /api/v1/generate`)
 
 ```
 Client         GenerationController   SemanticCache   PromptOrchestrator   ChatClient (LLM)
@@ -192,16 +200,43 @@ Client         GenerationController   SemanticCache   PromptOrchestrator   ChatC
   │                    │── PromptInjectionGuard.filter(chunks)  │                   │
   │                    │   (remove malicious context)           │                   │
   │                    │── ContextSufficiencyJudge.isSufficient(query, context)     │
-  │                    │   (LLM-as-judge — SUFFICIENT/INSUFFICIENT)                 │
+  │                    │   (structured-output LLM-as-judge — SufficiencyVerdict)    │
   │                    │   ├─ INSUFFICIENT → return canned response, skip LLM call  │
   │                    │   └─ SUFFICIENT   → continue                               │
-  │                    │── prompt().system().user().call() ────────────────────────►│
+  │                    │── prompt().system().user()                                │
+  │                    │   .advisors(SafeGuardAdvisor if enabled) ──────────────────►│
   │                    │                    │                   │  LLM generates    │
   │                    │◄────────────────────────────────────────────────────────── │
   │                    │── GenerationEvaluator.isFaithful() (opt-in)               │
   │                    │── SemanticCache.put(query, answer)                         │
   │◄───────────────────│                    │                   │                   │
   │ {answer, citations[], faithful, fromCache, insufficientContext}
+```
+
+### Generation — advisor mode (`app.generation.mode=advisor`)
+
+Delegates retrieval, augmentation, and generation to Spring AI's modular RAG advisor pipeline —
+simpler than manual mode (no custom post-processing chain), but now tracks real citations, unlike
+the previous `QuestionAnswerAdvisor`-based version which always returned an empty `citations[]`.
+
+```
+Client    GenerationController   RetrievalAugmentationAdvisor   VectorStoreDocumentRetriever
+  │                │                          │                            │
+  │  POST /generate│                          │                            │
+  │───────────────►│                          │                            │
+  │                │── prompt().user(query) ─►│                            │
+  │                │                          │── retrieve(query) ────────►│
+  │                │                          │                    similaritySearch
+  │                │                          │◄───────────────────────────│
+  │                │                          │   documents → context["rag_document_context"]
+  │                │                          │   ContextualQueryAugmenter.augment()
+  │                │                          │   (+ SafeGuardAdvisor if enabled)
+  │                │                          │── LLM generates ──────────►│ (ChatClient)
+  │                │◄───────────────────────── │                            │
+  │                │── toCitations(documents from context) ──────────────────┘
+  │                │── SemanticCache.put(query, answer)
+  │◄───────────────│
+  │ {answer, citations[] (now populated), faithful=null, fromCache, insufficientContext=false}
 ```
 
 ---
@@ -216,25 +251,25 @@ Client         GenerationController   SemanticCache   PromptOrchestrator   ChatC
 | `ingestion/ocr/`         | `OcrService`, `OcrPdfAugmentor`                                                                                                                                         | Tesseract OCR for scanned PDFs (opt-in)                           |
 | `ingestion/excel/`       | `ExcelDocumentReader`                                                                                                                                                   | Apache POI workbook → Markdown tables                             |
 | `ingestion/inbox/`       | `InboxScheduler`, `InboxProperties`                                                                                                                                     | `@Scheduled` (+ ShedLock `@SchedulerLock`) drop-folder watcher — auto-ingests new files, no API call needed, safe to scale to multiple instances |
-| `chunking/strategy/`     | `FixedSizeChunkingStrategy`, `RecursiveChunkingStrategy`, `TokenChunkingStrategy`, `SemanticChunkingStrategy`, `MarkdownSectionChunkingStrategy`, `LlmChunkingStrategy`, `ChunkingStrategyClassifier` | 6 pluggable chunking algorithms + opt-in LLM strategy selector (`auto` mode) |
+| `chunking/strategy/`     | `FixedSizeChunkingStrategy`, `RecursiveChunkingStrategy`, `TokenChunkingStrategy`, `SemanticChunkingStrategy`, `MarkdownSectionChunkingStrategy`, `LlmChunkingStrategy`, `ChunkingStrategyClassifier` | 6 pluggable chunking algorithms + opt-in LLM strategy selector (`auto` mode, structured output) |
 | `chunking/`              | `ChunkingOrchestrator`, `ChunkingStrategyFactory`, `ChunkIdGenerator`                                                                                                   | Factory + orchestration + deterministic chunkId derivation         |
 | `enrichment/`            | `ChunkEnricher`                                                                                                                                                         | LLM keyword / summary enrichment (opt-in)                         |
 | `mongo/`                 | `ChunkDocument`, `ChunkDocumentRepository`                                                                                                                              | Per-chunk text + metadata store, keyed by chunkId (system of record for content) |
 | `vectorstore/`           | `ChunkVectorStoreService`, `VectorStoreWriteProperties`                                                                                                                  | Dual-write: MongoDB (text+metadata) then OpenSearch (vector+filters+chunkId), batched by chunk count + token count |
-| `retrieval/`             | `RetrievalService`, `ChunkHydrationService`                                                                                                                             | Top-level retrieve + Mongo hydration by chunkId + citation assembly |
-| `retrieval/transform/`   | `HydeQueryTransformer`, `MultiQueryExpanderImpl`, `RewriteQueryTransformerImpl`, `StepBackQueryTransformer`                                                             | Pre-retrieval query transformation                                |
+| `retrieval/`             | `RetrievalService`, `ChunkHydrationService`, `RetrievalStrategyClassifier`, `RetrievalStrategy`                                                                         | Top-level retrieve + Mongo hydration by chunkId + citation assembly + opt-in LLM search/transform-mode classifier (structured output) |
+| `retrieval/transform/`   | `HydeQueryTransformer`, `StepBackQueryTransformer`, `MultiQueryExpanderImpl` (delegates to Spring AI's `MultiQueryExpander`), `RewriteQueryTransformerImpl` (delegates to Spring AI's `RewriteQueryTransformer`) | Pre-retrieval query transformation                                |
 | `retrieval/search/`      | `VectorSearchStrategy`, `KeywordSearchStrategy`, `HybridSearchStrategy`                                                                                                 | First-stage candidate fetch                                       |
 | `retrieval/postprocess/` | `BusinessRuleFilter`, `LengthFilter`, `NearDuplicateFilter`, `RetrievalPostProcessor`, `ScoreAwareRanker`, `MmrDiversityProcessor`                                      | Ordered post-processing chain                                     |
-| `retrieval/rerank/`      | `CrossEncoderReranker`, `BiEncoderReranker`, `LlmPointwiseReranker`, `LlmListwiseReranker`, `Bm25Reranker`, `RrfFusionReranker`                                         | 6 second-stage rerankers                                          |
-| `generation/`            | `GenerationService`, `PromptOrchestrator`, `ContextBuilder`, `GroundingPolicy`                                                                                          | Full RAG generation pipeline                                      |
+| `retrieval/rerank/`      | `CrossEncoderReranker`, `BiEncoderReranker`, `LlmPointwiseReranker`, `LlmListwiseReranker`, `Bm25Reranker`, `RrfFusionReranker`                                         | 6 second-stage rerankers — the two LLM-based ones use structured output (`.entity(...)`), not regex |
+| `generation/`            | `GenerationService`, `PromptOrchestrator`, `ContextBuilder`, `GroundingPolicy`                                                                                          | Full RAG generation pipeline — manual mode (custom) or advisor mode (Spring AI `RetrievalAugmentationAdvisor`) |
 | `cache/`                 | `EmbeddingCacheService`, `SemanticCacheService`, `ChunkDedupService`                                                                                                    | LRU+TTL embedding cache · semantic answer cache · Redis chunk-hash dedup |
-| `security/`              | `ApiKeyAuthFilter`, `ApiKeyService`, `RateLimitFilter`, `SecurityConfig`                                                                                                | API-key auth + rate limiting                                      |
+| `security/`              | `ApiKeyAuthFilter`, `ApiKeyService`, `RateLimitFilter`, `SecurityConfig`, `SafeGuardProperties`                                                                         | API-key auth + rate limiting + opt-in Spring AI `SafeGuardAdvisor` config |
 | `security/pii/`          | `PiiRedactor`                                                                                                                                                           | Regex PII redaction before embedding                              |
 | `security/`              | `PromptInjectionGuard`                                                                                                                                                  | Strips injection-payload chunks from context                      |
-| `eval/`                  | `RetrievalEvaluator`, `GenerationEvaluator`, `RetrievalMetrics`, `ContextSufficiencyJudge`                                                                              | MRR / P@k / R@k / nDCG / faithfulness / relevance / pre-gen context-sufficiency judge |
+| `eval/`                  | `RetrievalEvaluator`, `GenerationEvaluator`, `RetrievalMetrics`, `ContextSufficiencyJudge`                                                                              | MRR / P@k / R@k / nDCG / faithfulness / relevance / pre-gen context-sufficiency judge (structured output) |
 | `lifecycle/`             | `KnowledgeLifecycleService`, `IngestionLogRepository`                                                                                                                   | Orchestration (chunk → per-chunk Redis dedup → store) + delete cleanup |
 | `common/`                | `CircuitBreaker`, `Resilience`                                                                                                                                          | Retry + circuit breaker (used by reranking)                       |
-| `config/`                | `ChatClientConfig`, `ObservabilityConfig`, `StartupValidator`, `SchedulerLockConfig`, `VectorStoreWriteConfig`                                                          | Bean wiring + validation + ShedLock Redis lock provider + embedding batching strategy |
+| `config/`                | `ChatClientConfig`, `ObservabilityConfig`, `StartupValidator`, `SchedulerLockConfig`, `VectorStoreWriteConfig`                                                          | Bean wiring (incl. opt-in `SafeGuardAdvisor` on the shared `ChatClient`) + validation + ShedLock Redis lock provider + embedding batching strategy |
 | `web/`                   | `GlobalExceptionHandler`, `ApiError`, `RequestIdFilter`, `RequestLoggingInterceptor`, `WebConfig`                                                                       | Structured error responses + request-ID correlation + cross-cutting request/response logging (no per-controller boilerplate) |
 
 ---
@@ -336,6 +371,8 @@ app:
     query-transform:
       mode: NONE            # NONE | REWRITE | MULTI_QUERY | HYDE | STEP_BACK
       multi-query-count: 3
+    classifier: # LLM decides search.mode + query-transform.mode together, per query — opt-in
+      enabled: false
     dedup:
       enabled: true
       threshold: 0.95
@@ -361,7 +398,7 @@ app:
 app:
   generation:
     enabled: false            # expose POST /api/v1/generate
-    mode: manual              # manual (hand-built prompt) | advisor (Spring AI QuestionAnswerAdvisor)
+    mode: manual              # manual (hand-built prompt) | advisor (Spring AI RetrievalAugmentationAdvisor)
     top-k: 5
     include-citations: true
     evaluate-faithfulness: false   # one extra LLM call per generation
@@ -405,7 +442,17 @@ app:
     pii:
       enabled: false          # redact email / phone / SSN / CC / IP before embedding
       replacement: "[REDACTED]"
+    safeguard: # Spring AI SafeGuardAdvisor — blocks requests containing a sensitive word, server-side
+      enabled: false           # no-op until you populate sensitive-words
+      sensitive-words: []
+      failure-response: "I'm unable to respond to that due to sensitive content. Could we rephrase or discuss something else?"
 ```
+
+`SafeGuardAdvisor` is **complementary** to `PromptInjectionGuard`, not a replacement: it blocks the
+*user's own request* server-side against a static word list (content moderation), while
+`PromptInjectionGuard` scans *retrieved chunk content* for indirect-injection regex patterns before
+they reach the prompt. Both can be active at once. It's wired as a `defaultAdvisor` on the shared
+`ChatClient` bean (`ChatClientConfig`) and on advisor-mode's client (`GenerationService.init()`).
 
 ---
 
@@ -416,10 +463,18 @@ Before retrieval, the raw query can be rewritten to improve recall. Controlled b
 | Mode          | Class                         | Mechanism                                                                                                                   | Best for                                               |
 |---------------|-------------------------------|-----------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------|
 | `NONE`        | —                             | Query passed through unchanged                                                                                              | Fast lookups, exact keyword queries                    |
-| `REWRITE`     | `RewriteQueryTransformerImpl` | LLM rephrases the query (grammar fix, abbreviation expansion)                                                               | Conversational or ambiguous queries                    |
-| `MULTI_QUERY` | `MultiQueryExpanderImpl`      | LLM generates N alternative phrasings (default 3); all N result sets are merged and deduplicated                            | Broad topics where one phrasing misses relevant chunks |
-| `HYDE`        | `HydeQueryTransformer`        | LLM generates a *hypothetical* answer passage; that passage's embedding is used as the retrieval key (not the query itself) | Sparse corpora, highly technical questions             |
-| `STEP_BACK`   | `StepBackQueryTransformer`    | LLM reformulates the query at a higher abstraction level before retrieving                                                  | Multi-hop or overly specific queries                   |
+| `REWRITE`     | `RewriteQueryTransformerImpl` | Delegates to Spring AI's `RewriteQueryTransformer` — LLM rephrases the query (grammar fix, abbreviation expansion)          | Conversational or ambiguous queries                    |
+| `MULTI_QUERY` | `MultiQueryExpanderImpl`      | Delegates to Spring AI's `MultiQueryExpander` — LLM generates N alternative phrasings (default 3, always includes the original); requires an *exact* line-count match or falls back to the original query only | Broad topics where one phrasing misses relevant chunks |
+| `HYDE`        | `HydeQueryTransformer`        | Custom (no Spring AI equivalent) — LLM generates a *hypothetical* answer passage; that passage's embedding is used as the retrieval key (not the query itself) | Sparse corpora, highly technical questions             |
+| `STEP_BACK`   | `StepBackQueryTransformer`    | Custom (no Spring AI equivalent) — LLM reformulates the query at a higher abstraction level before retrieving               | Multi-hop or overly specific queries                   |
+
+Both `search.mode` and `query-transform.mode` above are normally static config. Set
+`app.retrieval.classifier.enabled=true` to have `RetrievalStrategyClassifier` decide both together,
+per query, with one structured-output LLM call targeting the `RetrievalStrategy(searchMode,
+transformMode)` record directly (e.g. an error-code lookup → `keyword` + `none`; a vague
+conversational question → `hybrid`/`vector` + `hyde`/`rewrite`). The decision is all-or-nothing:
+if the call fails or either field comes back null, both halves fall back to static config together
+— a single structured response can't be partially recovered the way free-text regex matching could.
 
 **HyDE mechanism in detail:**
 
@@ -463,13 +518,42 @@ A second-stage reranker re-scores candidates after first-stage retrieval. Contro
 |-----------------|--------------|--------------------------------------------------------------------------------------|----------|-----------------------------------------------------------|
 | `cross-encoder` | `true`       | Jointly encodes (query, chunk) via a cross-encoder model; most accurate              | Medium   | When precision matters more than throughput               |
 | `bi-encoder`    | `false`      | Re-embeds query + chunks separately, scores by cosine; faster but lower accuracy     | Low      | High-throughput retrieval                                 |
-| `llm-pointwise` | `true`       | Each chunk scored individually by LLM (0–100 scale); N parallel virtual-thread calls | High     | Authoritative answers where one misranked chunk is costly |
-| `llm-listwise`  | `true`       | All candidates sent to LLM in one prompt; fewer API calls than pointwise             | High     | Final precision pass for generation endpoints             |
+| `llm-pointwise` | `true`       | Each chunk scored individually via Spring AI structured output (0–100 `RelevanceGrade`); N parallel virtual-thread calls | High     | Authoritative answers where one misranked chunk is costly |
+| `llm-listwise`  | `true`       | All candidates sent to LLM in one prompt, returns a structured-output `RankedOrder`; fewer API calls than pointwise | High     | Final precision pass for generation endpoints             |
 | `bm25`          | `false`      | Re-scores vector-retrieved candidates by BM25 term frequency in-process              | Very low | Keyword-heavy technical queries as cheap second pass      |
 | `rrf`           | `false`      | Reciprocal Rank Fusion (k=60) merges vector + keyword rank lists                     | Very low | Default safe choice with hybrid search                    |
 
-`RerankingPostProcessor` wraps any reranker behind a Resilience4j circuit breaker, a score cache (`rerank.cache.ttl`),
-and a cost-cap guard (`isCostly()` strategies bypass automatically when the circuit is open).
+`RerankingPostProcessor` wraps any reranker behind a circuit breaker (`com.org.common.CircuitBreaker`
+— a small homegrown breaker, not Resilience4j, which is declared as a dependency but currently
+unused), a score cache (`rerank.cache.ttl`), and a cost-cap guard (`isCostly()` strategies bypass
+automatically when the circuit is open).
+
+---
+
+## Spring AI Components Used
+
+This project prefers a real Spring AI building block over a hand-rolled equivalent wherever one
+exists at the pinned version (`spring-ai 2.0.0`). Where it doesn't exist yet, the custom code stays.
+
+| Concern | Spring AI component used | Where |
+|---|---|---|
+| Structured LLM output | `ChatClient.CallResponseSpec.entity(Class, spec -> spec.useProviderStructuredOutput())` / `BeanOutputConverter` | `LlmPointwiseReranker`, `LlmListwiseReranker`, `ChunkingStrategyClassifier`, `RetrievalStrategyClassifier`, `ContextSufficiencyJudge` — all parse a typed object instead of regexing free text |
+| Query rewriting | `org.springframework.ai.rag.preretrieval.query.transformation.RewriteQueryTransformer` | `RewriteQueryTransformerImpl` delegates to it |
+| Query expansion | `org.springframework.ai.rag.preretrieval.query.expansion.MultiQueryExpander` | `MultiQueryExpanderImpl` delegates to it |
+| Modular RAG advisor pipeline | `org.springframework.ai.rag.advisor.RetrievalAugmentationAdvisor` + `VectorStoreDocumentRetriever` | `GenerationService` advisor mode (replaced `QuestionAnswerAdvisor`) |
+| Content-moderation gate | `org.springframework.ai.chat.client.advisor.SafeGuardAdvisor` | `ChatClientConfig`, `GenerationService` advisor mode — opt-in |
+| Embedding batching | `org.springframework.ai.embedding.TokenCountBatchingStrategy` | `VectorStoreWriteConfig.batchingStrategy` |
+| Document readers | Spring AI's PDF/Markdown/Tika readers | `ingestion/reader/` |
+| Vector store + filters | Spring AI `VectorStore` / `FilterExpressionBuilder` | `vectorstore/`, `retrieval/search/` |
+| Evaluation | Spring AI `FactCheckingEvaluator` / `RelevancyEvaluator` | `GenerationEvaluator` |
+
+**Deliberately still custom** (no Spring AI equivalent at this version, or the existing custom
+logic does more than the built-in): keyword/hybrid search (`KeywordSearchStrategy`,
+`HybridSearchStrategy` — Spring AI's RAG module only ships a vector-store retriever), HyDE and
+step-back query transforms, the 6-stage retrieval post-processing chain (business rules, length,
+near-duplicate, MMR — Spring AI's `DocumentPostProcessor` is an interface with no built-in
+implementations), and `ChunkHydrationService` (Mongo hydration by `chunkId`, unique to this
+project's dual-store architecture).
 
 ---
 
@@ -477,7 +561,7 @@ and a cost-cap guard (`isCostly()` strategies bypass automatically when the circ
 
 | Pattern                     | Where                                                                                                                                           | Why                                               |
 |-----------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------|
-| **Strategy**                | `ChunkingStrategy` (6 chunking algorithms) · `SearchStrategy` (3 search modes) · `Reranker` (6 rerankers) · `QueryTransformer` (4 transformers) | Swap algorithm at runtime via config              |
+| **Strategy**                | `ChunkingStrategy` (6 chunking algorithms) · `SearchStrategy` (3 search modes) · `Reranker` (6 rerankers) · `QueryTransformer` (4 transformers, 2 of which delegate internally to Spring AI's own transformer/expander) | Swap algorithm at runtime via config              |
 | **Chain of Responsibility** | `RetrievalPostProcessor` chain (filter → dedup → rerank → rank → MMR)                                                                           | Each stage handles and forwards                   |
 | **Factory**                 | `ChunkingStrategyFactory` · `DocumentReaderFactory`                                                                                             | Name/extension → implementation                   |
 | **Template Method**         | `AbstractChunkingStrategy`                                                                                                                      | Shared skeleton; subclasses supply the split step |

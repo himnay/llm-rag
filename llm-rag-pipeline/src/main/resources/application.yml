@@ -112,8 +112,8 @@ app:
     wiki-location: classpath:data/wiki/
     pdf-reader: ${PDF_READER:page}          # page | paragraph
     inbox: # drop-folder watcher (hybrid with the REST API)
-      enabled: ${INBOX_ENABLED:true}
-      path: ${INBOX_PATH:/Users/himansu/REPOS/LLM/llm-rag/llm-rag-pipeline/src/main/resources/data/pdfs}
+      enabled: ${INBOX_ENABLED:false}
+      path: ${INBOX_PATH:/Users/himansu/REPOS/LLM/llm-rag/llm-rag-pipeline/data/inbox}
       poll-interval: 30s
       min-age: 5s
     ocr: # OCR for scanned/image PDF pages — opt-in (needs the native tesseract library)
@@ -195,6 +195,10 @@ app:
     pii:
       enabled: ${PII_REDACTION_ENABLED:false}  # redact PII (email, phone, SSN, CC, IP) before embedding
       replacement: "[REDACTED]"
+    safeguard: # Spring AI SafeGuardAdvisor — blocks requests containing a sensitive word, server-side
+      enabled: ${SAFEGUARD_ENABLED:false}
+      sensitive-words: []
+      failure-response: "I'm unable to respond to that due to sensitive content. Could we rephrase or discuss something else?"
   generation:
     enabled: ${GENERATION_ENABLED:false}  # expose POST /api/v1/generate
     mode: ${GENERATION_MODE:manual}       # manual (Section 7 pattern) | advisor (Section 12 pattern)

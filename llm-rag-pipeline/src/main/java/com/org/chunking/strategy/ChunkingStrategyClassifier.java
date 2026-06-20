@@ -8,28 +8,22 @@ import org.springframework.stereotype.Component;
 
 import java.util.Locale;
 import java.util.Optional;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * LLM-based selection of a chunking strategy for a document, used under {@code app.chunking.strategy=auto}
  * when {@code app.chunking.classifier.enabled=true}. Excludes {@code llm} (chunking strategy itself
  * costs an LLM call — not auto-selected by another LLM call) — {@code DB} sources never reach this
  * class since whole-row chunking is structural, decided unconditionally in {@code ChunkingOrchestrator}.
+ * Uses Spring AI's structured-output API so the LLM is constrained to the closed enum of valid
+ * strategies, rather than free text matched against a regex.
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class ChunkingStrategyClassifier {
 
-    private static final Set<String> VALID = Set.of("fixed", "recursive", "token", "semantic", "markdown");
-    private static final Pattern STRATEGY_NAME = Pattern.compile("fixed|recursive|token|semantic|markdown");
-
     private static final String PROMPT = """
-            Choose the single best chunking strategy for the following document, from this exact list:
-            fixed, recursive, token, semantic, markdown.
-            Respond with ONLY the strategy name, nothing else.
+            Choose the single best chunking strategy for the following document.
 
             Source type: %s
             Document excerpt:
@@ -40,9 +34,22 @@ public class ChunkingStrategyClassifier {
     private final ChunkingProperties properties;
 
     /**
-     * Asks the LLM to pick a strategy name for this document. Returns empty if the call fails or
-     * the reply doesn't contain one of the valid names, so the caller can fall back to the
-     * heuristic switch.
+     * The closed set of strategies this classifier may pick (excludes {@code llm} and {@code db} —
+     * see class javadoc).
+     */
+    enum ChunkingChoice {
+        FIXED, RECURSIVE, TOKEN, SEMANTIC, MARKDOWN
+    }
+
+    /**
+     * Structured-output target. Package-private so the test can construct one.
+     */
+    record StrategyDecision(ChunkingChoice strategy) {
+    }
+
+    /**
+     * Asks the LLM to pick a strategy for this document. Returns empty if the call fails or the
+     * model returns nothing, so the caller can fall back to the heuristic switch.
      */
     public Optional<String> classify(IngestedDocument document) {
         try {
@@ -50,18 +57,16 @@ public class ChunkingStrategyClassifier {
             String content = document.content();
             String excerpt = content.length() > sampleChars ? content.substring(0, sampleChars) : content;
 
-            String reply = chatClient.prompt()
+            StrategyDecision decision = chatClient.prompt()
                     .user(PROMPT.formatted(document.source(), excerpt))
                     .call()
-                    .content();
+                    .entity(StrategyDecision.class, spec -> spec.useProviderStructuredOutput());
 
-            String normalized = reply == null ? "" : reply.toLowerCase(Locale.ROOT);
-            Matcher matcher = STRATEGY_NAME.matcher(normalized);
-            if (matcher.find() && VALID.contains(matcher.group())) {
-                return Optional.of(matcher.group());
+            if (decision == null || decision.strategy() == null) {
+                log.warn("Chunking classifier returned no strategy; falling back to heuristic");
+                return Optional.empty();
             }
-            log.warn("Chunking classifier returned unparseable strategy ('{}'); falling back to heuristic", reply);
-            return Optional.empty();
+            return Optional.of(decision.strategy().name().toLowerCase(Locale.ROOT));
         } catch (Exception e) {
             log.warn("Chunking strategy classification failed ({}); falling back to heuristic", e.getMessage());
             return Optional.empty();

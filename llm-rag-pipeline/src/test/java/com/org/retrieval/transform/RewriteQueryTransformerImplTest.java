@@ -4,24 +4,30 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.client.ChatClient;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
+import java.util.function.Consumer;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+/**
+ * Unit tests for the thin wrapper around Spring AI's {@code RewriteQueryTransformer}, stubbing the
+ * {@link ChatClient.Builder} it builds internally.
+ */
 class RewriteQueryTransformerImplTest {
 
     private RewriteQueryTransformerImpl transformerReturning(String llmResponse) {
-        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
-        when(chatClient.prompt().system(anyString()).user(anyString()).call().content())
-                .thenReturn(llmResponse);
-        return new RewriteQueryTransformerImpl(chatClient);
+        ChatClient.Builder builder = mock(ChatClient.Builder.class, RETURNS_DEEP_STUBS);
+        when(builder.build().prompt().user(any(Consumer.class)).call().content()).thenReturn(llmResponse);
+        return new RewriteQueryTransformerImpl(builder);
     }
 
     @Test
     @DisplayName("Reports REWRITE as its query transform mode")
     void modeIsRewrite() {
-        assertThat(new RewriteQueryTransformerImpl(mock(ChatClient.class)).mode())
-                .isEqualTo(QueryTransformMode.REWRITE);
+        assertThat(transformerReturning(null).mode()).isEqualTo(QueryTransformMode.REWRITE);
     }
 
     @Test
@@ -30,13 +36,6 @@ class RewriteQueryTransformerImplTest {
         RewriteQueryTransformerImpl transformer = transformerReturning("annual leave entitlement policy");
         assertThat(transformer.transform("hey so what's the deal with leave?"))
                 .containsExactly("annual leave entitlement policy");
-    }
-
-    @Test
-    @DisplayName("Strips leading and trailing whitespace from the rewritten query")
-    void stripsWhitespaceFromRewrittenQuery() {
-        RewriteQueryTransformerImpl transformer = transformerReturning("  clean query  ");
-        assertThat(transformer.transform("messy question")).containsExactly("clean query");
     }
 
     @Test
@@ -54,11 +53,11 @@ class RewriteQueryTransformerImplTest {
     @Test
     @DisplayName("Falls back to the original query when the LLM call throws")
     void fallsBackToOriginalOnLlmException() {
-        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
-        when(chatClient.prompt().system(anyString()).user(anyString()).call().content())
+        ChatClient.Builder builder = mock(ChatClient.Builder.class, RETURNS_DEEP_STUBS);
+        when(builder.build().prompt().user(any(Consumer.class)).call().content())
                 .thenThrow(new RuntimeException("service error"));
 
-        assertThat(new RewriteQueryTransformerImpl(chatClient).transform("original"))
+        assertThat(new RewriteQueryTransformerImpl(builder).transform("original"))
                 .containsExactly("original");
     }
 }

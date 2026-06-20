@@ -11,7 +11,9 @@ import java.util.List;
 import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -21,15 +23,19 @@ import static org.mockito.Mockito.when;
 class LlmPointwiseRerankerTest {
 
     /**
-     * A ChatClient whose reply is computed from the user prompt (thread-safe for parallel calls).
+     * A ChatClient whose structured-output grade is computed from the user prompt (thread-safe
+     * for parallel calls). {@code gradeForPrompt} returns {@code null} to simulate a missing grade.
      */
-    private static ChatClient replying(Function<String, String> replyForPrompt) {
+    private static ChatClient replying(Function<String, Integer> gradeForPrompt) {
         ChatClient chatClient = mock(ChatClient.class);
         when(chatClient.prompt()).thenAnswer(promptInv -> {
             ChatClient.ChatClientRequestSpec spec = mock(ChatClient.ChatClientRequestSpec.class);
             when(spec.user(anyString())).thenAnswer(userInv -> {
                 ChatClient.CallResponseSpec call = mock(ChatClient.CallResponseSpec.class);
-                when(call.content()).thenReturn(replyForPrompt.apply(userInv.getArgument(0)));
+                when(call.entity(eq(LlmPointwiseReranker.RelevanceGrade.class), any())).thenAnswer(entityInv -> {
+                    Integer grade = gradeForPrompt.apply(userInv.getArgument(0));
+                    return grade == null ? null : new LlmPointwiseReranker.RelevanceGrade(grade);
+                });
                 when(spec.call()).thenReturn(call);
                 return spec;
             });
@@ -45,7 +51,7 @@ class LlmPointwiseRerankerTest {
                 new Chunk("WIKI", "company picnic announcement", new HashMap<>(), 0),
                 new Chunk("WIKI", "vpn setup guide", new HashMap<>(), 1));
         // Key on text unique to the document — the query itself appears in every prompt.
-        ChatClient chatClient = replying(prompt -> prompt.contains("setup guide") ? "95" : "10");
+        ChatClient chatClient = replying(prompt -> prompt.contains("setup guide") ? 95 : 10);
 
         List<Chunk> result = new LlmPointwiseReranker(chatClient).rerank("how to set up vpn", chunks);
 
@@ -54,12 +60,12 @@ class LlmPointwiseRerankerTest {
     }
 
     @Test
-    @DisplayName("Scores a chunk zero instead of failing when the LLM grade is unparseable")
-    void unparseableGradeScoresZeroInsteadOfFailing() {
+    @DisplayName("Scores a chunk zero instead of failing when the LLM returns no grade")
+    void missingGradeScoresZeroInsteadOfFailing() {
         List<Chunk> chunks = List.of(
                 new Chunk("WIKI", "alpha", new HashMap<>(), 0),
                 new Chunk("WIKI", "beta", new HashMap<>(), 1));
-        List<Chunk> result = new LlmPointwiseReranker(replying(p -> "no idea")).rerank("q", chunks);
+        List<Chunk> result = new LlmPointwiseReranker(replying(p -> null)).rerank("q", chunks);
         assertThat(result).hasSize(2);
         assertThat(RetrievalPostProcessor.score(result.get(0))).isZero();
     }

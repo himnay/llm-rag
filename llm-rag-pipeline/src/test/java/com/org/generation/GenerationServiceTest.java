@@ -9,6 +9,7 @@ import com.org.eval.GenerationEvaluator;
 import com.org.retrieval.model.Citation;
 import com.org.retrieval.model.RetrievalResult;
 import com.org.security.PromptInjectionGuard;
+import com.org.security.SafeGuardProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,6 +18,12 @@ import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.ChatClientResponse;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.model.Generation;
+import org.springframework.ai.document.Document;
+import org.springframework.ai.rag.advisor.RetrievalAugmentationAdvisor;
 import org.springframework.ai.vectorstore.VectorStore;
 
 import java.util.List;
@@ -52,6 +59,9 @@ class GenerationServiceTest {
     @Mock
     VectorStore vectorStore;
 
+    // The advisor client builder — deep stubs keep the constructor from throwing
+    ChatClient.Builder chatClientBuilder = mock(ChatClient.Builder.class, RETURNS_DEEP_STUBS);
+
     GenerationService service;
 
     @BeforeEach
@@ -61,13 +71,11 @@ class GenerationServiceTest {
         lenient().when(properties.getJudge()).thenReturn(new GenerationProperties.Judge());
         lenient().when(sufficiencyJudge.isSufficient(any(), any())).thenReturn(true);
 
-        // The advisor client builder — deep stubs keep the constructor from throwing
-        ChatClient.Builder chatClientBuilder = mock(ChatClient.Builder.class, RETURNS_DEEP_STUBS);
-
         service = new GenerationService(
                 properties, promptOrchestrator, contextBuilder,
                 chatClient, chatClientBuilder, vectorStore,
-                semanticCache, injectionGuard, generationEvaluator, sufficiencyJudge);
+                semanticCache, injectionGuard, generationEvaluator, sufficiencyJudge,
+                new SafeGuardProperties());
         service.init();
     }
 
@@ -271,5 +279,46 @@ class GenerationServiceTest {
         assertThat(response.answer()).isEqualTo("answer");
         assertThat(response.insufficientContext()).isFalse();
         verify(sufficiencyJudge, never()).isSufficient(any(), any());
+    }
+
+    // ── Advisor mode (RetrievalAugmentationAdvisor) ──────────────────────────────
+
+    @Test
+    @DisplayName("Advisor mode returns real citations built from the documents RetrievalAugmentationAdvisor retrieved")
+    void advisorModeReturnsRealCitations() {
+        String query = "advisor question";
+        Document doc = new Document("leave policy text",
+                Map.of("source", "PDF", "fileName", "leave.pdf", "identity", "PDF#leave.pdf", "chunkIndex", 0));
+        ChatResponse chatResponse = new ChatResponse(List.of(new Generation(new AssistantMessage("advisor answer"))));
+        ChatClientResponse clientResponse = new ChatClientResponse(chatResponse,
+                Map.of(RetrievalAugmentationAdvisor.DOCUMENT_CONTEXT, List.of(doc)));
+
+        when(semanticCache.get(query)).thenReturn(Optional.empty());
+        when(properties.getMode()).thenReturn("advisor");
+        when(chatClientBuilder.build().prompt().user(query).call().chatClientResponse()).thenReturn(clientResponse);
+
+        GenerateResponse response = service.generate(new GenerateRequest(query, null, null));
+
+        assertThat(response.answer()).isEqualTo("advisor answer");
+        assertThat(response.citations()).hasSize(1);
+        assertThat(response.citations().get(0).fileName()).isEqualTo("leave.pdf");
+        assertThat(response.citations().get(0).identity()).isEqualTo("PDF#leave.pdf");
+    }
+
+    @Test
+    @DisplayName("Advisor mode returns no citations when the advisor's document context is absent")
+    void advisorModeWithNoDocumentContextReturnsNoCitations() {
+        String query = "advisor question";
+        ChatResponse chatResponse = new ChatResponse(List.of(new Generation(new AssistantMessage("advisor answer"))));
+        ChatClientResponse clientResponse = new ChatClientResponse(chatResponse, Map.of());
+
+        when(semanticCache.get(query)).thenReturn(Optional.empty());
+        when(properties.getMode()).thenReturn("advisor");
+        when(chatClientBuilder.build().prompt().user(query).call().chatClientResponse()).thenReturn(clientResponse);
+
+        GenerateResponse response = service.generate(new GenerateRequest(query, null, null));
+
+        assertThat(response.answer()).isEqualTo("advisor answer");
+        assertThat(response.citations()).isEmpty();
     }
 }

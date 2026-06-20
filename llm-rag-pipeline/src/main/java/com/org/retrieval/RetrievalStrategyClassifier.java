@@ -7,11 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Component;
 
-import java.util.Locale;
-import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 /**
  * LLM-based per-query retrieval routing: one call decides both {@link SearchMode} and
  * {@link QueryTransformMode} together, since the two are correlated (e.g. an error-code lookup
@@ -19,35 +14,32 @@ import java.util.regex.Pattern;
  * {@code hybrid}/{@code vector} plus {@code hyde} or {@code rewrite}). Opt-in via
  * {@code app.retrieval.classifier.enabled} — disabled by default.
  *
- * <p>Each half of the decision falls back independently to the statically configured default
- * ({@code app.retrieval.search.mode}, {@code app.retrieval.query-transform.mode}) if the LLM call
- * fails or that half of the reply is unparseable, so a malformed response only loses the part that
- * couldn't be read rather than the whole classification.</p>
+ * <p>Uses Spring AI's structured-output API to deserialize the LLM's reply directly into a
+ * {@link RetrievalStrategy} (both fields are enums, so the generated JSON schema constrains the
+ * model to valid values). Falls back to both statically configured defaults
+ * ({@code app.retrieval.search.mode}, {@code app.retrieval.query-transform.mode}) together if the
+ * call fails or returns nothing — a single structured response is all-or-nothing, unlike the
+ * previous free-text/regex approach where each half could be recovered independently.</p>
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class RetrievalStrategyClassifier {
 
-    private static final Pattern SEARCH_MODE = Pattern.compile("vector|keyword|hybrid");
-    private static final Pattern TRANSFORM_MODE = Pattern.compile("multi_query|step_back|rewrite|hyde|none");
-
     private static final String PROMPT = """
             Choose the best retrieval strategy for the QUERY below.
 
-            Search mode — one of: vector, keyword, hybrid
+            Search mode:
               vector: semantic / paraphrased natural-language questions
               keyword: exact terms — error codes, IDs, names
               hybrid: queries that mix natural language and exact terms
 
-            Query transform — one of: none, rewrite, multi_query, hyde, step_back
+            Query transform:
               none: query is already a clean, specific search query
               rewrite: query is ungrammatical, abbreviated, or conversationally phrased
               multi_query: broad/ambiguous query that could be phrased several ways
               hyde: sparse or technical domain where a hypothetical answer embeds better than the query
               step_back: overly narrow or multi-hop query that needs broader context first
-
-            Respond with ONLY: <search_mode>,<query_transform>
 
             QUERY: %s
             """;
@@ -59,28 +51,22 @@ public class RetrievalStrategyClassifier {
         SearchMode fallbackSearch = properties.getSearch().getMode();
         QueryTransformMode fallbackTransform = properties.getQueryTransform().getMode();
         try {
-            String reply = chatClient.prompt().user(PROMPT.formatted(query)).call().content();
-            String normalized = reply == null ? "" : reply.toLowerCase(Locale.ROOT);
+            RetrievalStrategy strategy = chatClient.prompt()
+                    .user(PROMPT.formatted(query))
+                    .call()
+                    .entity(RetrievalStrategy.class, spec -> spec.useProviderStructuredOutput());
 
-            SearchMode searchMode = extract(SEARCH_MODE, normalized)
-                    .map(s -> SearchMode.valueOf(s.toUpperCase(Locale.ROOT)))
-                    .orElse(fallbackSearch);
-            QueryTransformMode transformMode = extract(TRANSFORM_MODE, normalized)
-                    .map(s -> QueryTransformMode.valueOf(s.toUpperCase(Locale.ROOT)))
-                    .orElse(fallbackTransform);
-
+            if (strategy == null || strategy.searchMode() == null || strategy.transformMode() == null) {
+                log.warn("Retrieval strategy classifier returned an incomplete decision; falling back to configured defaults");
+                return new RetrievalStrategy(fallbackSearch, fallbackTransform);
+            }
             log.debug("RetrievalStrategyClassifier: search={} transform={} | query='{}'",
-                    searchMode, transformMode, query);
-            return new RetrievalStrategy(searchMode, transformMode);
+                    strategy.searchMode(), strategy.transformMode(), query);
+            return strategy;
         } catch (Exception e) {
             log.warn("Retrieval strategy classification failed ({}); falling back to configured defaults",
                     e.getMessage());
             return new RetrievalStrategy(fallbackSearch, fallbackTransform);
         }
-    }
-
-    private static Optional<String> extract(Pattern pattern, String text) {
-        Matcher matcher = pattern.matcher(text);
-        return matcher.find() ? Optional.of(matcher.group()) : Optional.empty();
     }
 }
