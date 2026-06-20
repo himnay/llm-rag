@@ -1,5 +1,6 @@
 package com.org.retrieval;
 
+import com.org.mongo.ChunkDocumentRepository;
 import com.org.retrieval.model.RetrievalResult;
 import com.org.retrieval.postprocess.BusinessRuleFilter;
 import com.org.retrieval.postprocess.ScoreAwareRanker;
@@ -33,7 +34,9 @@ class RetrievalServiceUnitTest {
         RetrievalService service = new RetrievalService(properties,
                 List.of(new VectorSearchStrategy(vectorStore, properties)),
                 List.of(new BusinessRuleFilter(), new ScoreAwareRanker()),
-                new QueryTransformationService(List.of()));
+                new QueryTransformationService(List.of()),
+                new ChunkHydrationService(mock(ChunkDocumentRepository.class)),
+                mock(RetrievalStrategyClassifier.class));
         service.init();
         return service;
     }

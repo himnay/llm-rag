@@ -36,6 +36,8 @@ public class RetrievalService {
     private final List<SearchStrategy> searchStrategyList;
     private final List<RetrievalPostProcessor> rawPostProcessors;
     private final QueryTransformationService queryTransformationService;
+    private final ChunkHydrationService chunkHydrationService;
+    private final RetrievalStrategyClassifier retrievalStrategyClassifier;
 
     private final Map<SearchMode, SearchStrategy> searchStrategies = new EnumMap<>(SearchMode.class);
     private List<RetrievalPostProcessor> postProcessors;
@@ -93,8 +95,11 @@ public class RetrievalService {
     public RetrievalResult retrieve(String query, int topK) {
         int k = topK > 0 ? topK : properties.getDefaultTopK();
         int fetch = k * Math.max(1, properties.getOverFetchFactor());
-        SearchMode mode = properties.getSearch().getMode();
-        QueryTransformMode transformMode = properties.getQueryTransform().getMode();
+        RetrievalStrategy retrievalStrategy = properties.getClassifier().isEnabled()
+                ? retrievalStrategyClassifier.classify(query)
+                : new RetrievalStrategy(properties.getSearch().getMode(), properties.getQueryTransform().getMode());
+        SearchMode mode = retrievalStrategy.searchMode();
+        QueryTransformMode transformMode = retrievalStrategy.transformMode();
 
         log.info("Retrieval requested | query='{}' | topK={} | fetch={} | search={} | transform={}",
                 query, k, fetch, mode, transformMode);
@@ -111,6 +116,7 @@ public class RetrievalService {
         log.info("{} search returned {} candidate document(s) (after merge)", mode, documents.size());
 
         List<Chunk> chunks = documents.stream().map(this::toChunk).collect(Collectors.toList());
+        chunks = chunkHydrationService.hydrate(chunks);
         if (log.isDebugEnabled()) {
             log.debug("Retrieved chunks before post-processing (count={}):", chunks.size());
             chunks.forEach(c -> log.debug("  chunk source='{}' index={} score={} textPreview='{}'",

@@ -1,6 +1,9 @@
 package com.org.config;
 
+import com.knuddels.jtokkit.api.EncodingType;
 import com.org.vectorstore.VectorStoreWriteProperties;
+import org.springframework.ai.embedding.BatchingStrategy;
+import org.springframework.ai.embedding.TokenCountBatchingStrategy;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -38,5 +41,18 @@ class VectorStoreWriteConfig {
                 new ThreadPoolExecutor.CallerRunsPolicy());
         executor.allowCoreThreadTimeOut(true);
         return executor;
+    }
+
+    /**
+     * Splits each {@code vectorStore.add(batch)} call further by token count, so a batch of
+     * {@code app.vectorstore.write.batch-size} chunks never exceeds the embedding vendor's
+     * per-request token ceiling ({@code max-tokens-per-batch}) regardless of how many chunks that
+     * is — independent of (and beneath) the chunk-count batching {@code ChunkVectorStoreService}
+     * already does.
+     */
+    @Bean
+    BatchingStrategy batchingStrategy(VectorStoreWriteProperties props) {
+        return new TokenCountBatchingStrategy(EncodingType.CL100K_BASE,
+                props.getMaxTokensPerBatch(), props.getTokenReservePercentage());
     }
 }

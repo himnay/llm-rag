@@ -4,6 +4,7 @@ import com.org.ingestion.FileIngestionService;
 import com.org.ingestion.reader.DocumentReaderFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -34,8 +35,13 @@ public class InboxScheduler {
     /**
      * Polls the inbox folder, ingesting each ready file and moving it to {@code processed/} on
      * success or {@code failed/} on error or unsupported type.
+     *
+     * <p>{@code @SchedulerLock} (backed by Redis, see {@link com.org.config.SchedulerLockConfig})
+     * ensures only one instance runs this at a time when scaled horizontally — without it, every
+     * instance would poll and ingest from the same shared folder concurrently.</p>
      */
     @Scheduled(fixedDelayString = "${app.ingestion.inbox.poll-interval:30s}")
+    @SchedulerLock(name = "inboxScheduler_scan", lockAtMostFor = "PT5M", lockAtLeastFor = "PT10S")
     public void scan() {
         Path inbox = Path.of(properties.getPath());
         Path processed = inbox.resolve("processed");

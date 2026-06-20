@@ -14,6 +14,7 @@ public class ChunkingProperties {
 
     private final Token token = new Token();
     private final Semantic semantic = new Semantic();
+    private final Classifier classifier = new Classifier();
     private String strategy = "auto";
     private int maxChars = 1000;
     private int overlap = 150;
@@ -50,6 +51,10 @@ public class ChunkingProperties {
         return semantic;
     }
 
+    public Classifier getClassifier() {
+        return classifier;
+    }
+
     public static class Token {
         private int chunkSize = 800; // tokens
 
@@ -83,6 +88,30 @@ public class ChunkingProperties {
 
         public void setMaxChars(int maxChars) {
             this.maxChars = maxChars;
+        }
+    }
+
+    /**
+     * LLM-based strategy selection under {@code strategy=auto} — opt-in due to LLM cost.
+     */
+    public static class Classifier {
+        private boolean enabled = false;
+        private int sampleChars = 2000;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public int getSampleChars() {
+            return sampleChars;
+        }
+
+        public void setSampleChars(int sampleChars) {
+            this.sampleChars = sampleChars;
         }
     }
 }

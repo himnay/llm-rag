@@ -21,4 +21,17 @@ public class VectorStoreWriteProperties {
      * Dimension of the embedding vectors; must match the model above.
      */
     private int embeddingDimension = 1536;
+
+    /**
+     * Max input tokens per embedding API call, before the reserve below is subtracted. Default
+     * (8191) matches OpenAI's limit — lower this for an embedding vendor with a smaller ceiling so
+     * a single call is never rejected for exceeding it.
+     */
+    private int maxTokensPerBatch = 8191;
+
+    /**
+     * Safety margin subtracted from {@link #maxTokensPerBatch} (e.g. 0.1 = use only 90% of the
+     * limit) to absorb tokenizer estimation drift between our count and the vendor's.
+     */
+    private double tokenReservePercentage = 0.1;
 }

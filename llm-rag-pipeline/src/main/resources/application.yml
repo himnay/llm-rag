@@ -34,6 +34,15 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/llm-rag}
+      auto-index-creation: false   # indexes are created explicitly at startup (see ChunkDocumentRepository)
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2s
   servlet:
     multipart: # allow reasonably large document uploads
       max-file-size: 25MB
@@ -103,8 +112,8 @@ app:
     wiki-location: classpath:data/wiki/
     pdf-reader: ${PDF_READER:page}          # page | paragraph
     inbox: # drop-folder watcher (hybrid with the REST API)
-      enabled: ${INBOX_ENABLED:false}
-      path: ${INBOX_PATH:./ingest-inbox}
+      enabled: ${INBOX_ENABLED:true}
+      path: ${INBOX_PATH:/Users/himansu/REPOS/LLM/llm-rag/llm-rag-pipeline/src/main/resources/data/pdfs}
       poll-interval: 30s
       min-age: 5s
     ocr: # OCR for scanned/image PDF pages — opt-in (needs the native tesseract library)
@@ -122,6 +131,9 @@ app:
     semantic:
       threshold: 0.8
       max-chars: 1500
+    classifier: # LLM-based strategy selection under strategy=auto — opt-in due to LLM cost
+      enabled: ${CHUNKING_CLASSIFIER_ENABLED:false}
+      sample-chars: 2000                     # chars of document content sent to the LLM
   enrichment:
     enabled: ${ENRICHMENT_ENABLED:false}
     keywords: true
@@ -161,6 +173,8 @@ app:
     query-transform:
       mode: ${QUERY_TRANSFORM_MODE:NONE}   # NONE | REWRITE | MULTI_QUERY | HYDE | STEP_BACK
       multi-query-count: 3                 # number of variant queries for MULTI_QUERY mode
+    classifier: # LLM decides search.mode + query-transform.mode together, per query — opt-in
+      enabled: ${RETRIEVAL_CLASSIFIER_ENABLED:false}
   vectorstore:
     write:
       batch-size: 50
@@ -168,6 +182,8 @@ app:
       queue-capacity: 64           # bounded backlog for the shared write executor (back-pressure)
       embedding-model-id: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}  # stamped into every chunk's metadata
       embedding-dimension: 1536    # must match the model above; changing model requires full re-ingestion
+      max-tokens-per-batch: 8191   # per-request token ceiling for the embedding vendor (OpenAI default)
+      token-reserve-percentage: 0.1   # safety margin subtracted from the ceiling above
   security:
     auth-enabled: ${API_AUTH_ENABLED:false}   # dev default: open. Set true in prod.
     header: X-API-Key
@@ -187,6 +203,9 @@ app:
     evaluate-faithfulness: ${EVALUATE_FAITHFULNESS:true}  # adds one extra LLM call per generation
     advisor:
       similarity-threshold: 0.7
+    judge: # pre-generation LLM-as-judge — skips generation when retrieved context is insufficient
+      enabled: ${GENERATION_JUDGE_ENABLED:true}
+      insufficient-answer: "I don't have enough information in the available context to answer that question."
   cache:
     embedding:
       enabled: ${EMBEDDING_CACHE_ENABLED:true}   # cache text→vector to avoid re-embedding identical sentences
@@ -197,3 +216,7 @@ app:
       max-size: 500
       ttl: 30m
       similarity-threshold: 0.95
+    chunk-dedup: # chunk-level content-hash dedup (Redis) — replaces identity-level Postgres dedup
+      enabled: ${CHUNK_DEDUP_ENABLED:true}
+      key-prefix: "chunkhash:"
+      ttl: 720h                                   # 30 days; chunk re-ingested after this gets re-embedded once

@@ -1,5 +1,6 @@
 package com.org.lifecycle;
 
+import com.org.cache.ChunkDedupService;
 import com.org.chunking.ChunkingOrchestrator;
 import com.org.chunking.model.Chunk;
 import com.org.enrichment.ChunkEnricher;
@@ -9,6 +10,7 @@ import com.org.ingestion.model.IngestedDocument;
 import com.org.lifecycle.event.IngestionCompletedEvent;
 import com.org.lifecycle.event.VectorsStoredEvent;
 import com.org.lifecycle.model.KnowledgeRequest;
+import com.org.mongo.ChunkDocumentRepository;
 import com.org.vectorstore.ChunkVectorStoreService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,7 +40,10 @@ public class KnowledgeLifecycleService {
     private final TextNormalizer textNormalizer;
     private final ChunkEnricher chunkEnricher;
     private final IngestionLogRepository ingestionLog;
+    private final ChunkDocumentRepository chunkDocumentRepository;
+    private final ChunkDedupService chunkDedupService;
     private final ApplicationEventPublisher eventPublisher;
+
     @Qualifier("ingestionExecutor")
     private final Executor ingestionExecutor;
 
@@ -71,6 +76,7 @@ public class KnowledgeLifecycleService {
     public void delete(KnowledgeRequest request) {
         String identity = KnowledgeIdentity.from(request);
         vectorStoreService.deleteByIdentity(identity);
+        chunkDocumentRepository.deleteByIdentity(identity);
         ingestionLog.deleteByIdentity(identity);
     }
 
@@ -79,6 +85,7 @@ public class KnowledgeLifecycleService {
      */
     public void deleteAll() {
         vectorStoreService.deleteAll();
+        chunkDocumentRepository.deleteAll();
         ingestionLog.deleteAll();
     }
 
@@ -94,12 +101,11 @@ public class KnowledgeLifecycleService {
         Map<String, List<IngestedDocument>> byIdentity = groupByIdentity(documents);
 
         ConcurrentLinkedQueue<Chunk> chunkQueue = new ConcurrentLinkedQueue<>();
-        ConcurrentHashMap<String, String> hashByIdentity = new ConcurrentHashMap<>();
         ConcurrentHashMap<String, Integer> countByIdentity = new ConcurrentHashMap<>();
 
         List<CompletableFuture<Void>> futures = byIdentity.entrySet().stream()
                 .map(entry -> CompletableFuture.runAsync(
-                        () -> processGroup(entry.getKey(), entry.getValue(), force, chunkQueue, hashByIdentity, countByIdentity),
+                        () -> processGroup(entry.getKey(), entry.getValue(), force, chunkQueue, countByIdentity),
                         ingestionExecutor))
                 .collect(Collectors.toList());
 
@@ -113,7 +119,7 @@ public class KnowledgeLifecycleService {
 
         List<Chunk> chunksToStore = new ArrayList<>(chunkQueue);
         if (chunksToStore.isEmpty()) {
-            log.info("Nothing to store — all {} document(s) unchanged", documents.size());
+            log.info("Nothing to store — all {} document(s) unchanged (chunk-level dedup)", documents.size());
             return;
         }
         chunksToStore = chunkEnricher.enrich(chunksToStore);
@@ -122,39 +128,42 @@ public class KnowledgeLifecycleService {
                 chunksToStore.stream().map(c -> Map.of("source", c.source(), "chunkIndex", c.chunkIndex(),
                         "metadata", c.metadata())).collect(Collectors.toList()));
         vectorStoreService.store(chunksToStore);
-        hashByIdentity.forEach((id, h) -> ingestionLog.upsert(id, h, countByIdentity.getOrDefault(id, 0)));
 
         eventPublisher.publishEvent(new IngestionCompletedEvent(this, documents.size(), chunksToStore.size()));
         eventPublisher.publishEvent(new VectorsStoredEvent(this, chunksToStore.size(),
-                hashByIdentity.size() == 1 ? hashByIdentity.keySet().iterator().next() : null));
+                countByIdentity.size() == 1 ? countByIdentity.keySet().iterator().next() : null));
     }
 
     private void processGroup(String key, List<IngestedDocument> group, boolean force,
                               ConcurrentLinkedQueue<Chunk> chunkQueue,
-                              ConcurrentHashMap<String, String> hashByIdentity,
                               ConcurrentHashMap<String, Integer> countByIdentity) {
         String identity = key.startsWith(ANON) ? null : key;
-        String hash = IngestionLogRepository.sha256(
-                group.stream().map(IngestedDocument::content).collect(Collectors.joining("\n")));
 
-        log.debug("Processing identity='{}' contentHash='{}' docCount={}", identity, hash, group.size());
+        List<Chunk> allChunks = new ArrayList<>();
+        for (IngestedDocument document : group) {
+            allChunks.addAll(chunkingOrchestrator.chunk(document));
+        }
 
-        if (!force && identity != null && ingestionLog.isUnchanged(identity, hash)) {
-            log.info("Skipping unchanged source {} (content hash match)", identity);
+        List<Chunk> newChunks = force ? allChunks : allChunks.stream()
+                .filter(chunk -> chunkDedupService.isNewContent(chunk.content()))
+                .collect(Collectors.toList());
+
+        log.debug("Processing identity='{}' docCount={} chunked={} new={}",
+                identity, group.size(), allChunks.size(), newChunks.size());
+
+        if (newChunks.isEmpty()) {
+            log.info("Skipping identity={} — all {} chunk(s) already present (content-hash match)",
+                    identity, allChunks.size());
             return;
         }
-        List<Chunk> chunks = new ArrayList<>();
-        for (IngestedDocument document : group) {
-            chunks.addAll(chunkingOrchestrator.chunk(document));
-        }
         // Chunk first — only delete the previous version once we have valid replacements.
-        if (!force && identity != null && !chunks.isEmpty()) {
+        if (!force && identity != null) {
             vectorStoreService.deleteByIdentity(identity);
+            chunkDocumentRepository.deleteByIdentity(identity);
         }
-        chunkQueue.addAll(chunks);
+        chunkQueue.addAll(newChunks);
         if (identity != null) {
-            hashByIdentity.put(identity, hash);
-            countByIdentity.put(identity, chunks.size());
+            countByIdentity.put(identity, newChunks.size());
         }
     }
 

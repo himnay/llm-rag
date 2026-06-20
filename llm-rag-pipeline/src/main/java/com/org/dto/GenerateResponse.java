@@ -8,5 +8,6 @@ public record GenerateResponse(
         String answer,
         List<Citation> citations,
         Boolean faithful,
-        boolean fromSemanticCache) {
+        boolean fromSemanticCache,
+        boolean insufficientContext) {
 }

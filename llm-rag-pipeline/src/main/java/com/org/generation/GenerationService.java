@@ -3,6 +3,7 @@ package com.org.generation;
 import com.org.cache.SemanticCacheService;
 import com.org.dto.GenerateRequest;
 import com.org.dto.GenerateResponse;
+import com.org.eval.ContextSufficiencyJudge;
 import com.org.eval.GenerationEvaluator;
 import com.org.retrieval.model.RetrievalResult;
 import com.org.security.PromptInjectionGuard;
@@ -54,6 +55,7 @@ public class GenerationService {
     private final SemanticCacheService semanticCache;
     private final PromptInjectionGuard injectionGuard;
     private final GenerationEvaluator generationEvaluator;
+    private final ContextSufficiencyJudge sufficiencyJudge;
 
     private final MessageWindowChatMemory chatMemory = MessageWindowChatMemory.builder()
             .chatMemoryRepository(new InMemoryChatMemoryRepository())
@@ -86,7 +88,7 @@ public class GenerationService {
         Optional<String> cached = semanticCache.get(query);
         if (cached.isPresent()) {
             log.info("SemanticCache hit for query='{}'", query);
-            return new GenerateResponse(cached.get(), List.of(), null, true);
+            return new GenerateResponse(cached.get(), List.of(), null, true, false);
         }
 
         return "advisor".equalsIgnoreCase(properties.getMode())
@@ -106,6 +108,11 @@ public class GenerationService {
                 rebuildContext(safeChunks, retrieval),
                 chatPrompt.groundingRules(),
                 safeRetrieval);
+
+        if (properties.getJudge().isEnabled() && !sufficiencyJudge.isSufficient(query, safePrompt.context())) {
+            log.info("Context sufficiency judge: INSUFFICIENT — skipping generation | query='{}'", query);
+            return new GenerateResponse(properties.getJudge().getInsufficientAnswer(), List.of(), null, false, true);
+        }
 
         String answer = chatClient.prompt()
                 .system(safePrompt.systemInstructions())
@@ -131,7 +138,7 @@ public class GenerationService {
         semanticCache.put(query, answer);
         List<com.org.retrieval.model.Citation> citations = properties.isIncludeCitations()
                 ? safeRetrieval.citations() : List.of();
-        return new GenerateResponse(answer, citations, faithful, false);
+        return new GenerateResponse(answer, citations, faithful, false, false);
     }
 
     /**
@@ -166,7 +173,7 @@ public class GenerationService {
     private GenerateResponse generateWithAdvisor(String query) {
         String answer = advisorClient.prompt().user(query).call().content();
         semanticCache.put(query, answer);
-        return new GenerateResponse(answer, List.of(), null, false);
+        return new GenerateResponse(answer, List.of(), null, false, false);
     }
 
     private String rebuildContext(List<com.org.chunking.model.Chunk> chunks,

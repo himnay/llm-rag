@@ -19,10 +19,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class RewriteQueryTransformerImpl implements QueryTransformer {
 
-    private static final String SYSTEM =
-            "You are a search query optimization assistant. "
-                    + "Rewrite the user's question into a concise, standalone search query optimised for semantic retrieval. "
-                    + "Remove conversational filler. Return ONLY the rewritten query, nothing else.";
+    private static final String SYSTEM = """
+                                            You are a search query optimization assistant. 
+                                            Rewrite the user's question into a concise, standalone search query optimised for semantic retrieval. 
+                                            Remove conversational filler. Return ONLY the rewritten query, nothing else.
+                                        """;
 
     private final ChatClient chatClient;
 

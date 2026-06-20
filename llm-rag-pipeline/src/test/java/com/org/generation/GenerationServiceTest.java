@@ -4,6 +4,7 @@ import com.org.cache.SemanticCacheService;
 import com.org.chunking.model.Chunk;
 import com.org.dto.GenerateRequest;
 import com.org.dto.GenerateResponse;
+import com.org.eval.ContextSufficiencyJudge;
 import com.org.eval.GenerationEvaluator;
 import com.org.retrieval.model.Citation;
 import com.org.retrieval.model.RetrievalResult;
@@ -47,6 +48,8 @@ class GenerationServiceTest {
     @Mock
     GenerationEvaluator generationEvaluator;
     @Mock
+    ContextSufficiencyJudge sufficiencyJudge;
+    @Mock
     VectorStore vectorStore;
 
     GenerationService service;
@@ -55,6 +58,8 @@ class GenerationServiceTest {
     void setUp() {
         when(properties.getTopK()).thenReturn(5);
         when(properties.getAdvisor()).thenReturn(new GenerationProperties.Advisor());
+        lenient().when(properties.getJudge()).thenReturn(new GenerationProperties.Judge());
+        lenient().when(sufficiencyJudge.isSufficient(any(), any())).thenReturn(true);
 
         // The advisor client builder — deep stubs keep the constructor from throwing
         ChatClient.Builder chatClientBuilder = mock(ChatClient.Builder.class, RETURNS_DEEP_STUBS);
@@ -62,7 +67,7 @@ class GenerationServiceTest {
         service = new GenerationService(
                 properties, promptOrchestrator, contextBuilder,
                 chatClient, chatClientBuilder, vectorStore,
-                semanticCache, injectionGuard, generationEvaluator);
+                semanticCache, injectionGuard, generationEvaluator, sufficiencyJudge);
         service.init();
     }
 
@@ -210,5 +215,61 @@ class GenerationServiceTest {
 
         // Verify that only the safe chunk made it to context building
         verify(injectionGuard).filter(List.of(safe, unsafe));
+    }
+
+    // ── Pre-generation LLM judge ─────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("Skips generation and returns the canned response when context is judged insufficient")
+    void manualModeSkipsGenerationWhenContextInsufficient() {
+        String query = "unanswerable question";
+        Chunk chunk = new Chunk("PDF", "unrelated content", Map.of(), 0);
+        RetrievalResult retrieval = new RetrievalResult(List.of(chunk), List.of());
+        PromptOrchestrator.ChatPrompt chatPrompt = new PromptOrchestrator.ChatPrompt(
+                "sys", "ctx", "rules", retrieval);
+
+        when(semanticCache.get(query)).thenReturn(Optional.empty());
+        when(properties.getMode()).thenReturn("manual");
+        when(promptOrchestrator.build(query, 5)).thenReturn(chatPrompt);
+        when(injectionGuard.filter(List.of(chunk))).thenReturn(List.of(chunk));
+        when(contextBuilder.build(any())).thenReturn("ctx");
+        when(sufficiencyJudge.isSufficient(query, "ctx")).thenReturn(false);
+
+        GenerateResponse response = service.generate(new GenerateRequest(query, null, null));
+
+        assertThat(response.insufficientContext()).isTrue();
+        assertThat(response.answer()).isEqualTo(properties.getJudge().getInsufficientAnswer());
+        assertThat(response.citations()).isEmpty();
+        verify(chatClient, never()).prompt();
+    }
+
+    @Test
+    @DisplayName("Judge disabled via properties proceeds to generation even with thin context")
+    void manualModeGeneratesWhenJudgeDisabled() {
+        String query = "query";
+        Chunk chunk = new Chunk("PDF", "content", Map.of(), 0);
+        RetrievalResult retrieval = new RetrievalResult(List.of(chunk), List.of());
+        PromptOrchestrator.ChatPrompt chatPrompt = new PromptOrchestrator.ChatPrompt(
+                "sys", "ctx", "rules", retrieval);
+
+        GenerationProperties.Judge disabledJudge = new GenerationProperties.Judge();
+        disabledJudge.setEnabled(false);
+
+        when(semanticCache.get(query)).thenReturn(Optional.empty());
+        when(properties.getMode()).thenReturn("manual");
+        when(properties.isEvaluateFaithfulness()).thenReturn(false);
+        when(properties.isIncludeCitations()).thenReturn(false);
+        when(properties.getJudge()).thenReturn(disabledJudge);
+        when(promptOrchestrator.build(query, 5)).thenReturn(chatPrompt);
+        when(injectionGuard.filter(List.of(chunk))).thenReturn(List.of(chunk));
+        when(contextBuilder.build(any())).thenReturn("ctx");
+        when(chatClient.prompt().system(anyString()).user(anyString()).advisors(any(Consumer.class)).call().content())
+                .thenReturn("answer");
+
+        GenerateResponse response = service.generate(new GenerateRequest(query, null, null));
+
+        assertThat(response.answer()).isEqualTo("answer");
+        assertThat(response.insufficientContext()).isFalse();
+        verify(sufficiencyJudge, never()).isSufficient(any(), any());
     }
 }

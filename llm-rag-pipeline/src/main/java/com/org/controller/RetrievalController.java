@@ -19,20 +19,20 @@ import org.springframework.web.bind.annotation.RestController;
  * is handled by downstream consumers (e.g. llm-gateway).
  */
 @RestController
-@RequestMapping("/api/v1")
 @RequiredArgsConstructor
+@RequestMapping("/api/v1")
 @Tag(name = "RAG Pipeline", description = "Vector retrieval and generation endpoints for the RAG pipeline")
 class RetrievalController {
 
     private final RetrievalService retrievalService;
 
-    @Operation(summary = "Retrieve the most relevant document chunks for a query using vector similarity search")
-    @PostMapping("/retrieve")
-    @Timed(value = "rag.retrieval", description = "Vector retrieval turnaround time", histogram = true)
     /**
      * Retrieves the most relevant chunks for {@code request.query()}, using {@code topK} if
      * provided or the configured default otherwise.
      */
+    @PostMapping("/retrieve")
+    @Timed(value = "rag.retrieval", description = "Vector retrieval turnaround time", histogram = true)
+    @Operation(summary = "Retrieve the most relevant document chunks for a query using vector similarity search")
     public RetrievalResult retrieve(@Valid @RequestBody RetrieveRequest request) {
         return request.topK() != null
                 ? retrievalService.retrieve(request.query(), request.topK())

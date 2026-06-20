@@ -18,6 +18,7 @@ public class RetrievalProperties {
     private final Mmr mmr = new Mmr();
     private final Rerank rerank = new Rerank();
     private final QueryTransform queryTransform = new QueryTransform();
+    private final Classifier classifier = new Classifier();
     /**
      * Final number of chunks returned when the caller doesn't specify one.
      */
@@ -77,6 +78,10 @@ public class RetrievalProperties {
 
     public QueryTransform getQueryTransform() {
         return queryTransform;
+    }
+
+    public Classifier getClassifier() {
+        return classifier;
     }
 
     /**
@@ -360,6 +365,23 @@ public class RetrievalProperties {
 
         public void setMultiQueryCount(int multiQueryCount) {
             this.multiQueryCount = multiQueryCount;
+        }
+    }
+
+    /**
+     * LLM-based per-query retrieval routing — opt-in. When enabled, one LLM call decides both
+     * {@code search.mode} and {@code query-transform.mode} together for each query, falling back
+     * to those statically configured values (independently per half) on failure.
+     */
+    public static class Classifier {
+        private boolean enabled = false;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
         }
     }
 }

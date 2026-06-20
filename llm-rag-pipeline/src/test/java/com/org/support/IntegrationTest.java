@@ -7,6 +7,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -46,12 +47,22 @@ public abstract class IntegrationTest {
                     .waitingFor(Wait.forHttp("/_cluster/health").forPort(9200).forStatusCode(200))
                     .withStartupTimeout(Duration.ofMinutes(3));
 
+    @ServiceConnection
+    static final MongoDBContainer MONGO = new MongoDBContainer(DockerImageName.parse("mongo:7"));
+
+    static final GenericContainer<?> REDIS =
+            new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
+                    .withExposedPorts(6379)
+                    .waitingFor(Wait.forListeningPort());
+
     static {
         // Guard so a broken Docker setup can't throw from static init before the
         // disabledWithoutDocker condition skips the class.
         if (DockerClientFactory.instance().isDockerAvailable()) {
             POSTGRES.start();
             OPENSEARCH.start();
+            MONGO.start();
+            REDIS.start();
         }
     }
 
@@ -59,5 +70,7 @@ public abstract class IntegrationTest {
     static void openSearchProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.ai.vectorstore.opensearch.uris",
                 () -> "http://" + OPENSEARCH.getHost() + ":" + OPENSEARCH.getMappedPort(9200));
+        registry.add("spring.data.redis.host", REDIS::getHost);
+        registry.add("spring.data.redis.port", () -> REDIS.getMappedPort(6379));
     }
 }
