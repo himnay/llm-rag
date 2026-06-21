@@ -1,5 +1,8 @@
 package com.org.security;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -8,6 +11,10 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
@@ -15,15 +22,15 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.List;
-
 /**
- * API-key based security for the REST API (servlet stack), modelled on {@code llm-gateway}:
- * a stateless {@code X-API-Key} check with DB-backed keys, returning {@code 401} JSON on failure.
+ * Keycloak OAuth2 resource-server security for the REST API (servlet stack), modelled on {@code
+ * llm-gateway}: {@code /api/**} requires {@code Authorization: Bearer <jwt>}, validated against
+ * Keycloak's JWKS endpoint. Keycloak's {@code realm_access.roles} claim (not the standard {@code
+ * scope} claim) is mapped to {@code ROLE_*} authorities by {@link #keycloakAuthoritiesConverter}.
  *
  * <p>When {@code app.security.auth-enabled=false} (the dev default) every route is permitted, but
  * the security response headers and CORS policy are still applied. When enabled, {@code /api/**}
- * requires a valid key while actuator/health/docs remain open.</p>
+ * requires a valid token while actuator/health/docs remain open.
  */
 @Slf4j
 @Configuration
@@ -31,14 +38,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final ApiKeyAuthFilter apiKeyAuthFilter;
     private final RateLimitFilter rateLimitFilter;
     private final RestAuthenticationEntryPoint authenticationEntryPoint;
     private final SecurityProperties properties;
 
     /**
      * Configures the stateless filter chain: security headers, CORS, rate limiting (always on),
-     * and API-key auth on {@code /api/**} when {@code app.security.auth-enabled=true}.
+     * and Keycloak JWT auth on {@code /api/**} when {@code app.security.auth-enabled=true}.
      */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -54,18 +60,20 @@ public class SecurityConfig {
                         .referrerPolicy(r -> r.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.SAME_ORIGIN))
                         .httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(31_536_000)));
 
-        // Rate limiting applies whether or not API-key auth is enabled.
+        // Rate limiting applies whether or not OAuth2 authentication is enabled.
         http.addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class);
 
         if (!properties.isAuthEnabled()) {
-            log.warn("SECURITY | API-key authentication is DISABLED (app.security.auth-enabled=false)");
+            log.warn("SECURITY | OAuth2 authentication is DISABLED (app.security.auth-enabled=false)");
             return http.authorizeHttpRequests(a -> a.anyRequest().permitAll()).build();
         }
 
-        log.info("SECURITY | API-key authentication is ENABLED on /api/**");
+        log.info("SECURITY | OAuth2 (Keycloak) JWT authentication is ENABLED on /api/**");
         return http
-                .addFilterBefore(apiKeyAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(e -> e.authenticationEntryPoint(authenticationEntryPoint))
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .authenticationEntryPoint(authenticationEntryPoint)
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(keycloakJwtAuthenticationConverter())))
                 .authorizeHttpRequests(a -> a
                         .requestMatchers("/actuator/**",
                                 "/swagger-ui.html", "/openapi.yaml", "/favicon.ico").permitAll()
@@ -82,10 +90,32 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(properties.getAllowedOrigins());
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Content-Type", properties.getHeader()));
+        config.setAllowedHeaders(List.of("Content-Type", "Authorization"));
         config.setMaxAge(3600L);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", config);
         return source;
+    }
+
+    private JwtAuthenticationConverter keycloakJwtAuthenticationConverter() {
+        JwtAuthenticationConverter delegate = new JwtAuthenticationConverter();
+        delegate.setJwtGrantedAuthoritiesConverter(this::keycloakAuthoritiesConverter);
+        return delegate;
+    }
+
+    /**
+     * Reads Keycloak's {@code realm_access.roles} claim (e.g. {@code ["gateway-user"]}) and maps
+     * each entry to a {@code ROLE_*} {@link GrantedAuthority}, e.g. {@code ROLE_GATEWAY-USER}.
+     */
+    @SuppressWarnings("unchecked")
+    private Collection<GrantedAuthority> keycloakAuthoritiesConverter(Jwt jwt) {
+        Map<String, Object> realmAccess = jwt.getClaimAsMap("realm_access");
+        if (realmAccess == null || !(realmAccess.get("roles") instanceof Collection<?> roles)) {
+            return List.of();
+        }
+        return roles.stream()
+                .map(String::valueOf)
+                .map(role -> (GrantedAuthority) new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()))
+                .toList();
     }
 }

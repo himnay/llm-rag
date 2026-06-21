@@ -32,8 +32,9 @@ management:
     sampling:
       probability: ${TRACING_SAMPLE_RATE:0.1}   # sample 10% in prod
 
-# Require a valid X-API-Key on /api/** in production. Keys live in the api_keys table
-# (SHA-256 hashed); provision them via the snippet in V3__api_keys.sql.
+# Require a valid Keycloak-issued Bearer token on /api/** in production. Point
+# spring.security.oauth2.resourceserver.jwt.issuer-uri (via KEYCLOAK_ISSUER_URI) at the
+# production realm — see SecurityConfig.
 app:
   security:
     auth-enabled: true

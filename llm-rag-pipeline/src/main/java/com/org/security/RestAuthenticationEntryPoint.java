@@ -13,14 +13,14 @@ import tools.jackson.databind.ObjectMapper;
 
 /**
  * Returns a consistent {@code 401} JSON {@link ApiError} for unauthenticated access to a
- * protected route (missing or invalid API key), instead of a redirect or empty body.
+ * protected route (missing, invalid, or expired Bearer token), instead of a redirect or empty
+ * body.
  */
 @Component
 @RequiredArgsConstructor
 public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
     private final ObjectMapper objectMapper;
-    private final SecurityProperties properties;
 
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response,
@@ -29,6 +29,6 @@ public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         objectMapper.writeValue(response.getWriter(),
                 ApiError.of(HttpStatus.UNAUTHORIZED.value(), "Unauthorized",
-                        "A valid " + properties.getHeader() + " header is required"));
+                        "A valid Authorization: Bearer <token> header is required"));
     }
 }

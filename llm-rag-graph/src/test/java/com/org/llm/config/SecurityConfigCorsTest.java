@@ -23,15 +23,14 @@ class SecurityConfigCorsTest {
         CorsConfiguration cors = config.corsConfigurationSource().getCorsConfiguration(request);
 
         assertThat(cors.getAllowedOrigins()).isEmpty();
-        assertThat(cors.getAllowedHeaders()).contains("X-API-Key");
+        assertThat(cors.getAllowedHeaders()).contains("Authorization");
     }
 
-    @DisplayName("CORS configuration uses the configured allowed origins and header")
+    @DisplayName("CORS configuration uses the configured allowed origins")
     @Test
     void corsConfigurationUsesConfiguredOrigins() {
         SecurityProperties props = new SecurityProperties();
         props.setAllowedOrigins(List.of("https://example.com"));
-        props.setHeader("X-Custom-Key");
         SecurityConfig config = new SecurityConfig(props);
 
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -39,6 +38,6 @@ class SecurityConfigCorsTest {
         CorsConfiguration cors = config.corsConfigurationSource().getCorsConfiguration(request);
 
         assertThat(cors.getAllowedOrigins()).containsExactly("https://example.com");
-        assertThat(cors.getAllowedHeaders()).contains("X-Custom-Key");
+        assertThat(cors.getAllowedHeaders()).contains("Authorization");
     }
 }

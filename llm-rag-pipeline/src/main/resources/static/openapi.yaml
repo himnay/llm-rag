@@ -44,7 +44,7 @@ paths:
   /api/v1/admin/lifecycle/upload:
     post:
       summary: Upload a file (pdf/md/txt/json/docx/...) and ingest it through the pipeline
-      description: Requires X-API-Key when admin auth is enabled.
+      description: Requires a Bearer token when admin auth is enabled.
       requestBody:
         required: true
         content:
@@ -62,7 +62,7 @@ paths:
   /api/v1/admin/lifecycle/ingest:
     post:
       summary: Ingest a single knowledge source
-      description: Requires X-API-Key when admin auth is enabled.
+      description: Requires a Bearer token when admin auth is enabled.
       requestBody:
         required: true
         content:
@@ -109,11 +109,11 @@ paths:
         '200': { description: Metrics in Prometheus exposition format }
 components:
   securitySchemes:
-    ApiKeyAuth:
-      type: apiKey
-      in: header
-      name: X-API-Key
-      description: Required on /api/** when app.security.auth-enabled=true (always in prod).
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Keycloak-issued OAuth2 JWT, required on /api/** when app.security.auth-enabled=true (always in prod).
   schemas:
     KnowledgeRequest:
       type: object

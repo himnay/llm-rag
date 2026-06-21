@@ -33,7 +33,7 @@ Mongo chunk hydration).
 │                          API Layer (Spring MVC)                          │
 │  /api/v1/admin/lifecycle/{ingest,upload,delete}  ·  POST /api/v1/retrieve│
 │  POST /api/v1/generate  ·  POST /api/v1/admin/eval/run                  │
-│  Spring Security (ApiKeyAuthFilter · RateLimitFilter · CorsConfig)       │
+│  Spring Security (Keycloak OAuth2 resource server · RateLimitFilter)    │
 │  RequestLoggingInterceptor (every request, no per-controller boilerplate)│
 └────────┬───────────────────────┬──────────────────────────┬─────────────┘
          │                       │                          │
@@ -263,7 +263,7 @@ Client    GenerationController   RetrievalAugmentationAdvisor   VectorStoreDocum
 | `retrieval/rerank/`      | `CrossEncoderReranker`, `BiEncoderReranker`, `LlmPointwiseReranker`, `LlmListwiseReranker`, `Bm25Reranker`, `RrfFusionReranker`                                         | 6 second-stage rerankers — the two LLM-based ones use structured output (`.entity(...)`), not regex |
 | `generation/`            | `GenerationService`, `PromptOrchestrator`, `ContextBuilder`, `GroundingPolicy`                                                                                          | Full RAG generation pipeline — manual mode (custom) or advisor mode (Spring AI `RetrievalAugmentationAdvisor`) |
 | `cache/`                 | `EmbeddingCacheService`, `SemanticCacheService`, `ChunkDedupService`                                                                                                    | LRU+TTL embedding cache · semantic answer cache · Redis chunk-hash dedup |
-| `security/`              | `ApiKeyAuthFilter`, `ApiKeyService`, `RateLimitFilter`, `SecurityConfig`, `SafeGuardProperties`                                                                         | API-key auth + rate limiting + opt-in Spring AI `SafeGuardAdvisor` config |
+| `security/`              | `RateLimitFilter`, `SecurityConfig`, `SafeGuardProperties`                                                                         | Keycloak OAuth2 JWT auth + rate limiting + opt-in Spring AI `SafeGuardAdvisor` config |
 | `security/pii/`          | `PiiRedactor`                                                                                                                                                           | Regex PII redaction before embedding                              |
 | `security/`              | `PromptInjectionGuard`                                                                                                                                                  | Strips injection-payload chunks from context                      |
 | `eval/`                  | `RetrievalEvaluator`, `GenerationEvaluator`, `RetrievalMetrics`, `ContextSufficiencyJudge`                                                                              | MRR / P@k / R@k / nDCG / faithfulness / relevance / pre-gen context-sufficiency judge (structured output) |
@@ -434,7 +434,6 @@ app:
 app:
   security:
     auth-enabled: false       # set true in prod
-    header: X-API-Key
     rate-limit:
       enabled: true
       capacity: 120
@@ -638,21 +637,30 @@ Response fields:
 
 ---
 
-## API-key Authentication
+## OAuth2/Keycloak Authentication
 
-- All `/api/**` routes are protected when `app.security.auth-enabled=true`
-- API keys are stored as SHA-256 digests in the `api_keys` PostgreSQL table — plaintext keys are never persisted
-- To provision a new key:
+- All `/api/**` routes are protected when `app.security.auth-enabled=true` (default: open in dev — `false`)
+- Authentication is Keycloak-issued OAuth2 JWTs, not the old custom API-key/Postgres scheme — the
+  `api_keys` table is dropped by `V5__drop_api_keys.sql`
+- Validates against the **shared Keycloak instance** defined in `llm-gateway`'s `docker-compose.yml`
+  (realm `llm-gateway`, started with `docker compose up -d keycloak` from the `llm-gateway` repo).
+  This service's client id is `llm-rag-pipeline-client` (dev secret `llm-rag-pipeline-dev-secret`)
+- Get a token and call a protected route:
 
 ```bash
-raw=$(openssl rand -hex 32)
-hash=$(printf "%s" "$raw" | shasum -a 256 | cut -d' ' -f1)
-psql ... -c "INSERT INTO api_keys (key_hash, label) VALUES ('$hash', 'my-client');"
-echo "X-API-Key: $raw"
+TOKEN=$(curl -s -X POST http://localhost:8081/realms/llm-gateway/protocol/openid-connect/token \
+  -d 'grant_type=client_credentials' \
+  -d 'client_id=llm-rag-pipeline-client' \
+  -d 'client_secret=llm-rag-pipeline-dev-secret' \
+  | jq -r .access_token)
+
+curl -s -X POST http://localhost:8081/api/v1/retrieve \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" -d '{"query":"..."}'
 ```
 
-- Send the raw value in the `X-API-Key` request header; the filter hashes it and compares against the stored digest
-- Rate limiting is enforced separately via `RateLimitFilter` (token-bucket, configurable capacity and refill rate)
+- Override the issuer for a non-local deployment via `KEYCLOAK_ISSUER_URI`
+- Rate limiting is enforced separately via `RateLimitFilter` (token-bucket, keyed by Bearer token or client IP, configurable capacity and refill rate)
 
 ---
 

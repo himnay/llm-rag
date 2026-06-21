@@ -12,6 +12,5 @@ import java.util.List;
 public class SecurityProperties {
 
     private boolean authEnabled = false;
-    private String header = "X-API-Key";
     private List<String> allowedOrigins = List.of();
 }

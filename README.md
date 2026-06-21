@@ -260,10 +260,10 @@ of the index during development.
 1. **Structured source content** — `faqs`, `release_notes`, and `announcements` tables (seeded
    in `V1__init_schema.sql` and `V2__seed_data.sql`) that the `DatabaseIngestionService` reads,
    formats as Markdown rows, and feeds into the chunking + embedding pipeline.
-2. **Operational metadata** — an `api_keys` table (`V3__api_keys.sql`) where API keys are stored
-   as SHA-256 hex digests (never the raw key), with `enabled`, `expires_at`, and `last_used`
-   columns; and an `ingestion_log` table (`V4__ingestion_log.sql`) that records every ingestion
-   run for deduplication and audit.
+2. **Operational metadata** — an `ingestion_log` table (`V4__ingestion_log.sql`) that records
+   every ingestion run for deduplication and audit. (A custom `api_keys` table used to live here
+   too — `V3__api_keys.sql` created it, `V5__drop_api_keys.sql` drops it now that authentication
+   is Keycloak OAuth2 JWTs, not a Postgres-backed key registry.)
 
 Spring Boot's `JdbcTemplate` (not JPA/Hibernate) is used throughout — keeping the persistence
 layer thin and explicit.
@@ -275,10 +275,11 @@ layer thin and explicit.
 **What it is:** A database migration library that applies versioned SQL scripts to a schema in
 order, tracking which have already run in a `flyway_schema_history` table.
 
-**How it's used here:** `llm-rag-pipeline` uses Flyway to manage the PostgreSQL schema. Four
+**How it's used here:** `llm-rag-pipeline` uses Flyway to manage the PostgreSQL schema. Five
 migration scripts live under `src/main/resources/db/migration/`: `V1` creates the source-content
-tables, `V2` seeds sample data, `V3` adds the `api_keys` table, and `V4` adds the `ingestion_log`
-table. Migrations run automatically on startup. Spring Boot 4 requires both `flyway-core` and the
+tables, `V2` seeds sample data, `V3` added the (now-dropped) `api_keys` table, `V4` adds the
+`ingestion_log` table, and `V5` drops `api_keys` now that auth is Keycloak-based. Migrations run
+automatically on startup. Spring Boot 4 requires both `flyway-core` and the
 separate `spring-boot-flyway` auto-configuration module to trigger migration — a Spring Boot 4
 split that is explicitly documented in the `pom.xml` comments.
 
@@ -451,14 +452,16 @@ extracted directly.
 **What it is:** The standard security framework for Spring applications, handling authentication,
 authorization, CORS, session management, and security response headers.
 
-**How it's used here:** `llm-rag-pipeline` uses Spring Security for a stateless REST API with
-API-key authentication. The `SecurityConfig` disables form login, HTTP Basic, CSRF, and sessions,
-applies security headers (HSTS, frame deny, referrer policy), and installs two custom servlet
-filters: `ApiKeyAuthFilter` validates the `X-API-Key` request header by SHA-256-hashing the
-provided key and looking it up in PostgreSQL's `api_keys` table; `RateLimitFilter` implements an
-in-memory token-bucket rate limiter (keyed by API key or client IP) that returns HTTP 429 when
-exhausted. Authentication can be disabled entirely with `app.security.auth-enabled=false` for
-development while keeping the CORS and rate-limiting behavior active.
+**How it's used here:** `llm-rag-pipeline` and `llm-rag-graph` use Spring Security as OAuth2
+**resource servers** for a stateless REST API — no session, no custom API-key table. The
+`SecurityConfig` disables form login, HTTP Basic, CSRF, and sessions, applies security headers
+(HSTS, frame deny, referrer policy), and configures `oauth2ResourceServer().jwt(...)` to validate
+`Authorization: Bearer` tokens against a Keycloak realm's JWKS endpoint (`spring.security.oauth2.resourceserver.jwt.issuer-uri`).
+A custom `JwtAuthenticationConverter` maps Keycloak's `realm_access.roles` claim to Spring
+`ROLE_*` authorities. `RateLimitFilter` implements an in-memory token-bucket rate limiter (keyed
+by Bearer token or client IP) that returns HTTP 429 when exhausted. Authentication can be disabled
+entirely with `app.security.auth-enabled=false` for development while keeping the CORS and
+rate-limiting behavior active.
 
 ---
 

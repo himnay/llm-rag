@@ -1,6 +1,5 @@
 package com.org.security;
 
-import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
@@ -10,10 +9,10 @@ import org.springframework.validation.annotation.Validated;
 import java.util.List;
 
 /**
- * API-key authentication settings (prefix {@code app.security}).
+ * OAuth2/Keycloak authentication settings (prefix {@code app.security}).
  *
  * <p>Disabled by default for local/dev. In production set {@code app.security.auth-enabled=true}
- * and provision keys in the {@code api_keys} table (see {@link ApiKeyService}).</p>
+ * so {@code /api/**} requires a valid Keycloak-issued Bearer token (see {@code SecurityConfig}).</p>
  */
 @Data
 @Validated
@@ -22,14 +21,9 @@ public class SecurityProperties {
 
     private final RateLimit rateLimit = new RateLimit();
     /**
-     * When true, all {@code /api/**} routes require a valid {@link #header} value.
+     * When true, all {@code /api/**} routes require a valid Bearer token.
      */
     private boolean authEnabled = false;
-    /**
-     * Header carrying the raw API key.
-     */
-    @NotBlank
-    private String header = "X-API-Key";
     /**
      * CORS allowed origins. Empty = CORS effectively disabled (no cross-origin browser access).
      */

@@ -21,8 +21,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Lightweight, dependency-free token-bucket rate limiter for {@code /api/**}. Each caller (keyed by
- * API key when present, otherwise client IP) gets a bucket that refills continuously; exhausting it
- * yields {@code 429}. In-memory — for multi-instance deployments back this with Redis/a gateway.
+ * the Bearer token when present, otherwise client IP) gets a bucket that refills continuously;
+ * exhausting it yields {@code 429}. In-memory — for multi-instance deployments back this with
+ * Redis/a gateway.
  */
 @Component
 @RequiredArgsConstructor
@@ -67,10 +68,10 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 
     private String clientKey(HttpServletRequest request) {
-        String apiKey = request.getHeader(properties.getHeader());
-        if (apiKey != null && !apiKey.isBlank()) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && !authHeader.isBlank()) {
             // SHA-256 avoids the 2^32 hashCode collision space that allowed bucket-sharing attacks.
-            return "key:" + sha256(apiKey);
+            return "token:" + sha256(authHeader);
         }
         String forwarded = request.getHeader("X-Forwarded-For");
         return "ip:" + (forwarded != null && !forwarded.isBlank()

@@ -34,6 +34,13 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Shared Keycloak instance defined in llm-gateway's docker-compose; this service has its
+          # own client (llm-rag-pipeline-client) in the same "llm-gateway" realm.
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8081/realms/llm-gateway}
   data:
     mongodb:
       uri: ${MONGODB_URI:mongodb://localhost:27017/llm-rag}
@@ -186,7 +193,6 @@ app:
       token-reserve-percentage: 0.1   # safety margin subtracted from the ceiling above
   security:
     auth-enabled: ${API_AUTH_ENABLED:false}   # dev default: open. Set true in prod.
-    header: X-API-Key
     allowed-origins: ${CORS_ALLOWED_ORIGINS:}  # comma-separated; empty = no cross-origin browser access
     rate-limit:
       enabled: ${RATE_LIMIT_ENABLED:true}      # token bucket per API key (or client IP) on /api/**
