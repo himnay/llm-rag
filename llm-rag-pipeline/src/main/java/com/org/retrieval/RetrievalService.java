@@ -1,6 +1,7 @@
 package com.org.retrieval;
 
 import com.org.chunking.model.Chunk;
+import com.org.exception.SearchStrategyNotFoundException;
 import com.org.retrieval.model.Citation;
 import com.org.retrieval.model.RetrievalResult;
 import com.org.retrieval.postprocess.RetrievalPostProcessor;
@@ -109,7 +110,7 @@ public class RetrievalService {
 
         SearchStrategy strategy = searchStrategies.get(mode);
         if (strategy == null) {
-            throw new IllegalStateException("No search strategy registered for mode " + mode);
+            throw new SearchStrategyNotFoundException("No search strategy registered for mode " + mode);
         }
 
         List<Document> documents = searchAndMerge(strategy, queries, fetch);

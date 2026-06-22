@@ -1,0 +1,82 @@
+openapi: 3.0.3
+info:
+  title: llm-rag-pipeline com.org.retrieval.model DTOs
+  description: >
+    Schema-only OpenAPI contract used solely to drive openapi-generator-maven-plugin
+    model generation for the REST response types in com.org.retrieval.model. There are
+    no paths defined here on purpose; the existing RetrievalController class remains
+    hand-written. Chunk (com.org.chunking.model) stays a hand-written record — it is a
+    deeply embedded internal pipeline domain type (80+ accessor call sites across
+    chunking/reranking/vector-store code, not solely a REST DTO) — and is re-imported
+    here via importMapping so there is exactly one Chunk class on the classpath.
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    RetrievalResult:
+      type: object
+      description: Retrieval response body for POST /api/v1/retrieve — the ranked chunks plus de-duplicated citations.
+      properties:
+        chunks:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/Chunk'
+        citations:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/Citation'
+
+    Citation:
+      type: object
+      description: >
+        A first-class provenance pointer for a retrieved chunk, so consumers can attribute
+        an answer to its source without parsing raw metadata. De-duplicated per source in RetrievalResult.
+      properties:
+        source:
+          type: string
+          nullable: true
+          description: PDF | WIKI | FILE | DB
+        fileName:
+          type: string
+          nullable: true
+          description: original document name (or DB table)
+        identity:
+          type: string
+          nullable: true
+          description: 'stable ingestion identity, e.g. PDF#HR_Leave_Policy.pdf'
+        page:
+          type: integer
+          format: int32
+          nullable: true
+          description: 1-based page for PDFs, else null
+        chunkIndex:
+          type: integer
+          format: int32
+        score:
+          type: number
+          format: double
+          nullable: true
+          description: similarity / rerank score, when available
+
+    Chunk:
+      type: object
+      description: >
+        Placeholder schema so $ref resolution works; the actual class is NOT generated
+        here (see importMapping in pom.xml) — com.org.chunking.model.Chunk remains the
+        existing hand-written record.
+      properties:
+        source:
+          type: string
+          nullable: true
+        content:
+          type: string
+          nullable: true
+        metadata:
+          type: object
+          nullable: true
+          additionalProperties: true
+        chunkIndex:
+          type: integer
+          format: int32

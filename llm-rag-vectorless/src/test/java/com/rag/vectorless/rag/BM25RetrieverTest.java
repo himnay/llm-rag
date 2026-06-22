@@ -21,9 +21,9 @@ class BM25RetrieverTest {
     void setUp() {
         DocumentLoader loader = mock(DocumentLoader.class);
         when(loader.getChunks()).thenReturn(List.of(
-                new Chunk("BM25 is a keyword ranking function used in information retrieval.", "ir.txt", 0),
-                new Chunk("Spring Boot makes it easy to build standalone Java applications.", "spring.txt", 0),
-                new Chunk("Vector databases store embeddings for semantic similarity search.", "vectors.txt", 0)
+                Chunk.builder().text("BM25 is a keyword ranking function used in information retrieval.").source("ir.txt").chunkIndex(0).build(),
+                Chunk.builder().text("Spring Boot makes it easy to build standalone Java applications.").source("spring.txt").chunkIndex(0).build(),
+                Chunk.builder().text("Vector databases store embeddings for semantic similarity search.").source("vectors.txt").chunkIndex(0).build()
         ));
         retriever = new BM25Retriever(new RagProperties(500, 100, 5, false), loader);
         retriever.buildIndex();

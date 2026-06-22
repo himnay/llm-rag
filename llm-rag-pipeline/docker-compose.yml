@@ -87,9 +87,20 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+  redisinsight: # http://localhost:5540 — add redis:6379 as a host (use "redis", not localhost) to browse ShedLock keys/cache entries
+    image: redis/redisinsight:latest
+    container_name: llm-rag-redisinsight
+    ports:
+      - "5540:5540"
+    volumes:
+      - redisinsight_data:/data
+    depends_on:
+      - redis
+    restart: unless-stopped
 
 volumes:
   postgres_data:
   opensearch_data:
   mongo_data:
   redis_data:
+  redisinsight_data:

@@ -62,11 +62,11 @@ class GraphRAGServiceTest {
 
         RagResponse response = service.query(new RagRequest("Who is Alice?"));
 
-        assertThat(response.question()).isEqualTo("Who is Alice?");
-        assertThat(response.answer()).contains("Principal Engineer");
-        assertThat(response.graphContext()).isEqualTo(ctx.formattedContext());
-        assertThat(response.relevantEntities()).containsExactly("Alice Chen");
-        assertThat(response.processingTimeMs()).isGreaterThanOrEqualTo(0);
+        assertThat(response.getQuestion()).isEqualTo("Who is Alice?");
+        assertThat(response.getAnswer()).contains("Principal Engineer");
+        assertThat(response.getGraphContext()).isEqualTo(ctx.formattedContext());
+        assertThat(response.getRelevantEntities()).containsExactly("Alice Chen");
+        assertThat(response.getProcessingTimeMs()).isGreaterThanOrEqualTo(0);
         verify(llmService).answer("Who is Alice?", ctx.formattedContext());
     }
 
@@ -99,8 +99,8 @@ class GraphRAGServiceTest {
 
         GraphStats stats = service.getStats();
 
-        assertThat(stats.totalNodes()).isEqualTo(32L);
-        assertThat(stats.totalRelationships()).isEqualTo(42L);
-        assertThat(stats.employees()).isEqualTo(10L);
+        assertThat(stats.getTotalNodes()).isEqualTo(32L);
+        assertThat(stats.getTotalRelationships()).isEqualTo(42L);
+        assertThat(stats.getEmployees()).isEqualTo(10L);
     }
 }

@@ -70,8 +70,7 @@ public class ChunkEnricher {
         List<Chunk> enriched = new ArrayList<>(chunks.size());
         for (int i = 0; i < chunks.size(); i++) {
             Chunk original = chunks.get(i);
-            enriched.add(new Chunk(original.source(), original.content(),
-                    documents.get(i).getMetadata(), original.chunkIndex()));
+            enriched.add(new Chunk(original.source(), original.content(), documents.get(i).getMetadata(), original.chunkIndex()));
         }
         log.info("Enriched {} chunk(s) (keywords={}, summary={})",
                 enriched.size(), properties.isKeywords(), properties.isSummary());

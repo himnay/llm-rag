@@ -1,6 +1,9 @@
 package com.org.web;
 
 import com.org.chunking.strategy.UnknownChunkingStrategyException;
+import com.org.exception.ExcelReadException;
+import com.org.exception.RerankingException;
+import com.org.exception.SearchStrategyNotFoundException;
 import com.org.ingestion.db.UnknownIngestionTableException;
 import com.org.ingestion.reader.UnsupportedDocumentTypeException;
 import jakarta.validation.ConstraintViolationException;
@@ -65,6 +68,32 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UnknownIngestionTableException.class)
     public ResponseEntity<ApiError> handleUnknownIngestionTable(UnknownIngestionTableException ex) {
         return build(HttpStatus.BAD_REQUEST, "Unknown ingestion table", ex.getMessage(), null);
+    }
+
+    /**
+     * Malformed/unreadable Excel workbook supplied for ingestion.
+     */
+    @ExceptionHandler(ExcelReadException.class)
+    public ResponseEntity<ApiError> handleExcelRead(ExcelReadException ex) {
+        return build(HttpStatus.BAD_REQUEST, "Invalid Excel file", ex.getMessage(), null);
+    }
+
+    /**
+     * Retrieval configuration error: no {@code SearchStrategy} registered for the resolved mode.
+     */
+    @ExceptionHandler(SearchStrategyNotFoundException.class)
+    public ResponseEntity<ApiError> handleSearchStrategyNotFound(SearchStrategyNotFoundException ex) {
+        log.error("Retrieval misconfiguration", ex);
+        return build(HttpStatus.INTERNAL_SERVER_ERROR, "Retrieval configuration error", ex.getMessage(), null);
+    }
+
+    /**
+     * LLM-based reranking failed or was interrupted.
+     */
+    @ExceptionHandler(RerankingException.class)
+    public ResponseEntity<ApiError> handleReranking(RerankingException ex) {
+        log.error("Reranking failed", ex);
+        return build(HttpStatus.INTERNAL_SERVER_ERROR, "Reranking error", ex.getMessage(), null);
     }
 
     /**

@@ -15,6 +15,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -35,7 +36,15 @@ class RagControllerTest {
     @DisplayName("A valid question returns 200 with the LLM-generated answer")
     @Test
     void validQuestionReturns200() throws Exception {
-        RagResponse response = RagResponse.of("Who is Alice?", "Alice is an engineer.", "context", List.of("Alice"), 100L);
+        RagResponse response = RagResponse.builder()
+                .question("Who is Alice?")
+                .answer("Alice is an engineer.")
+                .graphContext("context")
+                .relevantEntities(List.of("Alice"))
+                .citations(List.of())
+                .processingTimeMs(100L)
+                .timestamp(OffsetDateTime.now())
+                .build();
         when(ragService.query(any(RagRequest.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/rag/query")

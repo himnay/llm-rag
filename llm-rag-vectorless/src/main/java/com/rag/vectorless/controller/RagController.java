@@ -41,10 +41,10 @@ public class RagController {
     @Operation(summary = "Answer a question using BM25 retrieval over local documents")
     @PostMapping("/chat")
     public ChatResponse chat(@Valid @RequestBody ChatRequest request) {
-        List<Document> docs = bm25Retriever.retrieve(request.question());
+        List<Document> docs = bm25Retriever.retrieve(request.getQuestion());
 
         if (docs.isEmpty()) {
-            return new ChatResponse("I don't have information about that in my knowledge base.", List.of(), null);
+            return ChatResponse.builder().answer("I don't have information about that in my knowledge base.").citations(List.of()).faithful(null).build();
         }
 
         String context = docs.stream()
@@ -53,22 +53,21 @@ public class RagController {
 
         List<Citation> citations = toCitations(docs);
 
-        return generate(context, docs, citations, request.question());
+        return generate(context, docs, citations, request.getQuestion());
     }
 
     @Operation(summary = "Answer a question using PageIndex cloud retrieval")
     @PostMapping("/chat-pageindex")
     public ChatResponse chatPageIndex(@Valid @RequestBody ChatRequest request) {
         if (pageIndexClient.isEmpty() || pageIndexManager.isEmpty()) {
-            return new ChatResponse(
-                    "PageIndex is not enabled. Set RAG_PAGEINDEX_ENABLED=true and PAGEINDEX_API_KEY.",
-                    List.of(), null
-            );
+            return ChatResponse.builder()
+                    .answer("PageIndex is not enabled. Set RAG_PAGEINDEX_ENABLED=true and PAGEINDEX_API_KEY.")
+                    .citations(List.of()).faithful(null).build();
         }
 
         Map<String, String> docIds = pageIndexManager.get().getDocIds();
         if (docIds.isEmpty()) {
-            return new ChatResponse("No documents have been indexed in PageIndex yet.", List.of(), null);
+            return ChatResponse.builder().answer("No documents have been indexed in PageIndex yet.").citations(List.of()).faithful(null).build();
         }
 
         List<String> allContent = new ArrayList<>();
@@ -76,29 +75,29 @@ public class RagController {
 
         for (Map.Entry<String, String> entry : docIds.entrySet()) {
             try {
-                List<String> content = pageIndexClient.get().retrieve(entry.getValue(), request.question());
+                List<String> content = pageIndexClient.get().retrieve(entry.getValue(), request.getQuestion());
                 if (!content.isEmpty()) {
                     allContent.addAll(content);
                     sources.add(entry.getKey());
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                return new ChatResponse("Retrieval interrupted.", List.of(), null);
+                return ChatResponse.builder().answer("Retrieval interrupted.").citations(List.of()).faithful(null).build();
             }
         }
 
         if (allContent.isEmpty()) {
-            return new ChatResponse("I don't have information about that in my knowledge base.", List.of(), null);
+            return ChatResponse.builder().answer("I don't have information about that in my knowledge base.").citations(List.of()).faithful(null).build();
         }
 
         String context = String.join("\n\n---\n\n", allContent);
         // PageIndex doesn't expose a per-chunk score/index — filename-only citations.
         List<Citation> citations = sources.stream()
                 .distinct().sorted()
-                .map(source -> new Citation(source, null, null))
+                .map(source -> Citation.builder().source(source).chunkIndex(null).score(null).build())
                 .toList();
         List<Document> contextDocs = allContent.stream().map(Document::new).toList();
-        return generate(context, contextDocs, citations, request.question());
+        return generate(context, contextDocs, citations, request.getQuestion());
     }
 
     @Operation(summary = "List all indexed documents and total chunk count")
@@ -106,7 +105,7 @@ public class RagController {
     public Map<String, Object> documents() {
         List<Chunk> chunks = documentLoader.getChunks();
         List<String> sources = chunks.stream()
-                .map(Chunk::source)
+                .map(Chunk::getSource)
                 .distinct().sorted()
                 .toList();
         return Map.of("documents", sources, "totalChunks", chunks.size());
@@ -148,13 +147,13 @@ public class RagController {
             faithful = generationEvaluator.isFaithful(question, contextDocs, answer);
         }
 
-        return new ChatResponse(answer, citations, faithful);
+        return ChatResponse.builder().answer(answer).citations(citations).faithful(faithful).build();
     }
 
     @SuppressWarnings("unused")
     ChatResponse generateFallback(String context, List<Document> contextDocs, List<Citation> citations, String question, Throwable t) {
         log.warn("LLM circuit breaker triggered for question='{}': {}", question, t.getMessage());
-        return new ChatResponse("Service temporarily unavailable. Please try again in a moment.", List.of(), null);
+        return ChatResponse.builder().answer("Service temporarily unavailable. Please try again in a moment.").citations(List.of()).faithful(null).build();
     }
 
     private List<Citation> toCitations(List<Document> docs) {
@@ -164,7 +163,7 @@ public class RagController {
             Integer chunkIndex = (Integer) d.getMetadata().get("chunkIndex");
             Double score = (Double) d.getMetadata().get("score");
             if (source == null) continue;
-            bySourceAndChunk.putIfAbsent(source + "#" + chunkIndex, new Citation(source, chunkIndex, score));
+            bySourceAndChunk.putIfAbsent(source + "#" + chunkIndex, Citation.builder().source(source).chunkIndex(chunkIndex).score(score).build());
         }
         return List.copyOf(bySourceAndChunk.values());
     }

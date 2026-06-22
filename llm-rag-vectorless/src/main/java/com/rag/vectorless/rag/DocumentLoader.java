@@ -34,7 +34,7 @@ public class DocumentLoader {
             List<String> split = splitIntoChunks(content.strip());
 
             for (int i = 0; i < split.size(); i++) {
-                chunks.add(new Chunk(split.get(i), filename, i));
+                chunks.add(Chunk.builder().text(split.get(i)).source(filename).chunkIndex(i).build());
             }
         }
 

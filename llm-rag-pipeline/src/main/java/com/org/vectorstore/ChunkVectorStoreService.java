@@ -38,9 +38,11 @@ import java.util.concurrent.ExecutorService;
 @RequiredArgsConstructor
 public class ChunkVectorStoreService {
 
-    private final VectorStore vectorStore;
+
     @Qualifier("vectorStoreWriteExecutor")
     private final ExecutorService writeExecutor;
+
+    private final VectorStore vectorStore;
     private final VectorStoreWriteProperties props;
     private final ChunkDocumentRepository chunkDocumentRepository;
 
@@ -61,22 +63,34 @@ public class ChunkVectorStoreService {
         List<Document> documents = new ArrayList<>(chunks.size());
         List<ChunkDocument> mongoDocs = new ArrayList<>(chunks.size());
         for (Chunk chunk : chunks) {
-            Map<String, Object> metadata = new HashMap<>(chunk.metadata());
-            metadata.put("source", chunk.source());
-            metadata.put("chunkIndex", chunk.chunkIndex());
-            metadata.put("embeddingModel", modelId);
-            metadata.put("embeddingDimension", dimension);
-            metadata.put("chunkId", ChunkIdGenerator.idFor(chunk));
-            documents.add(new Document(chunk.content(), metadata));
-            mongoDocs.add(toMongoDocument(chunk, metadata));
+            String chunkId = ChunkIdGenerator.idFor(chunk);
+
+            Map<String, Object> mongoMetadata = new HashMap<>(chunk.metadata());
+            mongoMetadata.put("source", chunk.source());
+            mongoMetadata.put("chunkIndex", chunk.chunkIndex());
+            mongoMetadata.put("embeddingModel", modelId);
+            mongoMetadata.put("embeddingDimension", dimension);
+            mongoMetadata.put("chunkId", chunkId);
+            mongoDocs.add(toMongoDocument(chunk, mongoMetadata));
+
+            // OpenSearch only needs the fields used for filtering/joins; everything else
+            // (descriptive chunk metadata) lives in Mongo so updating it never forces a re-embed.
+            Map<String, Object> searchMetadata = new HashMap<>();
+            searchMetadata.put("chunkId", chunkId);
+            searchMetadata.put("chunkIndex", chunk.chunkIndex());
+            searchMetadata.put("source", chunk.source());
+            Object identity = chunk.metadata().get("identity");
+            if (identity != null) {
+                searchMetadata.put("identity", identity);
+            }
+            documents.add(new Document(chunk.content(), searchMetadata));
         }
 
         Resilience.withRetry("mongo chunk upsert", 3, 200L, () -> chunkDocumentRepository.upsertAll(mongoDocs));
 
         if (log.isDebugEnabled()) {
-            documents.forEach(d -> log.debug("Persisting chunk — source='{}' chunkIndex={} embeddingModel='{}' metadataKeys={}",
-                    d.getMetadata().get("source"), d.getMetadata().get("chunkIndex"),
-                    d.getMetadata().get("embeddingModel"), d.getMetadata().keySet()));
+            log.debug("Persisting {} chunk(s) — embeddingModel='{}' embeddingDimension={}",
+                    documents.size(), modelId, dimension);
         }
 
         // Small input → single synchronous write.

@@ -11,6 +11,9 @@ import org.springframework.data.neo4j.core.Neo4jClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+
 /**
  * Orchestrates the Graph RAG pipeline:
  * question → GraphContextExtractor → AnthropicLLMService → RagResponse
@@ -39,14 +42,14 @@ public class GraphRAGService {
     @Transactional(readOnly = true)
     public RagResponse query(RagRequest request) {
         long start = System.currentTimeMillis();
-        log.info("RAG query: {}", request.question());
+        log.info("RAG query: {}", request.getQuestion());
 
         // Step 1: Retrieve graph context
-        GraphContextExtractor.GraphContext ctx = graphContextExtractor.extract(request.question());
+        GraphContextExtractor.GraphContext ctx = graphContextExtractor.extract(request.getQuestion());
         log.debug("Graph context retrieved: {} entities", ctx.entityNames().size());
 
         // Step 2: Call LLM with enriched context
-        String answer = llmService.answer(request.question(), ctx.formattedContext());
+        String answer = llmService.answer(request.getQuestion(), ctx.formattedContext());
 
         // Step 3 (optional, off by default): groundedness/faithfulness check — costs one extra
         // LLM call per request, so it is gated behind app.rag.evaluate-groundedness.
@@ -58,15 +61,16 @@ public class GraphRAGService {
         long elapsed = System.currentTimeMillis() - start;
         log.info("RAG query completed in {}ms", elapsed);
 
-        return RagResponse.of(
-                request.question(),
-                answer,
-                ctx.formattedContext(),
-                ctx.entityNames(),
-                ctx.citations(),
-                groundedness,
-                elapsed
-        );
+        return RagResponse.builder()
+                .question(request.getQuestion())
+                .answer(answer)
+                .graphContext(ctx.formattedContext())
+                .relevantEntities(ctx.entityNames())
+                .citations(ctx.citations())
+                .groundedness(groundedness)
+                .processingTimeMs(elapsed)
+                .timestamp(OffsetDateTime.now(ZoneOffset.UTC))
+                .build();
     }
 
     /**

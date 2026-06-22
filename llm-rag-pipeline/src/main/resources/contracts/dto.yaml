@@ -1,0 +1,109 @@
+openapi: 3.0.3
+info:
+  title: llm-rag-pipeline com.org.dto DTOs
+  description: >
+    Schema-only OpenAPI contract used solely to drive openapi-generator-maven-plugin
+    model generation for the REST request/response DTOs in com.org.dto. There are
+    no paths defined here on purpose; the existing GenerationController/RetrievalController
+    classes remain hand-written. Citation is generated separately in com.org.retrieval.model
+    and re-imported here via importMapping so there is exactly one Citation class on the classpath.
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    GenerateRequest:
+      type: object
+      description: Request body for POST /api/v1/generate and POST /api/v1/generate/stream.
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          minLength: 1
+          description: >
+            Original validation: @NotBlank with no custom message (default Jakarta
+            message "must not be blank" will be used by the generated bean validation).
+        topK:
+          type: integer
+          format: int32
+          nullable: true
+          minimum: 1
+          exclusiveMinimum: true
+          description: >
+            Original validation: @Positive with no custom message (default Jakarta
+            message "must be greater than 0" will be used).
+        conversationId:
+          type: string
+          nullable: true
+          description: Optional conversation ID for multi-turn chat. Omit for single-turn (default).
+
+    GenerateResponse:
+      type: object
+      description: Response body for POST /api/v1/generate.
+      properties:
+        answer:
+          type: string
+          nullable: true
+        citations:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/Citation'
+        faithful:
+          type: boolean
+          nullable: true
+        fromSemanticCache:
+          type: boolean
+        insufficientContext:
+          type: boolean
+
+    RetrieveRequest:
+      type: object
+      description: Request body for POST /api/v1/retrieve.
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          minLength: 1
+          description: >
+            Original validation message "query must not be blank" is not representable
+            in OpenAPI bean-validation mapping and is lost; the default Jakarta message
+            will be used instead.
+        topK:
+          type: integer
+          format: int32
+          nullable: true
+          minimum: 1
+          exclusiveMinimum: true
+          description: >
+            Original validation message "topK must be positive when provided" is lost;
+            the default Jakarta message will be used instead.
+
+    Citation:
+      type: object
+      description: >
+        Placeholder schema so $ref resolution works; the actual class is NOT generated
+        here (see importMapping in pom.xml) — it is generated once in the
+        com.org.retrieval.model execution and reused via import.
+      properties:
+        source:
+          type: string
+          nullable: true
+        fileName:
+          type: string
+          nullable: true
+        identity:
+          type: string
+          nullable: true
+        page:
+          type: integer
+          format: int32
+          nullable: true
+        chunkIndex:
+          type: integer
+          format: int32
+        score:
+          type: number
+          format: double
+          nullable: true

@@ -61,7 +61,7 @@ public class BM25Retriever {
         double totalLength = 0;
 
         for (int i = 0; i < n; i++) {
-            String[] terms = tokenize(chunks.get(i).text());
+            String[] terms = tokenize(chunks.get(i).getText());
             docLengths[i] = terms.length;
             totalLength += terms.length;
 
@@ -116,10 +116,10 @@ public class BM25Retriever {
                 .map(i -> {
                     Chunk chunk = chunks.get(i);
                     Map<String, Object> metadata = new LinkedHashMap<>();
-                    metadata.put("source", chunk.source());
-                    metadata.put("chunkIndex", chunk.chunkIndex());
+                    metadata.put("source", chunk.getSource());
+                    metadata.put("chunkIndex", chunk.getChunkIndex());
                     metadata.put("score", Math.round(scores[i] * 1000.0) / 1000.0);
-                    return new Document(chunk.text(), metadata);
+                    return new Document(chunk.getText(), metadata);
                 })
                 .toList();
     }

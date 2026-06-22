@@ -1,0 +1,43 @@
+openapi: 3.0.3
+info:
+  title: llm-rag-pipeline com.org.lifecycle.model DTOs
+  description: >
+    Schema-only OpenAPI contract used solely to drive openapi-generator-maven-plugin
+    model generation for the REST request type in com.org.lifecycle.model. There are
+    no paths defined here on purpose; the existing LifecycleController class remains
+    hand-written. SourceType (com.org.lifecycle.model) stays a hand-written enum — it is
+    not a record and is out of scope for this conversion — and is re-imported here via
+    importMapping so there is exactly one SourceType class on the classpath (it lives in
+    the very same package as the generated KnowledgeRequest, so generating a duplicate
+    would collide on the classpath).
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    KnowledgeRequest:
+      type: object
+      description: Request to ingest or delete a knowledge source. Used by POST /api/v1/admin/lifecycle/ingest and DELETE /api/v1/admin/lifecycle/delete.
+      required:
+        - sourceType
+        - name
+      properties:
+        sourceType:
+          $ref: '#/components/schemas/SourceType'
+          description: 'Original validation message: "sourceType is required (PDF, WIKI or DATABASE)" is lost; default Jakarta message used instead.'
+        name:
+          type: string
+          minLength: 1
+          description: >
+            file name (PDF/WIKI) or table name (DATABASE) (required). Original validation
+            message "name is required" is lost; default Jakarta message used instead.
+
+    SourceType:
+      type: string
+      description: >
+        Placeholder schema so $ref resolution works; the actual class is NOT generated
+        here (see importMapping in pom.xml) — com.org.lifecycle.model.SourceType remains
+        the existing hand-written enum.
+      enum:
+        - PDF
+        - WIKI
+        - DATABASE

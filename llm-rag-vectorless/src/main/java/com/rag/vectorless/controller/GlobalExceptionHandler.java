@@ -1,5 +1,6 @@
 package com.rag.vectorless.controller;
 
+import com.rag.vectorless.exception.PageIndexProcessingException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -19,6 +20,17 @@ public class GlobalExceptionHandler {
         pd.setDetail(ex.getBindingResult().getFieldErrors().stream()
                 .map(e -> e.getField() + ": " + e.getDefaultMessage())
                 .collect(Collectors.joining(", ")));
+        return pd;
+    }
+
+    /**
+     * PageIndex document failed to process or didn't finish within the polling window.
+     */
+    @ExceptionHandler(PageIndexProcessingException.class)
+    public ProblemDetail handlePageIndexProcessing(PageIndexProcessingException ex) {
+        log.error("PageIndex processing failed", ex);
+        ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.INTERNAL_SERVER_ERROR);
+        pd.setDetail(ex.getMessage());
         return pd;
     }
 

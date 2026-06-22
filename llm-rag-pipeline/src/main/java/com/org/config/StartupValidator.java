@@ -1,5 +1,6 @@
 package com.org.config;
 
+import com.org.exception.EmbeddingDimensionMismatchException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.embedding.EmbeddingModel;
@@ -39,12 +40,12 @@ public class StartupValidator implements ApplicationRunner {
             int actual = embeddingModel.dimensions();
             int configuredDimensions = openSearchProperties.getDimensions();
             if (configuredDimensions > 0 && actual != configuredDimensions) {
-                throw new IllegalStateException("Embedding dimension mismatch: model reports " + actual
+                throw new EmbeddingDimensionMismatchException("Embedding dimension mismatch: model reports " + actual
                         + " but spring.ai.vectorstore.opensearch.dimensions=" + configuredDimensions
                         + ". Update the index dimension to match the embedding model.");
             }
             log.info("CONFIG | embedding dimension {} matches the OpenSearch index configuration", actual);
-        } catch (IllegalStateException mismatch) {
+        } catch (EmbeddingDimensionMismatchException mismatch) {
             throw mismatch;
         } catch (Exception e) {
             log.warn("CONFIG | could not verify embedding dimension ({}) — skipping check", e.getMessage());

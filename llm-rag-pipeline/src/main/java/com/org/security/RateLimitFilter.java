@@ -1,5 +1,6 @@
 package com.org.security;
 
+import com.org.exception.RateLimiterInitializationException;
 import com.org.web.ApiError;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -34,9 +35,10 @@ public class RateLimitFilter extends OncePerRequestFilter {
         try {
             return MessageDigest.getInstance("SHA-256");
         } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e);
+            throw new RateLimiterInitializationException(e);
         }
     });
+
     private final SecurityProperties properties;
     private final ObjectMapper objectMapper;
     private final ConcurrentHashMap<String, Bucket> buckets = new ConcurrentHashMap<>();

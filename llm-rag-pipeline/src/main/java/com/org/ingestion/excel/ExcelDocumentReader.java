@@ -1,5 +1,6 @@
 package com.org.ingestion.excel;
 
+import com.org.exception.ExcelReadException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
 import org.springframework.ai.document.Document;
@@ -47,7 +48,7 @@ public class ExcelDocumentReader implements DocumentReader {
                 }
             }
         } catch (Exception e) {
-            throw new IllegalStateException("Failed to read Excel workbook: " + e.getMessage(), e);
+            throw new ExcelReadException("Failed to read Excel workbook: " + e.getMessage(), e);
         }
         return documents;
     }

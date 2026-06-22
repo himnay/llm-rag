@@ -1,6 +1,7 @@
 package com.org.retrieval.rerank;
 
 import com.org.chunking.model.Chunk;
+import com.org.exception.RerankingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -70,10 +71,10 @@ public class LlmPointwiseReranker implements Reranker {
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new IllegalStateException("LLM pointwise reranking interrupted", e);
+            throw new RerankingException("LLM pointwise reranking interrupted", e);
         } catch (ExecutionException e) {
             // Propagate so RerankingPostProcessor fails open (and trips its circuit breaker).
-            throw new IllegalStateException("LLM pointwise grading failed: " + e.getCause().getMessage(), e.getCause());
+            throw new RerankingException("LLM pointwise grading failed: " + e.getCause().getMessage(), e.getCause());
         }
         List<Chunk> reranked = new ArrayList<>(chunks);
         reranked.sort(Comparator.comparingDouble(

@@ -1,0 +1,190 @@
+openapi: 3.0.3
+info:
+  title: llm-rag-graph DTOs
+  description: >
+    Schema-only OpenAPI contract used solely to drive openapi-generator-maven-plugin
+    model generation for the REST request/response DTOs of llm-rag-graph. There are
+    no paths defined here on purpose; the existing GraphController/RagController
+    classes remain hand-written.
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    RagRequest:
+      type: object
+      description: Request body for POST /api/rag/query.
+      required:
+        - question
+      properties:
+        question:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: >
+            Natural-language question. Original validation messages
+            ("Question must not be blank", "Question must not exceed 1000 characters")
+            are not representable in OpenAPI bean-validation mapping and are lost;
+            javax/jakarta default messages will be used instead.
+
+    Citation:
+      type: object
+      description: >
+        Provenance pointer back to the Neo4j node (and, where applicable, the
+        relationship traversed to reach it) that backs a line of graph context
+        handed to the LLM. All four properties are listed as required so the
+        generator emits a single all-args constructor matching the original
+        record's positional constructor; the values themselves remain
+        legitimately nullable at runtime (e.g. relationship is null for direct
+        full-text hits) — required here only controls constructor shape, not a
+        @NotNull runtime constraint semantics change from the original record.
+      required:
+        - nodeType
+        - nodeId
+        - nodeName
+        - relationship
+      properties:
+        nodeType:
+          type: string
+          description: Neo4j label, e.g. Employee | Department | Project | Technology
+        nodeId:
+          type: string
+          description: Internal Neo4j node id (as string) when known, else null.
+        nodeName:
+          type: string
+          description: node.name property.
+        relationship:
+          type: string
+          description: >
+            Relationship traversed to surface this node, e.g. REPORTS_TO | WORKS_ON |
+            HAS_TEAM | COLLABORATES_WITH; null for direct full-text hits.
+
+    RagResponse:
+      type: object
+      description: Response body for POST /api/rag/query.
+      required:
+        - question
+        - answer
+        - graphContext
+        - relevantEntities
+        - citations
+        - processingTimeMs
+        - timestamp
+      properties:
+        question:
+          type: string
+        answer:
+          type: string
+        graphContext:
+          type: string
+        relevantEntities:
+          type: array
+          items:
+            type: string
+        citations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Citation'
+        groundedness:
+          type: boolean
+        processingTimeMs:
+          type: integer
+          format: int64
+        timestamp:
+          type: string
+          format: date-time
+
+    GraphStats:
+      type: object
+      description: Response body for GET /api/graph/stats.
+      required:
+        - companies
+        - departments
+        - teams
+        - employees
+        - projects
+        - technologies
+        - totalNodes
+        - totalRelationships
+      properties:
+        companies:
+          type: integer
+          format: int64
+        departments:
+          type: integer
+          format: int64
+        teams:
+          type: integer
+          format: int64
+        employees:
+          type: integer
+          format: int64
+        projects:
+          type: integer
+          format: int64
+        technologies:
+          type: integer
+          format: int64
+        totalNodes:
+          type: integer
+          format: int64
+        totalRelationships:
+          type: integer
+          format: int64
+
+    GraphNode:
+      type: object
+      description: >
+        D3.js-compatible node entry, nested inside GraphExportDto. All properties
+        are required only to force a single all-args positional constructor
+        matching the original nested record; id/label/name remain nullable at
+        runtime and this DTO is never passed through @Valid.
+      required:
+        - id
+        - label
+        - name
+      properties:
+        id:
+          type: integer
+          format: int64
+        label:
+          type: string
+        name:
+          type: string
+
+    GraphLink:
+      type: object
+      description: >
+        D3.js-compatible link entry, nested inside GraphExportDto. All properties
+        are required only to force a single all-args positional constructor
+        matching the original nested record; this DTO is never passed through
+        @Valid so no runtime validation is actually triggered.
+      required:
+        - source
+        - target
+        - type
+      properties:
+        source:
+          type: integer
+          format: int64
+        target:
+          type: integer
+          format: int64
+        type:
+          type: string
+
+    GraphExportDto:
+      type: object
+      description: >
+        D3.js-compatible graph export payload for GET /api/graph/export?format=json.
+      required:
+        - nodes
+        - links
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/GraphNode'
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/GraphLink'

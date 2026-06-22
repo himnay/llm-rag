@@ -1,0 +1,116 @@
+openapi: 3.0.3
+info:
+  title: llm-rag-pipeline com.org.eval DTOs
+  description: >
+    Schema-only OpenAPI contract used solely to drive openapi-generator-maven-plugin
+    model generation for the REST response types in com.org.eval. There are no paths
+    defined here on purpose; the existing EvaluationController class remains hand-written.
+    Note: EvaluationReport.QueryResult was originally a record nested inside EvaluationReport
+    (referenced in code as EvaluationReport.QueryResult); OpenAPI has no nested-class concept,
+    so it is generated as a top-level QueryResult class in the same package and call sites
+    were rewritten to import/reference the unqualified QueryResult type.
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    EvaluationReport:
+      type: object
+      description: Aggregate retrieval-quality report produced by RetrievalEvaluator. Response body for POST /api/v1/admin/eval/run.
+      properties:
+        k:
+          type: integer
+          format: int32
+          description: cut-off used for precision@k / recall@k / hit-rate@k / nDCG@k
+        queries:
+          type: integer
+          format: int32
+          description: number of evaluated queries
+        mrr:
+          type: number
+          format: double
+          description: mean reciprocal rank
+        meanContextPrecision:
+          type: number
+          format: double
+          description: mean RAGAS-style context precision (a.k.a. MAP)
+        meanPrecisionAtK:
+          type: number
+          format: double
+          description: mean precision@k
+        meanRecallAtK:
+          type: number
+          format: double
+          description: mean (source-level) recall@k
+        meanHitRate:
+          type: number
+          format: double
+          description: mean hit rate@k — fraction of queries where at least one relevant chunk was retrieved
+        meanNdcg:
+          type: number
+          format: double
+          description: mean nDCG@k
+        perQuery:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/QueryResult'
+          description: per-query breakdown
+
+    QueryResult:
+      type: object
+      description: Per-query metrics, originally nested as EvaluationReport.QueryResult.
+      properties:
+        query:
+          type: string
+          nullable: true
+        retrieved:
+          type: integer
+          format: int32
+        relevantSourcesFound:
+          type: integer
+          format: int32
+        relevantSourcesExpected:
+          type: integer
+          format: int32
+        precisionAtK:
+          type: number
+          format: double
+        recallAtK:
+          type: number
+          format: double
+        reciprocalRank:
+          type: number
+          format: double
+        contextPrecision:
+          type: number
+          format: double
+        hitRate:
+          type: number
+          format: double
+        ndcg:
+          type: number
+          format: double
+
+    GenerationEvaluationReport:
+      type: object
+      description: Generation-quality report produced by GenerationEvaluator. Response body for POST /api/v1/admin/eval/run/generation.
+      properties:
+        question:
+          type: string
+          nullable: true
+          description: the original user question
+        answer:
+          type: string
+          nullable: true
+          description: the LLM-generated answer under evaluation
+        faithful:
+          type: boolean
+          description: true if every claim in the answer is supported by the retrieved context
+        relevant:
+          type: boolean
+          description: true if the answer addresses the user's question
+        contextSources:
+          type: array
+          nullable: true
+          items:
+            type: string

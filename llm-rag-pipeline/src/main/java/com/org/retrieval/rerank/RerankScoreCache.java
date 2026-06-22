@@ -1,5 +1,7 @@
 package com.org.retrieval.rerank;
 
+import com.org.exception.RerankingException;
+
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -39,7 +41,7 @@ final class RerankScoreCache {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             return HexFormat.of().formatHex(digest.digest(text.getBytes(StandardCharsets.UTF_8)));
         } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 unavailable", e);
+            throw new RerankingException("SHA-256 unavailable", e);
         }
     }
 

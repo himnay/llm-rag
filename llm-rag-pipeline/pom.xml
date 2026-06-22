@@ -207,6 +207,13 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Required at runtime by openapi-generator (spring) generated models even without nullable:true -->
+        <dependency>
+            <groupId>org.openapitools</groupId>
+            <artifactId>jackson-databind-nullable</artifactId>
+            <version>0.2.6</version>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -267,6 +274,139 @@
                         </exclude>
                     </excludes>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.openapitools</groupId>
+                <artifactId>openapi-generator-maven-plugin</artifactId>
+                <version>7.10.0</version>
+                <executions>
+                    <execution>
+                        <id>generate-dto-models</id>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/src/main/resources/contracts/dto.yaml</inputSpec>
+                            <generatorName>spring</generatorName>
+                            <output>${project.build.directory}/generated-sources</output>
+                            <generateApis>false</generateApis>
+                            <generateApiTests>false</generateApiTests>
+                            <generateApiDocumentation>false</generateApiDocumentation>
+                            <generateModelTests>false</generateModelTests>
+                            <generateModelDocumentation>false</generateModelDocumentation>
+                            <generateSupportingFiles>false</generateSupportingFiles>
+                            <modelPackage>com.org.dto</modelPackage>
+                            <importMappings>
+                                <importMapping>Citation=com.org.retrieval.model.Citation</importMapping>
+                            </importMappings>
+                            <schemaMappings>
+                                <schemaMapping>Citation=com.org.retrieval.model.Citation</schemaMapping>
+                            </schemaMappings>
+                            <configOptions>
+                                <useBeanValidation>true</useBeanValidation>
+                                <performBeanValidation>true</performBeanValidation>
+                                <java8>true</java8>
+                                <dateLibrary>java8</dateLibrary>
+                                <additionalModelTypeAnnotations>@lombok.Builder</additionalModelTypeAnnotations>
+                                <useJakartaEe>true</useJakartaEe>
+                                <booleanGetterPrefix>is</booleanGetterPrefix>
+                            </configOptions>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>generate-retrieval-model-models</id>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/src/main/resources/contracts/retrieval-model.yaml</inputSpec>
+                            <generatorName>spring</generatorName>
+                            <output>${project.build.directory}/generated-sources</output>
+                            <generateApis>false</generateApis>
+                            <generateApiTests>false</generateApiTests>
+                            <generateApiDocumentation>false</generateApiDocumentation>
+                            <generateModelTests>false</generateModelTests>
+                            <generateModelDocumentation>false</generateModelDocumentation>
+                            <generateSupportingFiles>false</generateSupportingFiles>
+                            <modelPackage>com.org.retrieval.model</modelPackage>
+                            <importMappings>
+                                <importMapping>Chunk=com.org.chunking.model.Chunk</importMapping>
+                            </importMappings>
+                            <schemaMappings>
+                                <schemaMapping>Chunk=com.org.chunking.model.Chunk</schemaMapping>
+                            </schemaMappings>
+                            <configOptions>
+                                <useBeanValidation>true</useBeanValidation>
+                                <performBeanValidation>true</performBeanValidation>
+                                <java8>true</java8>
+                                <dateLibrary>java8</dateLibrary>
+                                <additionalModelTypeAnnotations>@lombok.Builder</additionalModelTypeAnnotations>
+                                <useJakartaEe>true</useJakartaEe>
+                                <booleanGetterPrefix>is</booleanGetterPrefix>
+                            </configOptions>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>generate-eval-models</id>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/src/main/resources/contracts/eval.yaml</inputSpec>
+                            <generatorName>spring</generatorName>
+                            <output>${project.build.directory}/generated-sources</output>
+                            <generateApis>false</generateApis>
+                            <generateApiTests>false</generateApiTests>
+                            <generateApiDocumentation>false</generateApiDocumentation>
+                            <generateModelTests>false</generateModelTests>
+                            <generateModelDocumentation>false</generateModelDocumentation>
+                            <generateSupportingFiles>false</generateSupportingFiles>
+                            <modelPackage>com.org.eval</modelPackage>
+                            <configOptions>
+                                <useBeanValidation>true</useBeanValidation>
+                                <performBeanValidation>true</performBeanValidation>
+                                <java8>true</java8>
+                                <dateLibrary>java8</dateLibrary>
+                                <additionalModelTypeAnnotations>@lombok.Builder</additionalModelTypeAnnotations>
+                                <useJakartaEe>true</useJakartaEe>
+                                <booleanGetterPrefix>is</booleanGetterPrefix>
+                            </configOptions>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>generate-lifecycle-model-models</id>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/src/main/resources/contracts/lifecycle-model.yaml</inputSpec>
+                            <generatorName>spring</generatorName>
+                            <output>${project.build.directory}/generated-sources</output>
+                            <generateApis>false</generateApis>
+                            <generateApiTests>false</generateApiTests>
+                            <generateApiDocumentation>false</generateApiDocumentation>
+                            <generateModelTests>false</generateModelTests>
+                            <generateModelDocumentation>false</generateModelDocumentation>
+                            <generateSupportingFiles>false</generateSupportingFiles>
+                            <modelPackage>com.org.lifecycle.model</modelPackage>
+                            <importMappings>
+                                <importMapping>SourceType=com.org.lifecycle.model.SourceType</importMapping>
+                            </importMappings>
+                            <schemaMappings>
+                                <schemaMapping>SourceType=com.org.lifecycle.model.SourceType</schemaMapping>
+                            </schemaMappings>
+                            <configOptions>
+                                <useBeanValidation>true</useBeanValidation>
+                                <performBeanValidation>true</performBeanValidation>
+                                <java8>true</java8>
+                                <dateLibrary>java8</dateLibrary>
+                                <additionalModelTypeAnnotations>@lombok.Builder</additionalModelTypeAnnotations>
+                                <useJakartaEe>true</useJakartaEe>
+                                <booleanGetterPrefix>is</booleanGetterPrefix>
+                            </configOptions>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.jacoco</groupId>

@@ -1,5 +1,6 @@
 package com.rag.vectorless.rag;
 
+import com.rag.vectorless.exception.PageIndexProcessingException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -73,9 +74,9 @@ public class PageIndexClient {
             String s = (String) status.get("status");
             log.debug("doc {} status: {}", docId, s);
             if ("completed".equals(s)) return;
-            if ("failed".equals(s)) throw new RuntimeException("PageIndex processing failed for " + docId);
+            if ("failed".equals(s)) throw new PageIndexProcessingException("PageIndex processing failed for " + docId);
         }
-        throw new RuntimeException("Timeout waiting for PageIndex doc " + docId);
+        throw new PageIndexProcessingException("Timeout waiting for PageIndex doc " + docId);
     }
 
     /**
