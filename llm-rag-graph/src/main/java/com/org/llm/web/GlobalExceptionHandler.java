@@ -22,13 +22,6 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    private static ResponseEntity<ProblemDetail> problem(HttpStatus status, String title, String detail) {
-        ProblemDetail pd = ProblemDetail.forStatusAndDetail(status, detail);
-        pd.setTitle(title);
-        pd.setType(URI.create("about:blank"));
-        return ResponseEntity.status(status).body(pd);
-    }
-
     /**
      * Returns 400 with all field-level validation messages joined into one detail string.
      */
@@ -73,5 +66,12 @@ public class GlobalExceptionHandler {
         log.error("Unhandled error in graph module", ex);
         return problem(HttpStatus.INTERNAL_SERVER_ERROR, "Internal error",
                 "An unexpected error occurred. Please try again later.");
+    }
+
+    private static ResponseEntity<ProblemDetail> problem(HttpStatus status, String title, String detail) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(status, detail);
+        pd.setTitle(title);
+        pd.setType(URI.create("about:blank"));
+        return ResponseEntity.status(status).body(pd);
     }
 }

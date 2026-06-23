@@ -11,16 +11,16 @@ public class KnowledgeIdentity {
      */
     public static String from(KnowledgeRequest request) {
 
-        if (request.sourceType() == SourceType.PDF) {
-            return "PDF#" + request.name();
+        if (request.getSourceType() == SourceType.PDF) {
+            return "PDF#" + request.getName();
         }
 
-        if (request.sourceType() == SourceType.WIKI) {
-            return "WIKI#" + request.name();
+        if (request.getSourceType() == SourceType.WIKI) {
+            return "WIKI#" + request.getName();
         }
 
-        if (request.sourceType() == SourceType.DATABASE) {
-            return "DB#" + request.name();
+        if (request.getSourceType() == SourceType.DATABASE) {
+            return "DB#" + request.getName();
         }
 
         return "";

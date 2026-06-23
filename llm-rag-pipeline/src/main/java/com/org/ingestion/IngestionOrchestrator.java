@@ -27,15 +27,15 @@ public class IngestionOrchestrator {
      * returning an empty list for unrecognized source types.
      */
     public List<IngestedDocument> ingest(KnowledgeRequest request) throws IOException {
-        SourceType source = request.sourceType();
+        SourceType source = request.getSourceType();
         if (source.equals(SourceType.PDF)) {
-            return pdfIngestionService.ingest(request.name());
+            return pdfIngestionService.ingest(request.getName());
         }
         if (source.equals(SourceType.WIKI)) {
-            return wikiIngestionService.ingest(request.name());
+            return wikiIngestionService.ingest(request.getName());
         }
         if (source.equals(SourceType.DATABASE)) {
-            return databaseIngestionService.ingest(request.name());
+            return databaseIngestionService.ingest(request.getName());
         }
         return Collections.emptyList();
     }

@@ -23,10 +23,6 @@ public class BusinessRuleFilter implements RetrievalPostProcessor {
     private static final DateTimeFormatter DATE_FORMAT =
             DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH);
 
-    private static String str(Object value) {
-        return Objects.toString(value, "");
-    }
-
     @Override
     public int getOrder() {
         return 10;
@@ -35,6 +31,10 @@ public class BusinessRuleFilter implements RetrievalPostProcessor {
     @Override
     public List<Chunk> process(String query, List<Chunk> chunks) {
         return chunks.stream().filter(this::isAllowed).collect(Collectors.toList());
+    }
+
+    private static String str(Object value) {
+        return Objects.toString(value, "");
     }
 
     private boolean isAllowed(Chunk chunk) {

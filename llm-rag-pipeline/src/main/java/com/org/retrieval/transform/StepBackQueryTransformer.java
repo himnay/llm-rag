@@ -3,8 +3,13 @@ package com.org.retrieval.transform;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StreamUtils;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
@@ -21,12 +26,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class StepBackQueryTransformer implements QueryTransformer {
 
-    private static final String SYSTEM = """
-                                            You are a research assistant. Given a specific question, generate a more general version
-                                            that captures the broader concept or background knowledge needed to answer it.
-                                            This general version will be used to retrieve relevant background context.
-                                            Return ONLY the general question, nothing else.
-                                        """;
+    private static final String SYSTEM = loadResource("prompts/step-back-system.st");
 
     private final ChatClient chatClient;
 
@@ -49,6 +49,14 @@ public class StepBackQueryTransformer implements QueryTransformer {
         } catch (Exception e) {
             log.warn("StepBack transformation failed ({}), using original query", e.getMessage());
             return List.of(query);
+        }
+    }
+
+    private static String loadResource(String path) {
+        try {
+            return StreamUtils.copyToString(new ClassPathResource(path).getInputStream(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Could not load " + path, e);
         }
     }
 }

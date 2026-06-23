@@ -52,7 +52,7 @@ public class PromptAugmenter {
      * {@code ContextSufficiencyJudge}.
      */
     public Augmented augment(String userQuestion, RetrievalResult retrievalResult) {
-        List<Document> documents = retrievalResult.chunks().stream().map(PromptAugmenter::toDocument).toList();
+        List<Document> documents = retrievalResult.getChunks().orElse(List.of()).stream().map(PromptAugmenter::toDocument).toList();
         String context = formatContext(documents);
         Query augmented = queryAugmenter.augment(new Query(userQuestion), documents);
         return new Augmented(context, augmented.text());

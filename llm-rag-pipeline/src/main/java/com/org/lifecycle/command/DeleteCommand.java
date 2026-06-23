@@ -17,6 +17,6 @@ public class DeleteCommand implements IngestionCommand {
 
     @Override
     public String describe() {
-        return "DeleteCommand[source=" + request.sourceType() + ", name=" + request.name() + "]";
+        return "DeleteCommand[source=" + request.getSourceType() + ", name=" + request.getName() + "]";
     }
 }

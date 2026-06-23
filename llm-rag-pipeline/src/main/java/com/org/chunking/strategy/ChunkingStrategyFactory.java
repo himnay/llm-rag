@@ -20,12 +20,6 @@ public class ChunkingStrategyFactory {
     private final List<ChunkingStrategy> strategyList;
     private Map<String, ChunkingStrategy> strategies;
 
-    @PostConstruct
-    void init() {
-        strategies = strategyList.stream()
-                .collect(Collectors.toMap(s -> s.name().toLowerCase(Locale.ROOT), Function.identity()));
-    }
-
     /**
      * Looks up a strategy by name (case-insensitive).
      *
@@ -44,5 +38,11 @@ public class ChunkingStrategyFactory {
      */
     public boolean has(String name) {
         return name != null && strategies.containsKey(name.toLowerCase(Locale.ROOT));
+    }
+
+    @PostConstruct
+    void init() {
+        strategies = strategyList.stream()
+                .collect(Collectors.toMap(s -> s.name().toLowerCase(Locale.ROOT), Function.identity()));
     }
 }

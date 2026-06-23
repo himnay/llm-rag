@@ -25,20 +25,6 @@ public class SemanticChunkingStrategy extends AbstractChunkingStrategy {
     private final ChunkingProperties properties;
     private final EmbeddingCacheService embeddingCacheService;
 
-    private static List<String> splitSentences(String text) {
-        List<String> sentences = new ArrayList<>();
-        for (String s : text.split("(?<=[.!?])\\s+|\\n{2,}")) {
-            if (!s.isBlank()) {
-                sentences.add(s.strip());
-            }
-        }
-        return sentences;
-    }
-
-    private static double cosine(float[] a, float[] b) {
-        return VectorMath.cosine(a, b);
-    }
-
     /**
      * {@inheritDoc}
      */
@@ -78,5 +64,19 @@ public class SemanticChunkingStrategy extends AbstractChunkingStrategy {
         }
         chunks.add(current.toString());
         return toChunks(document, chunks);
+    }
+
+    private static List<String> splitSentences(String text) {
+        List<String> sentences = new ArrayList<>();
+        for (String s : text.split("(?<=[.!?])\\s+|\\n{2,}")) {
+            if (!s.isBlank()) {
+                sentences.add(s.strip());
+            }
+        }
+        return sentences;
+    }
+
+    private static double cosine(float[] a, float[] b) {
+        return VectorMath.cosine(a, b);
     }
 }

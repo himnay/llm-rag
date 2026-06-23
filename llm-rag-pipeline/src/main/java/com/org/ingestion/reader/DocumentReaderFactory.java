@@ -31,11 +31,6 @@ public class DocumentReaderFactory {
                 .collect(Collectors.toMap(DocumentReaderStrategy::documentType, Function.identity()));
     }
 
-    private static String extension(String fileName) {
-        int dot = fileName.lastIndexOf('.');
-        return dot < 0 ? "" : fileName.substring(dot + 1).toLowerCase(Locale.ROOT);
-    }
-
     /**
      * Returns {@code true} when the factory has a registered strategy for this file's extension.
      */
@@ -67,5 +62,10 @@ public class DocumentReaderFactory {
         }
         log.info("Read {} segment(s) from {} (type={})", result.size(), fileName, type);
         return result;
+    }
+
+    private static String extension(String fileName) {
+        int dot = fileName.lastIndexOf('.');
+        return dot < 0 ? "" : fileName.substring(dot + 1).toLowerCase(Locale.ROOT);
     }
 }

@@ -16,7 +16,7 @@ class PromptAugmenterTest {
     private final PromptAugmenter augmenter = new PromptAugmenter();
 
     private static RetrievalResult resultOf(Chunk... chunks) {
-        return new RetrievalResult(List.of(chunks), List.of());
+        return new RetrievalResult().chunks(List.of(chunks)).citations(List.of());
     }
 
     @Test
@@ -86,8 +86,8 @@ class PromptAugmenterTest {
         // Citation list, which could misalign after dedup. The augmenter reads headers straight
         // off each chunk's own metadata, so it behaves correctly even with no Citation objects.
         Chunk chunk = new Chunk("PDF", "content", Map.of("source", "PDF", "fileName", "doc.pdf"), 0);
-        RetrievalResult result = new RetrievalResult(List.of(chunk), List.of(
-                new Citation("UNRELATED", "other.pdf", "other", 99, 5, null)));
+        RetrievalResult result = new RetrievalResult().chunks(List.of(chunk)).citations(List.of(
+                new Citation().source("UNRELATED").fileName("other.pdf").identity("other").page(99).chunkIndex(5).score(null)));
 
         PromptAugmenter.Augmented augmented = augmenter.augment("query", result);
 

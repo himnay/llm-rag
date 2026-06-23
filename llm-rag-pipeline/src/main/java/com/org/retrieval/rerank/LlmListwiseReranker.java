@@ -4,11 +4,14 @@ import com.org.chunking.model.Chunk;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.prompt.PromptTemplate;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -24,14 +27,8 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class LlmListwiseReranker implements Reranker {
 
-    private static final String PROMPT = """
-            You rank search results. Order the documents below from most to least relevant \
-            to the query. Include every document index exactly once.
-
-            Query: %s
-
-            %s
-            """;
+    private static final PromptTemplate PROMPT_TEMPLATE =
+            new PromptTemplate(new ClassPathResource("prompts/listwise-rerank.st"));
 
     private final ChatClient chatClient;
 
@@ -54,7 +51,7 @@ public class LlmListwiseReranker implements Reranker {
                     .append(LlmPointwiseReranker.truncate(chunks.get(i).content())).append("\n\n");
         }
         RankedOrder order = chatClient.prompt()
-                .user(PROMPT.formatted(query, documents))
+                .user(PROMPT_TEMPLATE.render(Map.of("query", query, "documents", documents.toString())))
                 .call()
                 .entity(RankedOrder.class, spec -> spec.useProviderStructuredOutput());
 

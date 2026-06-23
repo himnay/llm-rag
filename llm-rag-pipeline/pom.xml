@@ -307,7 +307,6 @@
                                 <performBeanValidation>true</performBeanValidation>
                                 <java8>true</java8>
                                 <dateLibrary>java8</dateLibrary>
-                                <additionalModelTypeAnnotations>@lombok.Builder</additionalModelTypeAnnotations>
                                 <useJakartaEe>true</useJakartaEe>
                                 <booleanGetterPrefix>is</booleanGetterPrefix>
                             </configOptions>
@@ -340,7 +339,6 @@
                                 <performBeanValidation>true</performBeanValidation>
                                 <java8>true</java8>
                                 <dateLibrary>java8</dateLibrary>
-                                <additionalModelTypeAnnotations>@lombok.Builder</additionalModelTypeAnnotations>
                                 <useJakartaEe>true</useJakartaEe>
                                 <booleanGetterPrefix>is</booleanGetterPrefix>
                             </configOptions>
@@ -367,7 +365,6 @@
                                 <performBeanValidation>true</performBeanValidation>
                                 <java8>true</java8>
                                 <dateLibrary>java8</dateLibrary>
-                                <additionalModelTypeAnnotations>@lombok.Builder</additionalModelTypeAnnotations>
                                 <useJakartaEe>true</useJakartaEe>
                                 <booleanGetterPrefix>is</booleanGetterPrefix>
                             </configOptions>

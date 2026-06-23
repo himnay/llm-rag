@@ -3,7 +3,11 @@ package com.org.eval;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.prompt.PromptTemplate;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
+
+import java.util.Map;
 
 /**
  * Pre-generation LLM-as-judge: decides whether retrieved context is sufficient to answer a query,
@@ -19,14 +23,8 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class ContextSufficiencyJudge {
 
-    private static final String PROMPT = """
-            You are judging whether the CONTEXT below contains enough information to answer the QUESTION.
-
-            QUESTION: %s
-
-            CONTEXT:
-            %s
-            """;
+    private static final PromptTemplate PROMPT_TEMPLATE =
+            new PromptTemplate(new ClassPathResource("prompts/context-sufficiency-judge.st"));
 
     private final ChatClient chatClient;
 
@@ -42,7 +40,7 @@ public class ContextSufficiencyJudge {
         }
         try {
             SufficiencyVerdict verdict = chatClient.prompt()
-                    .user(PROMPT.formatted(query, context))
+                    .user(PROMPT_TEMPLATE.render(Map.of("question", query, "context", context)))
                     .call()
                     .entity(SufficiencyVerdict.class, spec -> spec.useProviderStructuredOutput());
             if (verdict == null) {

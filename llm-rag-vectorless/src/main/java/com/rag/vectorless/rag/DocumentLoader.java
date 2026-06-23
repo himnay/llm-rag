@@ -41,6 +41,10 @@ public class DocumentLoader {
         log.info("Loaded {} chunks from {} document(s)", chunks.size(), resources.length);
     }
 
+    public List<Chunk> getChunks() {
+        return Collections.unmodifiableList(chunks);
+    }
+
     private List<String> splitIntoChunks(String text) {
         List<String> result = new ArrayList<>();
         int start = 0;
@@ -70,9 +74,5 @@ public class DocumentLoader {
         }
 
         return result;
-    }
-
-    public List<Chunk> getChunks() {
-        return Collections.unmodifiableList(chunks);
     }
 }

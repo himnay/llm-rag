@@ -14,10 +14,6 @@ public class ChunkRankingComparator implements Comparator<Chunk> {
     private static final DateTimeFormatter DATE_FORMAT =
             DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH);
 
-    private static String str(Object value) {
-        return Objects.toString(value, "");
-    }
-
     /**
      * Orders chunks by source priority (PDF &gt; DB &gt; WIKI &gt; other), then DB table priority,
      * then recency (newer first) — used as a tie-breaker after relevance scoring.
@@ -47,6 +43,10 @@ public class ChunkRankingComparator implements Comparator<Chunk> {
         }
 
         return 0;
+    }
+
+    private static String str(Object value) {
+        return Objects.toString(value, "");
     }
 
     private LocalDate extractRelevantDate(Chunk chunk) {

@@ -5,7 +5,11 @@ import com.org.retrieval.transform.QueryTransformMode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.prompt.PromptTemplate;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
+
+import java.util.Map;
 
 /**
  * LLM-based per-query retrieval routing: one call decides both {@link SearchMode} and
@@ -26,23 +30,8 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class RetrievalStrategyClassifier {
 
-    private static final String PROMPT = """
-            Choose the best retrieval strategy for the QUERY below.
-
-            Search mode:
-              vector: semantic / paraphrased natural-language questions
-              keyword: exact terms — error codes, IDs, names
-              hybrid: queries that mix natural language and exact terms
-
-            Query transform:
-              none: query is already a clean, specific search query
-              rewrite: query is ungrammatical, abbreviated, or conversationally phrased
-              multi_query: broad/ambiguous query that could be phrased several ways
-              hyde: sparse or technical domain where a hypothetical answer embeds better than the query
-              step_back: overly narrow or multi-hop query that needs broader context first
-
-            QUERY: %s
-            """;
+    private static final PromptTemplate PROMPT_TEMPLATE =
+            new PromptTemplate(new ClassPathResource("prompts/retrieval-strategy-classifier.st"));
 
     private final ChatClient chatClient;
     private final RetrievalProperties properties;
@@ -52,7 +41,7 @@ public class RetrievalStrategyClassifier {
         QueryTransformMode fallbackTransform = properties.getQueryTransform().getMode();
         try {
             RetrievalStrategy strategy = chatClient.prompt()
-                    .user(PROMPT.formatted(query))
+                    .user(PROMPT_TEMPLATE.render(Map.of("query", query)))
                     .call()
                     .entity(RetrievalStrategy.class, spec -> spec.useProviderStructuredOutput());
 

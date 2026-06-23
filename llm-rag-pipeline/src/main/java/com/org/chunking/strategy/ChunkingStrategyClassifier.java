@@ -4,9 +4,12 @@ import com.org.ingestion.model.IngestedDocument;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.prompt.PromptTemplate;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -22,13 +25,8 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class ChunkingStrategyClassifier {
 
-    private static final String PROMPT = """
-            Choose the single best chunking strategy for the following document.
-
-            Source type: %s
-            Document excerpt:
-            %s
-            """;
+    private static final PromptTemplate PROMPT_TEMPLATE =
+            new PromptTemplate(new ClassPathResource("prompts/chunking-strategy-classifier.st"));
 
     private final ChatClient chatClient;
     private final ChunkingProperties properties;
@@ -58,7 +56,7 @@ public class ChunkingStrategyClassifier {
             String excerpt = content.length() > sampleChars ? content.substring(0, sampleChars) : content;
 
             StrategyDecision decision = chatClient.prompt()
-                    .user(PROMPT.formatted(document.source(), excerpt))
+                    .user(PROMPT_TEMPLATE.render(Map.of("sourceType", document.source(), "excerpt", excerpt)))
                     .call()
                     .entity(StrategyDecision.class, spec -> spec.useProviderStructuredOutput());
 

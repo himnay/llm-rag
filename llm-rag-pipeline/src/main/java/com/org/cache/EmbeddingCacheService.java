@@ -33,10 +33,6 @@ public class EmbeddingCacheService {
     private final Map<String, CachedVector> lruOrder = new LinkedHashMap<>(64, 0.75f, true);
     private final ConcurrentHashMap<String, CachedVector> cache = new ConcurrentHashMap<>();
 
-    private static String sha256(String text) {
-        return DigestUtils.sha256Hex(text);
-    }
-
     /**
      * Embed a single text string, returning the cached vector if available.
      */
@@ -108,6 +104,10 @@ public class EmbeddingCacheService {
                 cache.remove(eldest);
             }
         }
+    }
+
+    private static String sha256(String text) {
+        return DigestUtils.sha256Hex(text);
     }
 
     private record CachedVector(float[] vector, long expiresAtMillis) {

@@ -392,6 +392,35 @@ app:
         cooldown: 30s
 ```
 
+`default-top-k` is the contract with the caller — how many chunks end up in the final
+`RetrievalResult` (and thus the LLM context / citations). `over-fetch-factor` is a separate,
+internal knob: the search strategy actually fetches `topK * over-fetch-factor` candidates
+(`RetrievalService.retrieve`), and only after the post-processing chain (business rules → length
+filter → dedup → rerank → MMR) runs does the result get trimmed back down to `topK`.
+
+This is intentional, not redundant with raising `topK` directly: post-processing discards
+candidates (dedup drops near-duplicates, rerank/MMR reorders and drops low scorers), so fetching
+exactly `topK` raw candidates risks ending up with fewer than `topK` *good* results even when
+better matches existed further down the ranked list. Over-fetching gives the ranking pipeline a
+wider pool to choose the best `topK` from, without changing how many chunks are actually delivered
+downstream. Raising `topK` instead would send more (and weaker) chunks straight into the LLM
+prompt and citations — more tokens, more hallucination risk, for every request — rather than just
+giving the internal ranking step more candidates to pick from.
+
+**`search.mode` values** (`SearchMode`, `RetrievalService`):
+- `vector` — dense cosine-similarity kNN against the OpenSearch vector index (`VectorSearchStrategy`). Best for semantic/paraphrased natural-language queries where the answer may not share exact wording with the query. Default mode.
+- `keyword` — pure lexical BM25 `match` query on chunk content, no embedding call (`KeywordSearchStrategy`). Best when the query contains exact terms that must match literally — error codes, IDs, product names, acronyms — where semantic similarity can drift away from the precise term.
+- `hybrid` — runs `vector` and `keyword` independently, then fuses the two ranked lists via Reciprocal Rank Fusion (`HybridSearchStrategy`, `K=60`). Best for mixed queries that combine natural language with specific terms (e.g. "why does error E1234 happen during checkout"), where neither pure-semantic nor pure-lexical search alone covers both halves well.
+
+**`query-transform.mode` values** (`QueryTransformMode`, `QueryTransformationService`):
+- `NONE` — query is sent to search unchanged, no LLM call. Use when the query is already a clean, specific, standalone search query.
+- `REWRITE` — one LLM call cleans up a conversational/abbreviated/ungrammatical query into a standalone search query before retrieval. Use for chat-style input where the raw user phrasing is messy but the underlying intent is singular and clear.
+- `MULTI_QUERY` — one LLM call generates `multi-query-count` (default 3) paraphrased variants plus the original; retrieval runs separately per variant and results are merged/deduped by document id. Use for broad or ambiguous queries that could reasonably be phrased several different ways, where any single phrasing risks missing relevant chunks.
+- `HYDE` — one LLM call writes a short hypothetical passage that would plausibly answer the query, and that passage (not the original query) is embedded and searched. Use for sparse or technical-domain queries where a hypothetical answer's wording is likely closer to the real answer's wording than the question itself is — short questions over jargon-heavy content benefit most.
+- `STEP_BACK` — one LLM call generalizes the query into a broader/more abstract version, which is searched instead of the original. Use for overly narrow or multi-hop questions that need broader background context pulled in before the specific answer can be grounded.
+
+All four LLM-backed transforms fail open (fall back to the original query) on any LLM error, so a transform failure degrades to `NONE` rather than failing the request. `app.retrieval.classifier.enabled` (off by default) replaces the static `search.mode` + `query-transform.mode` config with a single LLM call per query that picks both together using the same heuristics described above; on failure it falls back to the statically configured defaults.
+
 ### Generation
 
 ```yaml

@@ -30,16 +30,6 @@ public class LlmChunkingStrategy extends AbstractChunkingStrategy {
     private final ChatClient chatClient;
     private String systemPrompt;
 
-    @PostConstruct
-    void init() {
-        try {
-            systemPrompt = StreamUtils.copyToString(
-                    new ClassPathResource("prompts/chunking-system.st").getInputStream(), StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            throw new UncheckedIOException("Could not load chunking-system.st", e);
-        }
-    }
-
     /**
      * {@inheritDoc}
      */
@@ -67,6 +57,16 @@ public class LlmChunkingStrategy extends AbstractChunkingStrategy {
         } catch (Exception e) {
             log.warn("LLM chunking failed ({}), falling back to single chunk", e.getMessage());
             return toChunks(document, List.of(document.content()));
+        }
+    }
+
+    @PostConstruct
+    void init() {
+        try {
+            systemPrompt = StreamUtils.copyToString(
+                    new ClassPathResource("prompts/chunking-system.st").getInputStream(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Could not load chunking-system.st", e);
         }
     }
 }

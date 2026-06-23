@@ -5,11 +5,14 @@ import com.org.exception.RerankingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.prompt.PromptTemplate;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -33,15 +36,8 @@ public class LlmPointwiseReranker implements Reranker {
 
     static final int MAX_DOC_CHARS = 1500;
 
-    private static final String PROMPT = """
-            You grade search results. Rate how relevant the document is to the query \
-            on a scale of 0 (irrelevant) to 100 (perfectly answers it).
-
-            Query: %s
-
-            Document:
-            %s
-            """;
+    private static final PromptTemplate PROMPT_TEMPLATE =
+            new PromptTemplate(new ClassPathResource("prompts/pointwise-rerank.st"));
 
     private final ChatClient chatClient;
 
@@ -49,10 +45,6 @@ public class LlmPointwiseReranker implements Reranker {
      * Structured-output target for {@link #grade}. Package-private so the test can construct one.
      */
     record RelevanceGrade(int score) {
-    }
-
-    static String truncate(String content) {
-        return content.length() <= MAX_DOC_CHARS ? content : content.substring(0, MAX_DOC_CHARS);
     }
 
     @Override
@@ -84,7 +76,7 @@ public class LlmPointwiseReranker implements Reranker {
 
     private double grade(String query, Chunk chunk) {
         RelevanceGrade grade = chatClient.prompt()
-                .user(PROMPT.formatted(query, truncate(chunk.content())))
+                .user(PROMPT_TEMPLATE.render(Map.of("query", query, "document", truncate(chunk.content()))))
                 .call()
                 .entity(RelevanceGrade.class, spec -> spec.useProviderStructuredOutput());
         if (grade == null) {
@@ -92,5 +84,9 @@ public class LlmPointwiseReranker implements Reranker {
             return 0;
         }
         return Math.min(100, Math.max(0, grade.score())) / 100.0;
+    }
+
+    static String truncate(String content) {
+        return content.length() <= MAX_DOC_CHARS ? content : content.substring(0, MAX_DOC_CHARS);
     }
 }

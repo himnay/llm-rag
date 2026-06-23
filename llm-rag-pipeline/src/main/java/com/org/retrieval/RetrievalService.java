@@ -43,46 +43,6 @@ public class RetrievalService {
     private final Map<SearchMode, SearchStrategy> searchStrategies = new EnumMap<>(SearchMode.class);
     private List<RetrievalPostProcessor> postProcessors;
 
-    private static Integer pageOf(Map<String, Object> metadata) {
-        Object page = metadata.getOrDefault("page_number", metadata.get("page"));
-        if (page instanceof Number n) {
-            return n.intValue();
-        }
-        try {
-            return page == null ? null : Integer.valueOf(page.toString());
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
-
-    private static Double scoreOf(Map<String, Object> metadata) {
-        Object score = metadata.get(RetrievalPostProcessor.SCORE_KEY);
-        return score instanceof Number n ? n.doubleValue() : null;
-    }
-
-    private static int parseInt(Object value) {
-        if (value instanceof Number n) {
-            return n.intValue();
-        }
-        try {
-            return value == null ? 0 : Integer.parseInt(value.toString());
-        } catch (NumberFormatException e) {
-            return 0;
-        }
-    }
-
-    private static String str(Object value) {
-        return Objects.toString(value, "");
-    }
-
-    @PostConstruct
-    void init() {
-        searchStrategyList.forEach(s -> searchStrategies.put(s.mode(), s));
-        postProcessors = rawPostProcessors.stream()
-                .sorted(Comparator.comparingInt(RetrievalPostProcessor::getOrder))
-                .toList();
-    }
-
     /**
      * Retrieve using the configured default {@code topK}.
      */
@@ -134,7 +94,47 @@ public class RetrievalService {
         if (chunks.size() > k) {
             chunks = new ArrayList<>(chunks.subList(0, k));
         }
-        return new RetrievalResult(chunks, toCitations(chunks));
+        return new RetrievalResult().chunks(chunks).citations(toCitations(chunks));
+    }
+
+    private static Integer pageOf(Map<String, Object> metadata) {
+        Object page = metadata.getOrDefault("page_number", metadata.get("page"));
+        if (page instanceof Number n) {
+            return n.intValue();
+        }
+        try {
+            return page == null ? null : Integer.valueOf(page.toString());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static Double scoreOf(Map<String, Object> metadata) {
+        Object score = metadata.get(RetrievalPostProcessor.SCORE_KEY);
+        return score instanceof Number n ? n.doubleValue() : null;
+    }
+
+    private static int parseInt(Object value) {
+        if (value instanceof Number n) {
+            return n.intValue();
+        }
+        try {
+            return value == null ? 0 : Integer.parseInt(value.toString());
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    private static String str(Object value) {
+        return Objects.toString(value, "");
+    }
+
+    @PostConstruct
+    void init() {
+        searchStrategyList.forEach(s -> searchStrategies.put(s.mode(), s));
+        postProcessors = rawPostProcessors.stream()
+                .sorted(Comparator.comparingInt(RetrievalPostProcessor::getOrder))
+                .toList();
     }
 
     /**
@@ -174,10 +174,13 @@ public class RetrievalService {
             String identity = str(m.get("identity"));
             Integer page = pageOf(m);
             String key = identity + "#" + page + "#" + chunk.chunkIndex();
-            seen.putIfAbsent(key, new Citation(
-                    chunk.source(), str(m.get("fileName")),
-                    identity.isEmpty() ? null : identity,
-                    page, chunk.chunkIndex(), scoreOf(m)));
+            seen.putIfAbsent(key, new Citation()
+                    .source(chunk.source())
+                    .fileName(str(m.get("fileName")))
+                    .identity(identity.isEmpty() ? null : identity)
+                    .page(page)
+                    .chunkIndex(chunk.chunkIndex())
+                    .score(scoreOf(m)));
         }
         return new ArrayList<>(seen.values());
     }

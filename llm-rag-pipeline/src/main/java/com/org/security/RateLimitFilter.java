@@ -43,12 +43,6 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private final ObjectMapper objectMapper;
     private final ConcurrentHashMap<String, Bucket> buckets = new ConcurrentHashMap<>();
 
-    private static String sha256(String value) {
-        MessageDigest md = SHA256.get();
-        md.reset();
-        return HexFormat.of().formatHex(md.digest(value.getBytes(StandardCharsets.UTF_8)));
-    }
-
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         return !properties.getRateLimit().isEnabled() || !request.getRequestURI().startsWith(PREFIX);
@@ -67,6 +61,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
         objectMapper.writeValue(response.getWriter(),
                 ApiError.of(HttpStatus.TOO_MANY_REQUESTS.value(), "Too Many Requests",
                         "Rate limit exceeded — slow down and retry"));
+    }
+
+    private static String sha256(String value) {
+        MessageDigest md = SHA256.get();
+        md.reset();
+        return HexFormat.of().formatHex(md.digest(value.getBytes(StandardCharsets.UTF_8)));
     }
 
     private String clientKey(HttpServletRequest request) {

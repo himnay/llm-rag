@@ -28,18 +28,6 @@ public class OcrPdfAugmenter {
 
     private final OcrService ocrService;
 
-    private static Integer intMeta(Document document, String key) {
-        Object value = document.getMetadata().get(key);
-        if (value instanceof Number n) {
-            return n.intValue();
-        }
-        try {
-            return value == null ? null : Integer.valueOf(value.toString());
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
-
     /**
      * Replaces near-empty page text with OCR'd text for scanned pages; returns {@code pages}
      * unchanged when OCR is disabled, there are no pages, or augmentation fails.
@@ -79,6 +67,18 @@ public class OcrPdfAugmenter {
         } catch (Exception e) {
             log.warn("OCR augmentation failed ({}) — using text-extracted pages as-is", e.getMessage());
             return pages;
+        }
+    }
+
+    private static Integer intMeta(Document document, String key) {
+        Object value = document.getMetadata().get(key);
+        if (value instanceof Number n) {
+            return n.intValue();
+        }
+        try {
+            return value == null ? null : Integer.valueOf(value.toString());
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
 }

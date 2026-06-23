@@ -32,11 +32,6 @@ public class ChunkDocumentRepository {
 
     private final MongoTemplate mongoTemplate;
 
-    @PostConstruct
-    void init() {
-        mongoTemplate.indexOps(COLLECTION).ensureIndex(new Index("identity", Sort.Direction.ASC));
-    }
-
     /**
      * Upserts a batch of chunk documents in one round-trip.
      */
@@ -82,5 +77,10 @@ public class ChunkDocumentRepository {
 
     public void deleteAll() {
         mongoTemplate.remove(new Query(), COLLECTION);
+    }
+
+    @PostConstruct
+    void init() {
+        mongoTemplate.indexOps(COLLECTION).ensureIndex(new Index("identity", Sort.Direction.ASC));
     }
 }

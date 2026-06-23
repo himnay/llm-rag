@@ -56,20 +56,6 @@ public class RetrievalEvaluator {
         Gauge.builder("rag.eval.ndcg", gauges, g -> g.ndcg).register(meterRegistry);
     }
 
-    private static String str(Object value) {
-        return Objects.toString(value, "");
-    }
-
-    @PostConstruct
-    void logGoldSetSize() {
-        try {
-            log.info("Retrieval evaluator initialised with {} gold queries from {}",
-                    loadGoldSet().size(), QRELS_PATH);
-        } catch (Exception e) {
-            log.warn("Could not load gold set {} at startup: {}", QRELS_PATH, e.getMessage());
-        }
-    }
-
     /**
      * Loads the gold evaluation set from the classpath.
      */
@@ -87,7 +73,7 @@ public class RetrievalEvaluator {
     public EvaluationReport evaluate(int k) throws IOException {
         List<QueryRelevance> goldSet = loadGoldSet();
 
-        List<EvaluationReport.QueryResult> perQuery = new ArrayList<>();
+        List<QueryResult> perQuery = new ArrayList<>();
         List<Double> rrs = new ArrayList<>();
         List<Double> cps = new ArrayList<>();
         List<Double> ps = new ArrayList<>();
@@ -96,7 +82,7 @@ public class RetrievalEvaluator {
         List<Double> ndcgs = new ArrayList<>();
 
         for (QueryRelevance gold : goldSet) {
-            List<Chunk> chunks = retrievalService.retrieve(gold.query()).chunks();
+            List<Chunk> chunks = retrievalService.retrieve(gold.query()).getChunks().orElse(List.of());
 
             List<Boolean> rel = new ArrayList<>(chunks.size());
             Set<String> relevantSourcesFound = new LinkedHashSet<>();
@@ -126,29 +112,52 @@ public class RetrievalEvaluator {
             hrs.add(hr);
             ndcgs.add(ndcg);
 
-            perQuery.add(new EvaluationReport.QueryResult(
-                    gold.query(), chunks.size(), relevantSourcesFound.size(), expectedSources,
-                    precision, recall, rr, cp, hr, ndcg));
+            perQuery.add(new QueryResult()
+                    .query(gold.query())
+                    .retrieved(chunks.size())
+                    .relevantSourcesFound(relevantSourcesFound.size())
+                    .relevantSourcesExpected(expectedSources)
+                    .precisionAtK(precision)
+                    .recallAtK(recall)
+                    .reciprocalRank(rr)
+                    .contextPrecision(cp)
+                    .hitRate(hr)
+                    .ndcg(ndcg));
             log.info("EVAL | q='{}' | retrieved={} | P@{}={} | R@{}={} | RR={} | ctxPrec={} | HR@{}={} | nDCG@{}={}",
                     gold.query(), chunks.size(), k, precision, k, recall, rr, cp, k, hr, k, ndcg);
         }
 
-        EvaluationReport report = new EvaluationReport(
-                k, goldSet.size(),
-                RetrievalMetrics.mean(rrs),
-                RetrievalMetrics.mean(cps),
-                RetrievalMetrics.mean(ps),
-                RetrievalMetrics.mean(rs),
-                RetrievalMetrics.mean(hrs),
-                RetrievalMetrics.mean(ndcgs),
-                perQuery);
+        EvaluationReport report = new EvaluationReport()
+                .k(k)
+                .queries(goldSet.size())
+                .mrr(RetrievalMetrics.mean(rrs))
+                .meanContextPrecision(RetrievalMetrics.mean(cps))
+                .meanPrecisionAtK(RetrievalMetrics.mean(ps))
+                .meanRecallAtK(RetrievalMetrics.mean(rs))
+                .meanHitRate(RetrievalMetrics.mean(hrs))
+                .meanNdcg(RetrievalMetrics.mean(ndcgs))
+                .perQuery(perQuery);
 
         gauges.update(report);
         log.info("EVAL | aggregate | queries={} | MRR={} | ctxPrec={} | P@{}={} | R@{}={} | HR@{}={} | nDCG@{}={}",
-                report.queries(), report.mrr(), report.meanContextPrecision(),
-                k, report.meanPrecisionAtK(), k, report.meanRecallAtK(),
-                k, report.meanHitRate(), k, report.meanNdcg());
+                report.getQueries(), report.getMrr(), report.getMeanContextPrecision(),
+                k, report.getMeanPrecisionAtK(), k, report.getMeanRecallAtK(),
+                k, report.getMeanHitRate(), k, report.getMeanNdcg());
         return report;
+    }
+
+    private static String str(Object value) {
+        return Objects.toString(value, "");
+    }
+
+    @PostConstruct
+    void logGoldSetSize() {
+        try {
+            log.info("Retrieval evaluator initialised with {} gold queries from {}",
+                    loadGoldSet().size(), QRELS_PATH);
+        } catch (Exception e) {
+            log.warn("Could not load gold set {} at startup: {}", QRELS_PATH, e.getMessage());
+        }
     }
 
     /**
@@ -175,12 +184,12 @@ public class RetrievalEvaluator {
         volatile double ndcg;
 
         void update(EvaluationReport r) {
-            this.mrr = r.mrr();
-            this.contextPrecision = r.meanContextPrecision();
-            this.precisionAtK = r.meanPrecisionAtK();
-            this.recallAtK = r.meanRecallAtK();
-            this.hitRate = r.meanHitRate();
-            this.ndcg = r.meanNdcg();
+            this.mrr = r.getMrr();
+            this.contextPrecision = r.getMeanContextPrecision();
+            this.precisionAtK = r.getMeanPrecisionAtK();
+            this.recallAtK = r.getMeanRecallAtK();
+            this.hitRate = r.getMeanHitRate();
+            this.ndcg = r.getMeanNdcg();
         }
     }
 }

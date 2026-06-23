@@ -47,8 +47,8 @@ class RetrievalServiceUnitTest {
         RetrievalResult result = newService(List.of(
                 new Document("wiki content", Map.of("source", "WIKI", "chunkIndex", 0))
         )).retrieve("anything");
-        assertThat(result.chunks()).hasSize(1);
-        assertThat(result.citations()).hasSize(1);
+        assertThat(result.getChunks().orElse(List.of())).hasSize(1);
+        assertThat(result.getCitations().orElse(List.of())).hasSize(1);
     }
 
     @Test
@@ -58,8 +58,8 @@ class RetrievalServiceUnitTest {
                 new Document("public", Map.of("source", "DB", "table", "faqs", "visibility", "PUBLIC", "chunkIndex", 0)),
                 new Document("secret", Map.of("source", "DB", "table", "faqs", "visibility", "RESTRICTED", "chunkIndex", 1))
         )).retrieve("q");
-        assertThat(result.chunks()).hasSize(1);
-        assertThat(result.chunks().get(0).content()).isEqualTo("public");
+        assertThat(result.getChunks().orElse(List.of())).hasSize(1);
+        assertThat(result.getChunks().orElse(List.of()).get(0).content()).isEqualTo("public");
     }
 
     @Test
@@ -70,6 +70,6 @@ class RetrievalServiceUnitTest {
                 new Document("ann", Map.of("source", "DB", "table", "announcements", "chunkIndex", 0)),
                 new Document("orphan", Map.of("chunkIndex", 1))
         )).retrieve("q");
-        assertThat(result.chunks()).hasSize(2);
+        assertThat(result.getChunks().orElse(List.of())).hasSize(2);
     }
 }

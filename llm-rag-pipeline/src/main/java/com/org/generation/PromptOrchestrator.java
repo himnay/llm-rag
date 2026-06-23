@@ -11,6 +11,7 @@ import org.springframework.util.StreamUtils;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 /**
  * Assembles the full chat prompt for the manual-mode RAG pipeline (Section 7 pattern).
@@ -32,16 +33,6 @@ public class PromptOrchestrator {
     private final PromptAugmenter promptAugmenter;
     private final String systemInstructions = loadSystemPrompt();
 
-    private static String loadSystemPrompt() {
-        try {
-            return StreamUtils.copyToString(
-                    new ClassPathResource("prompts/system-prompt.st").getInputStream(),
-                    StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            throw new UncheckedIOException("Could not load prompts/system-prompt.st", e);
-        }
-    }
-
     /**
      * Retrieves relevant chunks for the question and assembles the full {@link ChatPrompt}.
      */
@@ -57,8 +48,18 @@ public class PromptOrchestrator {
     public ChatPrompt rebuild(String userQuestion, RetrievalResult retrievalResult) {
         PromptAugmenter.Augmented augmented = promptAugmenter.augment(userQuestion, retrievalResult);
         log.debug("PromptOrchestrator: {} chunk(s), hasContext={}",
-                retrievalResult.chunks().size(), !augmented.context().isEmpty());
+                retrievalResult.getChunks().orElse(List.of()).size(), !augmented.context().isEmpty());
         return new ChatPrompt(systemInstructions, augmented.context(), augmented.userMessage(), retrievalResult);
+    }
+
+    private static String loadSystemPrompt() {
+        try {
+            return StreamUtils.copyToString(
+                    new ClassPathResource("prompts/system-prompt.st").getInputStream(),
+                    StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Could not load prompts/system-prompt.st", e);
+        }
     }
 
     /**

@@ -72,6 +72,29 @@ public class GenerationService {
 
     private ChatClient advisorClient;
 
+    /**
+     * Answers the request, serving from the semantic cache on a hit, otherwise running either the
+     * manual or advisor pipeline depending on {@code app.generation.mode}.
+     */
+    public GenerateResponse generate(GenerateRequest request) {
+        String query = request.getQuery();
+        int topK = request.getTopK().orElse(properties.getTopK());
+        String requestConversationId = request.getConversationId().orElse(null);
+        String conversationId = requestConversationId != null && !requestConversationId.isBlank()
+                ? requestConversationId : UUID.randomUUID().toString();
+
+        Optional<String> cached = semanticCache.get(query);
+        if (cached.isPresent()) {
+            log.info("SemanticCache hit for query='{}'", query);
+            return new GenerateResponse().answer(cached.get()).citations(List.of()).faithful(null)
+                    .fromSemanticCache(true).insufficientContext(false);
+        }
+
+        return "advisor".equalsIgnoreCase(properties.getMode())
+                ? generateWithAdvisor(query)
+                : generateManual(query, topK, conversationId);
+    }
+
     @PostConstruct
     void init() {
         chatClientBuilder.defaultAdvisors(
@@ -91,38 +114,18 @@ public class GenerationService {
         advisorClient = chatClientBuilder.build();
     }
 
-    /**
-     * Answers the request, serving from the semantic cache on a hit, otherwise running either the
-     * manual or advisor pipeline depending on {@code app.generation.mode}.
-     */
-    public GenerateResponse generate(GenerateRequest request) {
-        String query = request.query();
-        int topK = request.topK() != null ? request.topK() : properties.getTopK();
-        String conversationId = request.conversationId() != null && !request.conversationId().isBlank()
-                ? request.conversationId() : UUID.randomUUID().toString();
-
-        Optional<String> cached = semanticCache.get(query);
-        if (cached.isPresent()) {
-            log.info("SemanticCache hit for query='{}'", query);
-            return new GenerateResponse(cached.get(), List.of(), null, true, false);
-        }
-
-        return "advisor".equalsIgnoreCase(properties.getMode())
-                ? generateWithAdvisor(query)
-                : generateManual(query, topK, conversationId);
-    }
-
     private GenerateResponse generateManual(String query, int topK, String conversationId) {
         PromptOrchestrator.ChatPrompt chatPrompt = promptOrchestrator.build(query, topK);
         RetrievalResult retrieval = chatPrompt.retrievalResult();
 
-        List<com.org.chunking.model.Chunk> safeChunks = injectionGuard.filter(retrieval.chunks());
-        RetrievalResult safeRetrieval = new RetrievalResult(safeChunks, retrieval.citations());
+        List<com.org.chunking.model.Chunk> safeChunks = injectionGuard.filter(retrieval.getChunks().orElse(List.of()));
+        RetrievalResult safeRetrieval = new RetrievalResult().chunks(safeChunks).citations(retrieval.getCitations().orElse(List.of()));
         PromptOrchestrator.ChatPrompt safePrompt = promptOrchestrator.rebuild(query, safeRetrieval);
 
         if (properties.getJudge().isEnabled() && !sufficiencyJudge.isSufficient(query, safePrompt.context())) {
             log.info("Context sufficiency judge: INSUFFICIENT — skipping generation | query='{}'", query);
-            return new GenerateResponse(properties.getJudge().getInsufficientAnswer(), List.of(), null, false, true);
+            return new GenerateResponse().answer(properties.getJudge().getInsufficientAnswer()).citations(List.of())
+                    .faithful(null).fromSemanticCache(false).insufficientContext(true);
         }
 
         String answer = chatClient.prompt()
@@ -148,8 +151,9 @@ public class GenerationService {
 
         semanticCache.put(query, answer);
         List<com.org.retrieval.model.Citation> citations = properties.isIncludeCitations()
-                ? safeRetrieval.citations() : List.of();
-        return new GenerateResponse(answer, citations, faithful, false, false);
+                ? safeRetrieval.getCitations().orElse(List.of()) : List.of();
+        return new GenerateResponse().answer(answer).citations(citations).faithful(faithful)
+                .fromSemanticCache(false).insufficientContext(false);
     }
 
     /**
@@ -157,15 +161,16 @@ public class GenerationService {
      * so the HTTP connection is not held until the full answer is ready.
      */
     public reactor.core.publisher.Flux<String> stream(GenerateRequest request) {
-        String query = request.query();
-        int topK = request.topK() != null ? request.topK() : properties.getTopK();
-        String conversationId = request.conversationId() != null && !request.conversationId().isBlank()
-                ? request.conversationId() : UUID.randomUUID().toString();
+        String query = request.getQuery();
+        int topK = request.getTopK().orElse(properties.getTopK());
+        String requestConversationId = request.getConversationId().orElse(null);
+        String conversationId = requestConversationId != null && !requestConversationId.isBlank()
+                ? requestConversationId : UUID.randomUUID().toString();
 
         PromptOrchestrator.ChatPrompt chatPrompt = promptOrchestrator.build(query, topK);
         RetrievalResult retrieval = chatPrompt.retrievalResult();
-        List<com.org.chunking.model.Chunk> safeChunks = injectionGuard.filter(retrieval.chunks());
-        RetrievalResult safeRetrieval = new RetrievalResult(safeChunks, retrieval.citations());
+        List<com.org.chunking.model.Chunk> safeChunks = injectionGuard.filter(retrieval.getChunks().orElse(List.of()));
+        RetrievalResult safeRetrieval = new RetrievalResult().chunks(safeChunks).citations(retrieval.getCitations().orElse(List.of()));
         PromptOrchestrator.ChatPrompt safePrompt = promptOrchestrator.rebuild(query, safeRetrieval);
 
         return chatClient.prompt()
@@ -184,7 +189,8 @@ public class GenerationService {
                 ? response.chatResponse().getResult().getOutput().getText() : null;
         List<Citation> citations = toCitations(response.context().get(RetrievalAugmentationAdvisor.DOCUMENT_CONTEXT));
         semanticCache.put(query, answer);
-        return new GenerateResponse(answer, citations, null, false, false);
+        return new GenerateResponse().answer(answer).citations(citations).faithful(null)
+                .fromSemanticCache(false).insufficientContext(false);
     }
 
     /**
@@ -205,9 +211,13 @@ public class GenerationService {
             Integer page = pageRaw instanceof Number n ? n.intValue() : null;
             int chunkIndex = m.get("chunkIndex") instanceof Number n ? n.intValue() : 0;
             String key = identity + "#" + page + "#" + chunkIndex;
-            seen.putIfAbsent(key, new Citation(
-                    Objects.toString(m.get("source"), ""), Objects.toString(m.get("fileName"), ""),
-                    identity.isEmpty() ? null : identity, page, chunkIndex, doc.getScore()));
+            seen.putIfAbsent(key, new Citation()
+                    .source(Objects.toString(m.get("source"), ""))
+                    .fileName(Objects.toString(m.get("fileName"), ""))
+                    .identity(identity.isEmpty() ? null : identity)
+                    .page(page)
+                    .chunkIndex(chunkIndex)
+                    .score(doc.getScore()));
         }
         return new ArrayList<>(seen.values());
     }

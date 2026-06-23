@@ -17,6 +17,6 @@ public class IngestCommand implements IngestionCommand {
 
     @Override
     public String describe() {
-        return "IngestCommand[source=" + request.sourceType() + ", name=" + request.name() + "]";
+        return "IngestCommand[source=" + request.getSourceType() + ", name=" + request.getName() + "]";
     }
 }

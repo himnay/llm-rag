@@ -46,14 +46,6 @@ public class ChunkVectorStoreService {
     private final VectorStoreWriteProperties props;
     private final ChunkDocumentRepository chunkDocumentRepository;
 
-    private static List<List<Document>> partition(List<Document> documents, int size) {
-        List<List<Document>> batches = new ArrayList<>();
-        for (int i = 0; i < documents.size(); i += size) {
-            batches.add(documents.subList(i, Math.min(i + size, documents.size())));
-        }
-        return batches;
-    }
-
     public void store(List<Chunk> chunks) {
         if (chunks.isEmpty()) {
             return;
@@ -107,13 +99,6 @@ public class ChunkVectorStoreService {
         log.info("Stored {} documents in {} parallel batches", documents.size(), batches.size());
     }
 
-    /**
-     * A single batch write, retried on transient embedding/OpenSearch failures.
-     */
-    private void add(List<Document> batch) {
-        Resilience.withRetry("vector store add", 3, 200L, () -> vectorStore.add(batch));
-    }
-
     public void deleteAll() {
         // Every chunk has chunkIndex >= 0, so this matches all stored documents.
         FilterExpressionBuilder filterBuilder = new FilterExpressionBuilder();
@@ -124,6 +109,21 @@ public class ChunkVectorStoreService {
     public void deleteByIdentity(String identity) {
         FilterExpressionBuilder filterBuilder = new FilterExpressionBuilder();
         vectorStore.delete(filterBuilder.eq("identity", identity).build());
+    }
+
+    private static List<List<Document>> partition(List<Document> documents, int size) {
+        List<List<Document>> batches = new ArrayList<>();
+        for (int i = 0; i < documents.size(); i += size) {
+            batches.add(documents.subList(i, Math.min(i + size, documents.size())));
+        }
+        return batches;
+    }
+
+    /**
+     * A single batch write, retried on transient embedding/OpenSearch failures.
+     */
+    private void add(List<Document> batch) {
+        Resilience.withRetry("vector store add", 3, 200L, () -> vectorStore.add(batch));
     }
 
     private static ChunkDocument toMongoDocument(Chunk chunk, Map<String, Object> metadata) {

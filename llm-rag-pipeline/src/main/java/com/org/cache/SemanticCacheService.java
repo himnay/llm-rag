@@ -35,10 +35,6 @@ public class SemanticCacheService {
         this.properties = properties;
     }
 
-    private static double cosine(float[] a, float[] b) {
-        return VectorMath.cosine(a, b);
-    }
-
     /**
      * Look up a cached answer for the given query. Returns {@link Optional#empty()} on a miss or
      * when semantic caching is disabled.
@@ -85,6 +81,10 @@ public class SemanticCacheService {
             }
             entries.add(new CacheEntry(queryVector, answer, expiry));
         }
+    }
+
+    private static double cosine(float[] a, float[] b) {
+        return VectorMath.cosine(a, b);
     }
 
     private record CacheEntry(float[] queryVector, String answer, long expiresAtMillis) {

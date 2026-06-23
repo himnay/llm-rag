@@ -84,6 +84,11 @@ public class GenerationEvaluator {
                 .distinct()
                 .toList();
         log.info("GenerationEval | faithful={} | relevant={} | question='{}'", faithful, relevant, question);
-        return new GenerationEvaluationReport(question, answer, faithful, relevant, sources);
+        return new GenerationEvaluationReport()
+                .question(question)
+                .answer(answer)
+                .faithful(faithful)
+                .relevant(relevant)
+                .contextSources(sources);
     }
 }

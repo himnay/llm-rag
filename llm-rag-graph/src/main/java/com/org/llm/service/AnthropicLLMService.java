@@ -69,12 +69,6 @@ public class AnthropicLLMService {
         }
     }
 
-    @SuppressWarnings("unused")
-    private String answerFallback(String question, String graphContext, Throwable t) {
-        log.warn("AnthropicLLMService circuit breaker fallback for question='{}': {}", question, t.getMessage());
-        return "The knowledge graph assistant is temporarily unavailable. Please try again in a moment.";
-    }
-
     /**
      * LLM-as-judge groundedness ("faithfulness") check: asks Claude whether every factual claim in
      * {@code answer} is supported by {@code graphContext}. Costs one extra LLM call per invocation,
@@ -91,10 +85,10 @@ public class AnthropicLLMService {
         String prompt = """
                 Context:
                 %s
-                
+
                 Answer:
                 %s
-                
+
                 Is every factual claim in the Answer supported by the Context above? \
                 Respond with only one word: PASS if every claim is supported, or FAIL if any claim \
                 is not supported or is unsupported speculation.
@@ -116,6 +110,12 @@ public class AnthropicLLMService {
             log.warn("Groundedness check failed ({}); defaulting to groundedness=true", e.getMessage());
             return true;
         }
+    }
+
+    @SuppressWarnings("unused")
+    private String answerFallback(String question, String graphContext, Throwable t) {
+        log.warn("AnthropicLLMService circuit breaker fallback for question='{}': {}", question, t.getMessage());
+        return "The knowledge graph assistant is temporarily unavailable. Please try again in a moment.";
     }
 
     private String buildUserMessage(String question, String graphContext) {

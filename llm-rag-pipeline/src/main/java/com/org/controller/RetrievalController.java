@@ -34,8 +34,9 @@ class RetrievalController {
     @Timed(value = "rag.retrieval", description = "Vector retrieval turnaround time", histogram = true)
     @Operation(summary = "Retrieve the most relevant document chunks for a query using vector similarity search")
     public RetrievalResult retrieve(@Valid @RequestBody RetrieveRequest request) {
-        return request.topK() != null
-                ? retrievalService.retrieve(request.query(), request.topK())
-                : retrievalService.retrieve(request.query());
+        Integer topK = request.getTopK().orElse(null);
+        return topK != null
+                ? retrievalService.retrieve(request.getQuery(), topK)
+                : retrievalService.retrieve(request.getQuery());
     }
 }

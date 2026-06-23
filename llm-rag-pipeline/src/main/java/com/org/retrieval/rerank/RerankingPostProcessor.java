@@ -49,32 +49,6 @@ public class RerankingPostProcessor implements RetrievalPostProcessor {
     private final Map<RerankStrategy, Reranker> rerankers = new EnumMap<>(RerankStrategy.class);
     private CircuitBreaker breaker;
 
-    private static List<Chunk> combine(RetrievalProperties.Rerank cfg, List<Chunk> reranked, List<Chunk> tail) {
-        List<Chunk> result = new ArrayList<>(reranked.size() + tail.size());
-        for (Chunk chunk : reranked) {
-            if (cfg.getMinScore() <= 0 || RetrievalPostProcessor.score(chunk) >= cfg.getMinScore()) {
-                result.add(chunk);
-            }
-        }
-        result.addAll(tail);
-        return result;
-    }
-
-    @PostConstruct
-    void init() {
-        RetrievalProperties.Rerank cfg = properties.getRerank();
-        breaker = new CircuitBreaker(cfg.getBreaker().getFailureThreshold(), cfg.getBreaker().getCooldown());
-        RerankScoreCache cache = cfg.getCache().isEnabled()
-                ? new RerankScoreCache(cfg.getCache().getMaxSize(), cfg.getCache().getTtl()) : null;
-        for (Reranker r : rawRerankers) {
-            Reranker decorated = new MeteredReranker(r, meterRegistry);
-            if (cache != null && r.strategy().isCostly()) {
-                decorated = new CachedReranker(decorated, cache, meterRegistry);
-            }
-            rerankers.put(r.strategy(), decorated);
-        }
-    }
-
     @Override
     public int getOrder() {
         return 40;
@@ -115,6 +89,32 @@ public class RerankingPostProcessor implements RetrievalPostProcessor {
             log.warn("{} reranking failed ({}); passing candidates through unchanged",
                     cfg.getStrategy(), e.getMessage());
             return chunks;
+        }
+    }
+
+    private static List<Chunk> combine(RetrievalProperties.Rerank cfg, List<Chunk> reranked, List<Chunk> tail) {
+        List<Chunk> result = new ArrayList<>(reranked.size() + tail.size());
+        for (Chunk chunk : reranked) {
+            if (cfg.getMinScore() <= 0 || RetrievalPostProcessor.score(chunk) >= cfg.getMinScore()) {
+                result.add(chunk);
+            }
+        }
+        result.addAll(tail);
+        return result;
+    }
+
+    @PostConstruct
+    void init() {
+        RetrievalProperties.Rerank cfg = properties.getRerank();
+        breaker = new CircuitBreaker(cfg.getBreaker().getFailureThreshold(), cfg.getBreaker().getCooldown());
+        RerankScoreCache cache = cfg.getCache().isEnabled()
+                ? new RerankScoreCache(cfg.getCache().getMaxSize(), cfg.getCache().getTtl()) : null;
+        for (Reranker r : rawRerankers) {
+            Reranker decorated = new MeteredReranker(r, meterRegistry);
+            if (cache != null && r.strategy().isCostly()) {
+                decorated = new CachedReranker(decorated, cache, meterRegistry);
+            }
+            rerankers.put(r.strategy(), decorated);
         }
     }
 }

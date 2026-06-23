@@ -3,8 +3,13 @@ package com.org.retrieval.transform;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StreamUtils;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
@@ -22,12 +27,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class HydeQueryTransformer implements QueryTransformer {
 
-    private static final String SYSTEM = """
-                                            You are a document drafting assistant. Write a short, factual passage (2-4 sentences)
-                                            that would be a plausible answer to the user's question, as if it came from an internal
-                                            knowledge base or policy document. Do NOT say you don't know — write a plausible answer.
-                                            Return ONLY the passage text.   
-                                        """;
+    private static final String SYSTEM = loadResource("prompts/hyde-system.st");
 
     private final ChatClient chatClient;
 
@@ -50,6 +50,14 @@ public class HydeQueryTransformer implements QueryTransformer {
         } catch (Exception e) {
             log.warn("HyDE generation failed ({}), falling back to original query", e.getMessage());
             return List.of(query);
+        }
+    }
+
+    private static String loadResource(String path) {
+        try {
+            return StreamUtils.copyToString(new ClassPathResource(path).getInputStream(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Could not load " + path, e);
         }
     }
 }
