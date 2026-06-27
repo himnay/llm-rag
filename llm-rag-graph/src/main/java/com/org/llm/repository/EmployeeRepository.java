@@ -49,26 +49,28 @@ public interface EmployeeRepository extends Neo4jRepository<Employee, Long> {
     List<Employee> searchByKeyword(String keyword);
 
     /**
-     * Employees working on a given project.
+     * Employees working on a given project, with Cypher-level pagination.
      */
     @Query("""
             MATCH (e:Employee)-[:WORKS_ON]->(p:Project {name: $projectName})
             RETURN e
+            SKIP $offset LIMIT $limit
             """)
-    List<Employee> findByProjectName(String projectName);
+    List<Employee> findByProjectName(String projectName, int offset, int limit);
 
     /**
-     * Direct reports of a manager.
+     * Direct reports of a manager, with Cypher-level pagination.
      */
-    @Query("MATCH (e:Employee)-[:REPORTS_TO]->(mgr:Employee {name: $managerName}) RETURN e")
-    List<Employee> findDirectReports(String managerName);
+    @Query("MATCH (e:Employee)-[:REPORTS_TO]->(mgr:Employee {name: $managerName}) RETURN e SKIP $offset LIMIT $limit")
+    List<Employee> findDirectReports(String managerName, int offset, int limit);
 
     /**
-     * All employees belonging to a company (traverses 3 hops).
+     * All employees belonging to a company (traverses 3 hops), with Cypher-level pagination.
      */
     @Query("""
             MATCH (c:Company {name: $companyName})-[:HAS_DEPARTMENT]->(:Department)-[:HAS_TEAM]->(:Team)-[:HAS_MEMBER]->(e:Employee)
             RETURN e
+            SKIP $offset LIMIT $limit
             """)
-    List<Employee> findByCompanyName(String companyName);
+    List<Employee> findByCompanyName(String companyName, int offset, int limit);
 }

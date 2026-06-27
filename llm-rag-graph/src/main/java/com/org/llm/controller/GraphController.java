@@ -49,7 +49,7 @@ public class GraphController {
 
     /**
      * Lists employees of a company, paginated via {@code limit} (capped at {@value #MAX_LIMIT})
-     * and {@code offset}.
+     * and {@code offset}. Pagination is pushed into Cypher to avoid loading all rows.
      */
     @GetMapping("/companies/{name}/employees")
     public ResponseEntity<List<Employee>> employees(
@@ -57,9 +57,7 @@ public class GraphController {
             @RequestParam(defaultValue = "20") int limit,
             @RequestParam(defaultValue = "0") int offset) {
         int cappedLimit = Math.min(limit, MAX_LIMIT);
-        List<Employee> all = employeeRepo.findByCompanyName(name);
-        List<Employee> page = all.stream().skip(offset).limit(cappedLimit).toList();
-        return ResponseEntity.ok(page);
+        return ResponseEntity.ok(employeeRepo.findByCompanyName(name, offset, cappedLimit));
     }
 
     /**
@@ -74,7 +72,7 @@ public class GraphController {
 
     /**
      * Lists the direct reports of a manager, paginated via {@code limit} (capped at
-     * {@value #MAX_LIMIT}) and {@code offset}.
+     * {@value #MAX_LIMIT}) and {@code offset}. Pagination is pushed into Cypher.
      */
     @GetMapping("/employees/{name}/reports")
     public ResponseEntity<List<Employee>> directReports(
@@ -82,14 +80,12 @@ public class GraphController {
             @RequestParam(defaultValue = "20") int limit,
             @RequestParam(defaultValue = "0") int offset) {
         int cappedLimit = Math.min(limit, MAX_LIMIT);
-        List<Employee> all = employeeRepo.findDirectReports(name);
-        List<Employee> page = all.stream().skip(offset).limit(cappedLimit).toList();
-        return ResponseEntity.ok(page);
+        return ResponseEntity.ok(employeeRepo.findDirectReports(name, offset, cappedLimit));
     }
 
     /**
      * Lists employees working on a project, paginated via {@code limit} (capped at
-     * {@value #MAX_LIMIT}) and {@code offset}.
+     * {@value #MAX_LIMIT}) and {@code offset}. Pagination is pushed into Cypher.
      */
     @GetMapping("/projects/{name}/team")
     public ResponseEntity<List<Employee>> projectTeam(
@@ -97,9 +93,7 @@ public class GraphController {
             @RequestParam(defaultValue = "20") int limit,
             @RequestParam(defaultValue = "0") int offset) {
         int cappedLimit = Math.min(limit, MAX_LIMIT);
-        List<Employee> all = employeeRepo.findByProjectName(name);
-        List<Employee> page = all.stream().skip(offset).limit(cappedLimit).toList();
-        return ResponseEntity.ok(page);
+        return ResponseEntity.ok(employeeRepo.findByProjectName(name, offset, cappedLimit));
     }
 
     /**

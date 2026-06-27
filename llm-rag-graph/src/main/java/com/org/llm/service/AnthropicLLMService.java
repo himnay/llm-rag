@@ -39,8 +39,12 @@ public class AnthropicLLMService {
     private final AnthropicClient anthropicClient;
     @Value("${app.anthropic.model:claude-opus-4-8}")
     private String model;
+    @Value("${app.anthropic.groundedness-model:claude-haiku-4-5-20251001}")
+    private String groundednessModel;
     @Value("${app.anthropic.max-tokens:4096}")
     private int maxTokens;
+    @Value("${app.anthropic.extended-thinking-enabled:false}")
+    private boolean extendedThinkingEnabled;
 
     /**
      * Sends the question and graph context to Claude and returns its answer. Falls back to a
@@ -53,15 +57,15 @@ public class AnthropicLLMService {
         log.debug("Sending request to Claude model={} maxTokens={}", model, maxTokens);
 
         try {
-            Message response = anthropicClient.messages().create(
-                    MessageCreateParams.builder()
-                            .model(model)
-                            .maxTokens(maxTokens)
-                            .thinking(ThinkingConfigAdaptive.builder().build())
-                            .system(SYSTEM_PROMPT)
-                            .addUserMessage(userMessage)
-                            .build()
-            );
+            MessageCreateParams.Builder builder = MessageCreateParams.builder()
+                    .model(model)
+                    .maxTokens(maxTokens)
+                    .system(SYSTEM_PROMPT)
+                    .addUserMessage(userMessage);
+            if (extendedThinkingEnabled) {
+                builder.thinking(ThinkingConfigAdaptive.builder().build());
+            }
+            Message response = anthropicClient.messages().create(builder.build());
             return extractText(response);
         } catch (Exception e) {
             log.error("Anthropic API call failed for question='{}': {}", question, e.getMessage(), e);
@@ -97,7 +101,7 @@ public class AnthropicLLMService {
         try {
             Message response = anthropicClient.messages().create(
                     MessageCreateParams.builder()
-                            .model(model)
+                            .model(groundednessModel)
                             .maxTokens(16)
                             .addUserMessage(prompt)
                             .build()

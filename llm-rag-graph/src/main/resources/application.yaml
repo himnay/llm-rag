@@ -100,6 +100,12 @@ resilience4j:
         retry-exceptions:
           - java.io.IOException
           - org.springframework.web.client.ResourceAccessException
+  ratelimiter:
+    instances:
+      rag-query:
+        limit-for-period: 20
+        limit-refresh-period: 1m
+        timeout-duration: 0s
 
 logging:
   level:

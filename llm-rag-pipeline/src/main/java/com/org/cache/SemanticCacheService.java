@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Semantic answer cache: stores {@code (queryVector, answer)} pairs and, on a new query, returns a
@@ -25,6 +26,7 @@ public class SemanticCacheService {
     private final EmbeddingCacheService embeddingCacheService;
     private final SemanticCacheProperties properties;
     private final List<CacheEntry> entries = new ArrayList<>();
+    private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
     /**
      * Wires the embedding service used to vectorize incoming queries.
@@ -49,8 +51,15 @@ public class SemanticCacheService {
         double bestSim = -1;
         String bestAnswer = null;
 
-        synchronized (entries) {
+        lock.writeLock().lock();
+        try {
             entries.removeIf(e -> now >= e.expiresAtMillis());
+        } finally {
+            lock.writeLock().unlock();
+        }
+
+        lock.readLock().lock();
+        try {
             for (CacheEntry entry : entries) {
                 double sim = cosine(queryVector, entry.queryVector());
                 if (sim >= threshold && sim > bestSim) {
@@ -58,6 +67,8 @@ public class SemanticCacheService {
                     bestAnswer = entry.answer();
                 }
             }
+        } finally {
+            lock.readLock().unlock();
         }
 
         if (bestAnswer != null) {
@@ -72,14 +83,18 @@ public class SemanticCacheService {
      */
     public void put(String query, String answer) {
         if (!properties.isEnabled()) return;
+        if (answer == null || answer.isBlank()) return;
 
         float[] queryVector = embeddingCacheService.embed(query);
         long expiry = System.currentTimeMillis() + properties.getTtl().toMillis();
-        synchronized (entries) {
+        lock.writeLock().lock();
+        try {
             if (entries.size() >= properties.getMaxSize()) {
                 entries.remove(0);
             }
             entries.add(new CacheEntry(queryVector, answer, expiry));
+        } finally {
+            lock.writeLock().unlock();
         }
     }
 

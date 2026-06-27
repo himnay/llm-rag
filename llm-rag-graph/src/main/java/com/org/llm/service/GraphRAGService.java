@@ -39,7 +39,6 @@ public class GraphRAGService {
      * Runs the Graph RAG pipeline for a question: extract graph context, ask the LLM, optionally
      * verify groundedness, and assemble the timed {@link RagResponse}.
      */
-    @Transactional(readOnly = true)
     public RagResponse query(RagRequest request) {
         long start = System.currentTimeMillis();
         log.info("RAG query: {}", request.getQuestion());
@@ -61,7 +60,7 @@ public class GraphRAGService {
         long elapsed = System.currentTimeMillis() - start;
         log.info("RAG query completed in {}ms", elapsed);
 
-        return RagResponse.builder()
+        return new RagResponse()
                 .question(request.getQuestion())
                 .answer(answer)
                 .graphContext(ctx.formattedContext())
@@ -69,8 +68,7 @@ public class GraphRAGService {
                 .citations(ctx.citations())
                 .groundedness(groundedness)
                 .processingTimeMs(elapsed)
-                .timestamp(OffsetDateTime.now(ZoneOffset.UTC))
-                .build();
+                .timestamp(OffsetDateTime.now(ZoneOffset.UTC));
     }
 
     /**
