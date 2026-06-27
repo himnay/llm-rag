@@ -3,6 +3,8 @@ package com.org.llm.controller;
 import com.org.llm.domain.Company;
 import com.org.llm.domain.Employee;
 import com.org.llm.dto.GraphExportDto;
+import com.org.llm.dto.GraphLink;
+import com.org.llm.dto.GraphNode;
 import com.org.llm.dto.GraphStats;
 import com.org.llm.repository.*;
 import com.org.llm.service.GraphRAGService;
@@ -107,16 +109,16 @@ public class GraphController {
     @GetMapping("/export")
     public ResponseEntity<GraphExportDto> export(
             @RequestParam(defaultValue = "json") String format) {
-        List<GraphExportDto.GraphNode> nodes = new ArrayList<>();
-        List<GraphExportDto.GraphLink> links = new ArrayList<>();
+        List<GraphNode> nodes = new ArrayList<>();
+        List<GraphLink> links = new ArrayList<>();
 
         // Collect all nodes
         companyRepo.findAll().forEach(c -> {
             if (c.getId() != null) {
-                nodes.add(new GraphExportDto.GraphNode(c.getId(), "Company", c.getName()));
+                nodes.add(new GraphNode(c.getId(), "Company", c.getName()));
                 c.getDepartments().forEach(d -> {
                     if (d.getId() != null) {
-                        links.add(new GraphExportDto.GraphLink(c.getId(), d.getId(), "HAS_DEPARTMENT"));
+                        links.add(new GraphLink(c.getId(), d.getId(), "HAS_DEPARTMENT"));
                     }
                 });
             }
@@ -124,15 +126,15 @@ public class GraphController {
 
         departmentRepo.findAll().forEach(d -> {
             if (d.getId() != null) {
-                nodes.add(new GraphExportDto.GraphNode(d.getId(), "Department", d.getName()));
+                nodes.add(new GraphNode(d.getId(), "Department", d.getName()));
                 d.getProjects().forEach(p -> {
                     if (p.getId() != null) {
-                        links.add(new GraphExportDto.GraphLink(d.getId(), p.getId(), "OWNS_PROJECT"));
+                        links.add(new GraphLink(d.getId(), p.getId(), "OWNS_PROJECT"));
                     }
                 });
                 d.getCollaborators().forEach(c -> {
                     if (c.getId() != null) {
-                        links.add(new GraphExportDto.GraphLink(d.getId(), c.getId(), "COLLABORATES_WITH"));
+                        links.add(new GraphLink(d.getId(), c.getId(), "COLLABORATES_WITH"));
                     }
                 });
             }
@@ -140,10 +142,10 @@ public class GraphController {
 
         projectRepo.findAll().forEach(p -> {
             if (p.getId() != null) {
-                nodes.add(new GraphExportDto.GraphNode(p.getId(), "Project", p.getName()));
+                nodes.add(new GraphNode(p.getId(), "Project", p.getName()));
                 p.getTechnologies().forEach(t -> {
                     if (t.getId() != null) {
-                        links.add(new GraphExportDto.GraphLink(p.getId(), t.getId(), "USES_TECHNOLOGY"));
+                        links.add(new GraphLink(p.getId(), t.getId(), "USES_TECHNOLOGY"));
                     }
                 });
             }
@@ -151,20 +153,20 @@ public class GraphController {
 
         techRepo.findAll().forEach(t -> {
             if (t.getId() != null) {
-                nodes.add(new GraphExportDto.GraphNode(t.getId(), "Technology", t.getName()));
+                nodes.add(new GraphNode(t.getId(), "Technology", t.getName()));
             }
         });
 
         employeeRepo.findAll().forEach(e -> {
             if (e.getId() != null) {
-                nodes.add(new GraphExportDto.GraphNode(e.getId(), "Employee", e.getName()));
+                nodes.add(new GraphNode(e.getId(), "Employee", e.getName()));
                 if (e.getManager() != null && e.getManager().getId() != null) {
-                    links.add(new GraphExportDto.GraphLink(e.getId(), e.getManager().getId(), "REPORTS_TO"));
+                    links.add(new GraphLink(e.getId(), e.getManager().getId(), "REPORTS_TO"));
                 }
                 if (e.getProjectAssignments() != null) {
                     e.getProjectAssignments().forEach(wa -> {
                         if (wa.getProject() != null && wa.getProject().getId() != null) {
-                            links.add(new GraphExportDto.GraphLink(e.getId(), wa.getProject().getId(), "WORKS_ON"));
+                            links.add(new GraphLink(e.getId(), wa.getProject().getId(), "WORKS_ON"));
                         }
                     });
                 }

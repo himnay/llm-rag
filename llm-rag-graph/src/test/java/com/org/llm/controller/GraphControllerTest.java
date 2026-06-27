@@ -85,7 +85,7 @@ class GraphControllerTest {
     @Test
     @DisplayName("Stats endpoint returns aggregated node and relationship counts")
     void statsReturnsAggregatedCounts() throws Exception {
-        when(ragService.getStats()).thenReturn(new GraphStats(1, 3, 6, 10, 4, 8, 32, 42));
+        when(ragService.getStats()).thenReturn(new GraphStats(1L, 3L, 6L, 10L, 4L, 8L, 32L, 42L));
 
         mockMvc.perform(get("/api/graph/stats"))
                 .andExpect(status().isOk())

@@ -45,7 +45,7 @@ class SecurityConfigAuthDisabledTest {
     @Test
     @DisplayName("Unauthenticated request to /api/** is permitted when auth is disabled")
     void unauthenticatedRequestToApiIsPermitted() throws Exception {
-        when(ragService.getStats()).thenReturn(new GraphStats(1, 1, 1, 1, 1, 1, 6, 6));
+        when(ragService.getStats()).thenReturn(new GraphStats(1L, 1L, 1L, 1L, 1L, 1L, 6L, 6L));
 
         mockMvc.perform(get("/api/graph/stats"))
                 .andExpect(status().isOk());

@@ -11,7 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class PromptInjectionGuardTest {
 
-    private final PromptInjectionGuard guard = new PromptInjectionGuard();
+    private final PromptInjectionGuard guard = new PromptInjectionGuard(new InjectionGuardProperties());
 
     @Test
     @DisplayName("Safe policy text, empty string, and null all pass through as safe")
