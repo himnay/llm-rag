@@ -51,8 +51,8 @@ class GraphRAGServiceTest {
     @InjectMocks
     private GraphRAGService service;
 
-    @DisplayName("Query retrieves graph context and answers using the LLM")
     @Test
+    @DisplayName("Query retrieves graph context and answers using the LLM")
     void queryRetrievesGraphContextAndAnswersWithLlm() {
         var ctx = new GraphContextExtractor.GraphContext(
                 "Alice Chen is in the Backend Team.", List.of("Alice Chen"), List.of());
@@ -70,8 +70,8 @@ class GraphRAGServiceTest {
         verify(llmService).answer("Who is Alice?", ctx.formattedContext());
     }
 
-    @DisplayName("LLM call failure propagates as LlmCallException")
     @Test
+    @DisplayName("LLM call failure propagates as LlmCallException")
     void llmCallFailurePropagatesAsLlmCallException() {
         var ctx = new GraphContextExtractor.GraphContext("context", List.of("Alice"), List.of());
         when(graphContextExtractor.extract(anyString())).thenReturn(ctx);
@@ -83,8 +83,8 @@ class GraphRAGServiceTest {
                 .hasMessageContaining("Connection refused");
     }
 
-    @DisplayName("Stats aggregates node and relationship counts across repositories")
     @Test
+    @DisplayName("Stats aggregates node and relationship counts across repositories")
     void statsAggregatesNodeAndRelationshipCounts() {
         when(companyRepo.count()).thenReturn(1L);
         when(deptRepo.count()).thenReturn(3L);

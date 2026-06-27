@@ -24,8 +24,8 @@ import java.util.stream.Stream;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "app.ingestion.inbox", name = "enabled", havingValue = "true")
+@RequiredArgsConstructor
 public class InboxScheduler {
 
     private final InboxProperties properties;

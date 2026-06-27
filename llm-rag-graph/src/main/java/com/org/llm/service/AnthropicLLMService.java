@@ -46,8 +46,8 @@ public class AnthropicLLMService {
      * Sends the question and graph context to Claude and returns its answer. Falls back to a
      * canned unavailability message via {@code answerFallback} if the circuit breaker is open.
      */
-    @CircuitBreaker(name = "llm-rag-graph", fallbackMethod = "answerFallback")
     @Retry(name = "llm-rag-graph")
+    @CircuitBreaker(name = "llm-rag-graph", fallbackMethod = "answerFallback")
     public String answer(String question, String graphContext) {
         String userMessage = buildUserMessage(question, graphContext);
         log.debug("Sending request to Claude model={} maxTokens={}", model, maxTokens);

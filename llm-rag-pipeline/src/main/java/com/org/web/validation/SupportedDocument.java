@@ -11,10 +11,10 @@ import java.lang.annotation.*;
  * Bean Validation provider + {@code GlobalExceptionHandler}) rather than imperative in a controller
  * or service.
  */
-@Documented
-@Constraint(validatedBy = SupportedDocumentValidator.class)
 @Target({ElementType.PARAMETER, ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
+@Documented
+@Constraint(validatedBy = SupportedDocumentValidator.class)
 public @interface SupportedDocument {
 
     String message() default "Unsupported or empty document (allowed: pdf, md, txt, json, docx, pptx, xlsx, html)";

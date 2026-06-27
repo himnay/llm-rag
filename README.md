@@ -96,6 +96,45 @@ Patterns are deliberately *omitted* where no real variation point exists.
 | **Strategy pattern for graph extraction** | `GraphExtractionStrategy` interface + `PathTraversalStrategy` implementation. New traversal approaches (semantic, embedding-based) can be added without modifying `GraphContextExtractor`. |
 | **Test coverage**                         | `AnthropicLLMServiceTest` — network failure and auth failure scenarios. `GraphRAGServiceTest` — LLM exception propagation test.                                                            |
 
+## Prompt Injection Security
+
+`llm-rag-pipeline` implements a two-layer defence against prompt injection. Both layers are active whenever generation is enabled.
+
+### Layer 1 — User query guard (direct injection)
+
+`PromptInjectionGuard.isQuerySafe(userQuery)` is called on every incoming question before retrieval starts. If the query matches any configured pattern the request is rejected immediately and the caller receives the `block-message` defined in configuration. The check is explicit and fails closed: the query never enters the pipeline.
+
+### Layer 2 — Retrieved chunk filter (indirect injection)
+
+`PromptInjectionGuard.filter(chunks)` is called on every batch of chunks returned by the vector store. A malicious document embedded in the knowledge base (a "poisoned" source) is silently dropped from the context rather than causing a full request rejection, because one bad chunk should not prevent a legitimate answer from the remaining safe chunks. Dropped chunks are logged at `WARN` with their source and chunk index for audit.
+
+### Externalised pattern catalogue
+
+All 21 default patterns (instruction override, roleplay/persona hijack, system-prompt exfiltration, structural delimiter injection, jailbreak keywords) live in `InjectionGuardProperties` and are bound from `application.yml` under `app.security.injection-guard.patterns`. Adding or tuning a signature requires only a configuration change — no code change, no redeployment when patterns are supplied via environment-specific YAML or a config server.
+
+```yaml
+app:
+  security:
+    injection-guard:
+      enabled: ${INJECTION_GUARD_ENABLED:true}
+      block-message: "Your request contains disallowed instructions and cannot be processed."
+      patterns:
+        - "(?i)ignore\\s+(?:all\\s+)?(?:previous|prior|above|all)\\s+instructions?"
+        # ... append new signatures here
+```
+
+To disable the guard entirely (not recommended in production): set `INJECTION_GUARD_ENABLED=false`.
+
+### Additional defences in `llm-rag-pipeline`
+
+| Defence | Where | What it does |
+|---|---|---|
+| System-prompt SECURITY section | `system-prompt.st` | Instructs the model to ignore instructions embedded in retrieved context and never reveal its system prompt — model-layer defence complementing the Java guard |
+| Delimiter escaping | `PromptAugmenter` | Wraps each retrieved chunk in triple-backtick fences so injected structural markers (` ```system `, `[SYSTEM]`) cannot break out of the context block |
+| `SafeGuardAdvisor` | Advisor-mode generation path | Spring AI advisor that blocks requests containing configured sensitive words before they reach the model; configured under `app.security.safeguard.*` |
+
+---
+
 ## Building and testing
 
 ```bash

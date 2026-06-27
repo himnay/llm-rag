@@ -70,7 +70,9 @@ public class PromptAugmenter {
         for (int i = 0; i < documents.size(); i++) {
             sb.append("Context ").append(i + 1).append(":\n");
             sb.append(citationHeader(documents.get(i).getMetadata()));
-            sb.append(documents.get(i).getText()).append("\n\n");
+            // Escape any triple-backtick sequences so document content cannot break out of
+            // the surrounding ``` context fence in the prompt template.
+            sb.append(documents.get(i).getText().replace("```", "` ` `")).append("\n\n");
         }
         return sb.toString().strip();
     }

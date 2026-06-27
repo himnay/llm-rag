@@ -38,8 +38,8 @@ class GraphDataSeederTest {
     @InjectMocks
     private GraphDataSeeder seeder;
 
-    @DisplayName("Seeding is skipped when the graph is already populated")
     @Test
+    @DisplayName("Seeding is skipped when the graph is already populated")
     void skipsSeedingWhenGraphAlreadyPopulated() {
         when(companyRepo.count()).thenReturn(1L);
 
@@ -49,8 +49,8 @@ class GraphDataSeederTest {
         verify(techRepo, never()).save(any());
     }
 
-    @DisplayName("Seeds the full graph with companies, technologies and projects when empty")
     @Test
+    @DisplayName("Seeds the full graph with companies, technologies and projects when empty")
     void seedsFullGraphWhenEmpty() {
         when(companyRepo.count()).thenReturn(0L);
         when(techRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -65,8 +65,8 @@ class GraphDataSeederTest {
         verify(projectRepo, org.mockito.Mockito.atLeast(5)).save(any());
     }
 
-    @DisplayName("Seeding tolerates full-text index creation failure and still saves data")
     @Test
+    @DisplayName("Seeding tolerates full-text index creation failure and still saves data")
     void seedingToleratesFullTextIndexCreationFailure() {
         when(companyRepo.count()).thenReturn(0L);
         when(techRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));

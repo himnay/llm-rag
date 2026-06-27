@@ -18,10 +18,10 @@ import org.springframework.web.bind.annotation.RestController;
  * query from the OpenSearch vector store. Generation (the LLM call) is out of scope here and
  * is handled by downstream consumers (e.g. llm-gateway).
  */
-@RestController
-@RequiredArgsConstructor
-@RequestMapping("/api/v1")
 @Tag(name = "RAG Pipeline", description = "Vector retrieval and generation endpoints for the RAG pipeline")
+@RestController
+@RequestMapping("/api/v1")
+@RequiredArgsConstructor
 class RetrievalController {
 
     private final RetrievalService retrievalService;
@@ -30,9 +30,9 @@ class RetrievalController {
      * Retrieves the most relevant chunks for {@code request.query()}, using {@code topK} if
      * provided or the configured default otherwise.
      */
-    @PostMapping("/retrieve")
     @Timed(value = "rag.retrieval", description = "Vector retrieval turnaround time", histogram = true)
     @Operation(summary = "Retrieve the most relevant document chunks for a query using vector similarity search")
+    @PostMapping("/retrieve")
     public RetrievalResult retrieve(@Valid @RequestBody RetrieveRequest request) {
         Integer topK = request.getTopK().orElse(null);
         return topK != null

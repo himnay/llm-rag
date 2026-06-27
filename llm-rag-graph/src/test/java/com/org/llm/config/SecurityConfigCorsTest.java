@@ -11,8 +11,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class SecurityConfigCorsTest {
 
-    @DisplayName("CORS configuration defaults to empty allowed origins when none are configured")
     @Test
+    @DisplayName("CORS configuration defaults to empty allowed origins when none are configured")
     void corsConfigurationDefaultsToEmptyOriginsWhenNoneConfigured() {
         SecurityProperties props = new SecurityProperties();
         props.setAllowedOrigins(List.of());
@@ -26,8 +26,8 @@ class SecurityConfigCorsTest {
         assertThat(cors.getAllowedHeaders()).contains("Authorization");
     }
 
-    @DisplayName("CORS configuration uses the configured allowed origins")
     @Test
+    @DisplayName("CORS configuration uses the configured allowed origins")
     void corsConfigurationUsesConfiguredOrigins() {
         SecurityProperties props = new SecurityProperties();
         props.setAllowedOrigins(List.of("https://example.com"));

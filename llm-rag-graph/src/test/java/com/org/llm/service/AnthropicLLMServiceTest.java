@@ -38,8 +38,8 @@ class AnthropicLLMServiceTest {
         ReflectionTestUtils.setField(service, "maxTokens", 4096);
     }
 
-    @DisplayName("Network failure during message creation is wrapped as LlmCallException")
     @Test
+    @DisplayName("Network failure during message creation is wrapped as LlmCallException")
     void networkFailureWrappedAsLlmCallException() {
         when(anthropicClient.messages()).thenReturn(messageService);
         when(messageService.create(any(MessageCreateParams.class))).thenThrow(new RuntimeException("Connection refused"));
@@ -50,8 +50,8 @@ class AnthropicLLMServiceTest {
                 .hasCauseInstanceOf(RuntimeException.class);
     }
 
-    @DisplayName("Authentication failure during message creation is wrapped as LlmCallException")
     @Test
+    @DisplayName("Authentication failure during message creation is wrapped as LlmCallException")
     void authFailureWrappedAsLlmCallException() {
         when(anthropicClient.messages()).thenReturn(messageService);
         when(messageService.create(any(MessageCreateParams.class))).thenThrow(new IllegalStateException("401 Unauthorized"));
@@ -61,8 +61,8 @@ class AnthropicLLMServiceTest {
                 .hasMessageContaining("401 Unauthorized");
     }
 
-    @DisplayName("Groundedness check defaults to true when the LLM call fails")
     @Test
+    @DisplayName("Groundedness check defaults to true when the LLM call fails")
     void groundednessCheckDefaultsToTrueWhenLlmCallFails() {
         when(anthropicClient.messages()).thenReturn(messageService);
         when(messageService.create(any(MessageCreateParams.class))).thenThrow(new RuntimeException("rate limited"));

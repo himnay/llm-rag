@@ -33,6 +33,10 @@ public class PromptOrchestrator {
     private final PromptAugmenter promptAugmenter;
     private final String systemInstructions = loadSystemPrompt();
 
+    public String getSystemInstructions() {
+        return systemInstructions;
+    }
+
     /**
      * Retrieves relevant chunks for the question and assembles the full {@link ChatPrompt}.
      */

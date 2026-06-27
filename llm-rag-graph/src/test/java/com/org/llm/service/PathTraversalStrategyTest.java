@@ -26,15 +26,15 @@ class PathTraversalStrategyTest {
 
     private PathTraversalStrategy strategy;
 
-    @DisplayName("Strategy name is path-traversal")
     @Test
+    @DisplayName("Strategy name is path-traversal")
     void nameIsPathTraversal() {
         strategy = new PathTraversalStrategy(neo4jClient);
         assertThat(strategy.name()).isEqualTo("path-traversal");
     }
 
-    @DisplayName("Extract maps all four query kinds to descriptive sentences")
     @Test
+    @DisplayName("Extract maps all four query kinds to descriptive sentences")
     void extractMapsAllFourQueryKindsToSentences() {
         strategy = new PathTraversalStrategy(neo4jClient);
 
@@ -57,8 +57,8 @@ class PathTraversalStrategyTest {
         assertThat(lines).anySatisfy(l -> assertThat(l).contains("Engineering collaborates with Product"));
     }
 
-    @DisplayName("Extract returns an empty list when every underlying query fails")
     @Test
+    @DisplayName("Extract returns an empty list when every underlying query fails")
     void extractReturnsEmptyWhenEveryQueryFails() {
         strategy = new PathTraversalStrategy(neo4jClient);
         when(neo4jClient.query(ArgumentMatchers.<String>any())).thenThrow(new RuntimeException("boom"));

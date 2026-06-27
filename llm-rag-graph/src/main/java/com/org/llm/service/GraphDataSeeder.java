@@ -27,8 +27,8 @@ import java.util.List;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 @ConditionalOnProperty(name = "app.graph.seed-data", havingValue = "true", matchIfMissing = true)
+@RequiredArgsConstructor
 public class GraphDataSeeder {
 
     private final CompanyRepository companyRepo;

@@ -23,11 +23,11 @@ import org.springframework.web.bind.annotation.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Tag(name = "Vector-less RAG", description = "BM25-based retrieval-augmented generation without vector stores")
 @Slf4j
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/api/rag")
-@Tag(name = "Vector-less RAG", description = "BM25-based retrieval-augmented generation without vector stores")
+@RequiredArgsConstructor
 public class RagController {
 
     private final ChatClient chatClient;

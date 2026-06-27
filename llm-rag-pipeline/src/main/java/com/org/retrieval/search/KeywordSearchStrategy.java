@@ -68,7 +68,7 @@ public class KeywordSearchStrategy implements SearchStrategy {
             }
             Object content = source.get("content");
             Map<String, Object> metadata = source.get("metadata") instanceof Map m
-                    ? new HashMap<String, Object>(m) : new HashMap<String, Object>();
+                    ? new HashMap<String, Object>(m) : new HashMap<>();
             double score = (hit.score() == null || maxScore == 0) ? 0.0 : hit.score() / maxScore;
             documents.add(Document.builder()
                     .id(hit.id())

@@ -1,9 +1,9 @@
 package com.org.llm.web;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
@@ -11,67 +11,74 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.net.URI;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Translates exceptions into RFC 9457 {@link ProblemDetail} JSON responses so the graph module
- * has consistent, structured error bodies rather than raw stack traces.
+ * Translates exceptions into consistent {@link ApiError} JSON responses so the graph module
+ * has structured, platform-standard error bodies.
  */
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     /**
-     * Returns 400 with all field-level validation messages joined into one detail string.
+     * Returns 400 with all field-level validation messages.
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ProblemDetail> handleValidation(MethodArgumentNotValidException ex) {
-        String detail = ex.getBindingResult().getFieldErrors().stream()
-                .map(FieldError::getDefaultMessage)
-                .collect(Collectors.joining("; "));
-        return problem(HttpStatus.BAD_REQUEST, "Validation failed", detail);
+    public ResponseEntity<ApiError> handleValidation(MethodArgumentNotValidException ex,
+                                                     HttpServletRequest req) {
+        Map<String, String> fieldErrors = new LinkedHashMap<>();
+        ex.getBindingResult().getFieldErrors()
+                .forEach(fe -> fieldErrors.put(fe.getField(), fe.getDefaultMessage()));
+        return build(HttpStatus.BAD_REQUEST, "Bad Request", "One or more fields are invalid",
+                req.getRequestURI(), fieldErrors);
     }
 
     /**
      * Returns 400 for bean-validation constraint violations (e.g. on path/query parameters).
      */
     @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<ProblemDetail> handleConstraint(ConstraintViolationException ex) {
-        return problem(HttpStatus.BAD_REQUEST, "Validation failed", ex.getMessage());
+    public ResponseEntity<ApiError> handleConstraint(ConstraintViolationException ex,
+                                                     HttpServletRequest req) {
+        return build(HttpStatus.BAD_REQUEST, "Bad Request", ex.getMessage(),
+                req.getRequestURI(), null);
     }
 
     /**
      * Returns 400 when the request body is missing or not valid JSON.
      */
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ProblemDetail> handleUnreadable(HttpMessageNotReadableException ex) {
-        return problem(HttpStatus.BAD_REQUEST, "Malformed request",
-                "Request body is missing or not valid JSON");
+    public ResponseEntity<ApiError> handleUnreadable(HttpMessageNotReadableException ex,
+                                                     HttpServletRequest req) {
+        return build(HttpStatus.BAD_REQUEST, "Bad Request",
+                "Request body is missing or not valid JSON", req.getRequestURI(), null);
     }
 
     /**
      * Returns 400 for illegal-argument failures raised by application code.
      */
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ProblemDetail> handleIllegalArgument(IllegalArgumentException ex) {
-        return problem(HttpStatus.BAD_REQUEST, "Bad request", ex.getMessage());
+    public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex,
+                                                          HttpServletRequest req) {
+        return build(HttpStatus.BAD_REQUEST, "Bad Request", ex.getMessage(),
+                req.getRequestURI(), null);
     }
 
     /**
-     * Catches Anthropic SDK / network failures so they return 502 instead of 500 stack traces.
+     * Catches unhandled exceptions so they return 500 instead of raw stack traces.
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ProblemDetail> handleGeneric(Exception ex) {
+    public ResponseEntity<ApiError> handleGeneric(Exception ex, HttpServletRequest req) {
         log.error("Unhandled error in graph module", ex);
-        return problem(HttpStatus.INTERNAL_SERVER_ERROR, "Internal error",
-                "An unexpected error occurred. Please try again later.");
+        return build(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error",
+                "An unexpected error occurred. Please try again later.", req.getRequestURI(), null);
     }
 
-    private static ResponseEntity<ProblemDetail> problem(HttpStatus status, String title, String detail) {
-        ProblemDetail pd = ProblemDetail.forStatusAndDetail(status, detail);
-        pd.setTitle(title);
-        pd.setType(URI.create("about:blank"));
-        return ResponseEntity.status(status).body(pd);
+    private ResponseEntity<ApiError> build(HttpStatus status, String error, String message,
+                                           String path, Map<String, String> fieldErrors) {
+        return ResponseEntity.status(status)
+                .body(ApiError.of(status.value(), error, message, path, fieldErrors));
     }
 }

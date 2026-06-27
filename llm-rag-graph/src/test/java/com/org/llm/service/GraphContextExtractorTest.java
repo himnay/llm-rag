@@ -65,8 +65,8 @@ class GraphContextExtractorTest {
                 .thenReturn(List.of());
     }
 
-    @DisplayName("Extract returns non-empty context including entity name for a known employee")
     @Test
+    @DisplayName("Extract returns non-empty context including entity name for a known employee")
     void extractReturnsNonEmptyContextForKnownEmployee() {
         Employee emp = new Employee("Alice Chen", "Engineer", "alice@acme.com", "Backend dev",
                 List.of("Java", "Spring"), 5);
@@ -83,8 +83,8 @@ class GraphContextExtractorTest {
         assertThat(ctx.formattedContext()).contains("Alice Chen");
     }
 
-    @DisplayName("Extract returns no context message when keywords match nothing in the graph")
     @Test
+    @DisplayName("Extract returns no context message when keywords match nothing in the graph")
     void extractReturnsNoContextForUnknownKeywords() {
         when(employeeRepo.searchByKeyword(anyString())).thenReturn(List.of());
         when(deptRepo.searchByKeyword(anyString())).thenReturn(List.of());
@@ -97,8 +97,8 @@ class GraphContextExtractorTest {
         assertThat(ctx.formattedContext()).contains("No relevant graph context found");
     }
 
-    @DisplayName("Extract does not infinite loop when the management chain is cyclic")
     @Test
+    @DisplayName("Extract does not infinite loop when the management chain is cyclic")
     void extractDoesNotInfiniteLoopOnCyclicManagementChain() {
         // Create a cycle: emp1 -> emp2 -> emp1 (manager cycle)
         Employee emp1 = new Employee("Bob", "Manager", "bob@acme.com", "", List.of(), 10);

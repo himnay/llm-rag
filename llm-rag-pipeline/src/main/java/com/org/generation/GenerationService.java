@@ -52,8 +52,8 @@ import java.util.UUID;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 @ConditionalOnProperty(name = "app.generation.enabled", havingValue = "true")
+@RequiredArgsConstructor
 public class GenerationService {
 
     private final GenerationProperties properties;
@@ -82,6 +82,13 @@ public class GenerationService {
         String requestConversationId = request.getConversationId().orElse(null);
         String conversationId = requestConversationId != null && !requestConversationId.isBlank()
                 ? requestConversationId : UUID.randomUUID().toString();
+
+        if (!injectionGuard.isQuerySafe(query)) {
+            log.warn("Prompt injection detected in user query — request rejected");
+            return new GenerateResponse()
+                    .answer("Your request contains disallowed instructions and cannot be processed.")
+                    .citations(List.of()).faithful(null).fromSemanticCache(false).insufficientContext(false);
+        }
 
         Optional<String> cached = semanticCache.get(query);
         if (cached.isPresent()) {
@@ -167,11 +174,21 @@ public class GenerationService {
         String conversationId = requestConversationId != null && !requestConversationId.isBlank()
                 ? requestConversationId : UUID.randomUUID().toString();
 
+        if (!injectionGuard.isQuerySafe(query)) {
+            log.warn("Prompt injection detected in user query (stream) — request rejected");
+            return reactor.core.publisher.Flux.just("Your request contains disallowed instructions and cannot be processed.");
+        }
+
         PromptOrchestrator.ChatPrompt chatPrompt = promptOrchestrator.build(query, topK);
         RetrievalResult retrieval = chatPrompt.retrievalResult();
         List<com.org.chunking.model.Chunk> safeChunks = injectionGuard.filter(retrieval.getChunks().orElse(List.of()));
         RetrievalResult safeRetrieval = new RetrievalResult().chunks(safeChunks).citations(retrieval.getCitations().orElse(List.of()));
         PromptOrchestrator.ChatPrompt safePrompt = promptOrchestrator.rebuild(query, safeRetrieval);
+
+        if (properties.getJudge().isEnabled() && !sufficiencyJudge.isSufficient(query, safePrompt.context())) {
+            log.info("Context sufficiency judge: INSUFFICIENT (stream) | query='{}'", query);
+            return reactor.core.publisher.Flux.just(properties.getJudge().getInsufficientAnswer());
+        }
 
         return chatClient.prompt()
                 .system(safePrompt.systemInstructions())
@@ -184,7 +201,11 @@ public class GenerationService {
     }
 
     private GenerateResponse generateWithAdvisor(String query) {
-        ChatClientResponse response = advisorClient.prompt().user(query).call().chatClientResponse();
+        // The system prompt is not set on advisorClient by default — adding it here ensures
+        // the grounding rules apply in advisor mode the same way they do in manual mode.
+        ChatClientResponse response = advisorClient.prompt()
+                .system(promptOrchestrator.getSystemInstructions())
+                .user(query).call().chatClientResponse();
         String answer = response.chatResponse() != null
                 ? response.chatResponse().getResult().getOutput().getText() : null;
         List<Citation> citations = toCitations(response.context().get(RetrievalAugmentationAdvisor.DOCUMENT_CONTEXT));

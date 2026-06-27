@@ -25,17 +25,17 @@ import reactor.core.publisher.Flux;
  *   <li>{@code POST /generate/stream} — SSE streaming; tokens arrive as they are generated.</li>
  * </ul>
  */
+@Tag(name = "RAG Pipeline", description = "Vector retrieval and generation endpoints for the RAG pipeline")
 @RestController
 @RequestMapping("/api/v1")
-@RequiredArgsConstructor
 @ConditionalOnBean(GenerationService.class)
-@Tag(name = "RAG Pipeline", description = "Vector retrieval and generation endpoints for the RAG pipeline")
+@RequiredArgsConstructor
 class GenerationController {
 
     private final GenerationService generationService;
 
-    @Operation(summary = "Generate a full RAG answer (retrieve + augment + generate) for a question")
     @Timed(value = "rag.generation", description = "End-to-end RAG generation latency", histogram = true)
+    @Operation(summary = "Generate a full RAG answer (retrieve + augment + generate) for a question")
     /**
      * Runs the full retrieve-augment-generate pipeline and returns the answer with citations.
      */

@@ -33,8 +33,8 @@ class RagControllerTest {
     @MockitoBean
     private GraphRAGService ragService;
 
-    @DisplayName("A valid question returns 200 with the LLM-generated answer")
     @Test
+    @DisplayName("A valid question returns 200 with the LLM-generated answer")
     void validQuestionReturns200() throws Exception {
         RagResponse response = RagResponse.builder()
                 .question("Who is Alice?")
@@ -54,8 +54,8 @@ class RagControllerTest {
                 .andExpect(jsonPath("$.answer").value("Alice is an engineer."));
     }
 
-    @DisplayName("A blank question returns 400")
     @Test
+    @DisplayName("A blank question returns 400")
     void blankQuestionReturns400() throws Exception {
         mockMvc.perform(post("/api/rag/query")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -63,8 +63,8 @@ class RagControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
-    @DisplayName("A null question returns 400")
     @Test
+    @DisplayName("A null question returns 400")
     void nullQuestionReturns400() throws Exception {
         mockMvc.perform(post("/api/rag/query")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -72,8 +72,8 @@ class RagControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
-    @DisplayName("An exception from the RAG service returns 500")
     @Test
+    @DisplayName("An exception from the RAG service returns 500")
     void llmServiceThrowingReturns500() throws Exception {
         when(ragService.query(any(RagRequest.class))).thenThrow(new RuntimeException("LLM unavailable"));
 

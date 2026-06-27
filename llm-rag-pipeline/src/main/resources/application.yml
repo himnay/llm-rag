@@ -230,3 +230,39 @@ app:
       enabled: ${CHUNK_DEDUP_ENABLED:true}
       key-prefix: "chunkhash:"
       ttl: 720h                                   # 30 days; chunk re-ingested after this gets re-embedded once
+
+# ── Prompt injection guard ────────────────────────────────────────────────────
+# Patterns are loaded by InjectionGuardProperties and compiled at startup.
+# To add new signatures, append to this list — no code change required.
+# To disable: set app.security.injection-guard.enabled=false
+app:
+  security:
+    injection-guard:
+      enabled: ${INJECTION_GUARD_ENABLED:true}
+      block-message: "Your request contains disallowed instructions and cannot be processed."
+      patterns:
+        # Instruction override attacks
+        - "(?i)ignore\\s+(?:all\\s+)?(?:previous|prior|above|all)\\s+instructions?"
+        - "(?i)ignore\\s+your\\s+(system\\s+)?prompt"
+        - "(?i)forget\\s+(your|all|previous)\\s+(instructions?|context|training)"
+        - "(?i)disregard\\s+(all|previous|your)\\s+instructions?"
+        - "(?i)override\\s+(the\\s+)?(system|previous|all)\\s+(prompt|instructions?)"
+        # Roleplay / persona hijack
+        - "(?i)you\\s+are\\s+now\\s+(?:DAN|an?\\s+AI\\s+without)"
+        - "(?i)act\\s+as\\s+if\\s+you\\s+(have\\s+no|are\\s+without)\\s+(restrictions?|rules?)"
+        - "(?i)pretend\\s+(you\\s+are|to\\s+be)\\s+"
+        - "(?i)roleplay\\s+as\\s+"
+        - "(?i)simulate\\s+(a|an|the)\\s+.{0,30}(AI|model|assistant|bot)"
+        # System prompt exfiltration
+        - "(?i)(print|reveal|show|output|repeat|display)\\s+(your\\s+)?(system\\s+)?prompt"
+        - "(?i)(print|repeat|show)\\s+(all\\s+)?(your\\s+)?instructions?"
+        - "(?i)what\\s+(are|were)\\s+your\\s+instructions?"
+        # Structural delimiter injection
+        - "(?i)\\[\\s*SYSTEM\\s*\\]"
+        - "(?i)<\\s*system\\s*>"
+        - "(?i)###\\s*(instruction|system|prompt)"
+        - "(?i)```\\s*(system|instructions?)"
+        # Jailbreak keywords
+        - "(?i)jailbreak"
+        - "(?i)developer\\s+mode"
+        - "(?i)DAN\\s+mode"

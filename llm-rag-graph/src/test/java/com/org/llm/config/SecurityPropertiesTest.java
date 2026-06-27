@@ -9,8 +9,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class SecurityPropertiesTest {
 
-    @DisplayName("Default property values are secure-by-default (auth disabled, no origins)")
     @Test
+    @DisplayName("Default property values are secure-by-default (auth disabled, no origins)")
     void defaultsAreSecureByDefault() {
         SecurityProperties props = new SecurityProperties();
 
@@ -18,8 +18,8 @@ class SecurityPropertiesTest {
         assertThat(props.getAllowedOrigins()).isEmpty();
     }
 
-    @DisplayName("Setters update fields and Lombok-generated equals/hashCode/toString reflect them")
     @Test
+    @DisplayName("Setters update fields and Lombok-generated equals/hashCode/toString reflect them")
     void settersUpdateFieldsAndLombokEqualityHolds() {
         SecurityProperties a = new SecurityProperties();
         a.setAuthEnabled(true);

@@ -19,8 +19,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Exercises the {@code authEnabled = true} branch of {@link SecurityConfig#filterChain}: requests
  * to {@code /api/**} must be rejected when unauthenticated.
  */
-@WebMvcTest(controllers = GraphController.class)
 @Import({SecurityConfig.class, SecurityProperties.class})
+@WebMvcTest(controllers = GraphController.class)
 @TestPropertySource(properties = "app.security.auth-enabled=true")
 class SecurityConfigAuthEnabledTest {
 
@@ -40,8 +40,8 @@ class SecurityConfigAuthEnabledTest {
     @MockitoBean
     private TechnologyRepository techRepo;
 
-    @DisplayName("Unauthenticated request to /api/** is rejected when auth is enabled")
     @Test
+    @DisplayName("Unauthenticated request to /api/** is rejected when auth is enabled")
     void unauthenticatedRequestToApiIsRejected() throws Exception {
         mockMvc.perform(get("/api/graph/stats"))
                 .andExpect(status().is4xxClientError());

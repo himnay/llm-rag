@@ -27,8 +27,8 @@ class Neo4jConfigTest {
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private Neo4jClient neo4jClient;
 
-    @DisplayName("transactionManager bean is created as a Neo4jTransactionManager")
     @Test
+    @DisplayName("transactionManager bean is created as a Neo4jTransactionManager")
     void transactionManagerBeanIsCreated() {
         Neo4jConfig config = new Neo4jConfig(neo4jClient);
 
@@ -37,16 +37,16 @@ class Neo4jConfigTest {
         assertThat(txManager).isNotNull().isInstanceOf(Neo4jTransactionManager.class);
     }
 
-    @DisplayName("createIndexes runs all DDL statements without throwing")
     @Test
+    @DisplayName("createIndexes runs all DDL statements without throwing")
     void createIndexesRunsAllDdlStatementsWithoutError() {
         Neo4jConfig config = new Neo4jConfig(neo4jClient);
 
         assertThatCode(config::createIndexes).doesNotThrowAnyException();
     }
 
-    @DisplayName("createIndexes tolerates DDL failures without propagating the exception")
     @Test
+    @DisplayName("createIndexes tolerates DDL failures without propagating the exception")
     void createIndexesToleratesDdlFailures() {
         Neo4jConfig config = new Neo4jConfig(neo4jClient);
         when(neo4jClient.query(anyString()).run()).thenThrow(new RuntimeException("index DDL failed"));

@@ -82,8 +82,8 @@ class GraphControllerTest {
         alice.setProjectAssignments(List.of(new WorksOnRelationship("lead", "2023-01-01", 50, alpha)));
     }
 
-    @DisplayName("Stats endpoint returns aggregated node and relationship counts")
     @Test
+    @DisplayName("Stats endpoint returns aggregated node and relationship counts")
     void statsReturnsAggregatedCounts() throws Exception {
         when(ragService.getStats()).thenReturn(new GraphStats(1, 3, 6, 10, 4, 8, 32, 42));
 
@@ -92,8 +92,8 @@ class GraphControllerTest {
                 .andExpect(jsonPath("$.employees").value(10));
     }
 
-    @DisplayName("Hierarchy endpoint returns the company when found")
     @Test
+    @DisplayName("Hierarchy endpoint returns the company when found")
     void hierarchyReturnsCompanyWhenFound() throws Exception {
         when(companyRepo.findWithFullHierarchy("TechCorp")).thenReturn(Optional.of(techCorp));
 
@@ -102,8 +102,8 @@ class GraphControllerTest {
                 .andExpect(jsonPath("$.name").value("TechCorp"));
     }
 
-    @DisplayName("Hierarchy endpoint returns 404 when the company is not found")
     @Test
+    @DisplayName("Hierarchy endpoint returns 404 when the company is not found")
     void hierarchyReturns404WhenMissing() throws Exception {
         when(companyRepo.findWithFullHierarchy("Unknown")).thenReturn(Optional.empty());
 
@@ -111,8 +111,8 @@ class GraphControllerTest {
                 .andExpect(status().isNotFound());
     }
 
-    @DisplayName("Employees endpoint returns the list of employees for a company")
     @Test
+    @DisplayName("Employees endpoint returns the list of employees for a company")
     void employeesReturnsPagedList() throws Exception {
         when(employeeRepo.findByCompanyName("TechCorp")).thenReturn(List.of(alice, manager));
 
@@ -121,8 +121,8 @@ class GraphControllerTest {
                 .andExpect(jsonPath("$.length()").value(2));
     }
 
-    @DisplayName("Employee context endpoint returns the employee when found")
     @Test
+    @DisplayName("Employee context endpoint returns the employee when found")
     void employeeContextReturnsEmployeeWhenFound() throws Exception {
         when(employeeRepo.findWithFullContext("Alice Chen")).thenReturn(Optional.of(alice));
 
@@ -131,8 +131,8 @@ class GraphControllerTest {
                 .andExpect(jsonPath("$.name").value("Alice Chen"));
     }
 
-    @DisplayName("Employee context endpoint returns 404 when the employee is not found")
     @Test
+    @DisplayName("Employee context endpoint returns 404 when the employee is not found")
     void employeeContextReturns404WhenMissing() throws Exception {
         when(employeeRepo.findWithFullContext(anyString())).thenReturn(Optional.empty());
 
@@ -140,8 +140,8 @@ class GraphControllerTest {
                 .andExpect(status().isNotFound());
     }
 
-    @DisplayName("Direct reports endpoint returns the list of direct reports for a manager")
     @Test
+    @DisplayName("Direct reports endpoint returns the list of direct reports for a manager")
     void directReportsReturnsList() throws Exception {
         when(employeeRepo.findDirectReports("Boss Person")).thenReturn(List.of(alice));
 
@@ -150,8 +150,8 @@ class GraphControllerTest {
                 .andExpect(jsonPath("$.length()").value(1));
     }
 
-    @DisplayName("Project team endpoint returns the list of employees assigned to a project")
     @Test
+    @DisplayName("Project team endpoint returns the list of employees assigned to a project")
     void projectTeamReturnsList() throws Exception {
         when(employeeRepo.findByProjectName("Project Alpha")).thenReturn(List.of(alice));
 
@@ -160,8 +160,8 @@ class GraphControllerTest {
                 .andExpect(jsonPath("$.length()").value(1));
     }
 
-    @DisplayName("Export endpoint builds nodes and links spanning the entire graph")
     @Test
+    @DisplayName("Export endpoint builds nodes and links spanning the entire graph")
     void exportBuildsNodesAndLinksAcrossEntireGraph() throws Exception {
         when(companyRepo.findAll()).thenReturn(List.of(techCorp));
         when(departmentRepo.findAll()).thenReturn(List.of(engineering, product));

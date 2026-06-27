@@ -18,8 +18,8 @@ import java.util.UUID;
  * The ID is placed in the MDC so that every log line emitted during request processing carries it.
  * The same ID is echoed back in the response header for client-side correlation.
  */
-@Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
+@Component
 public class RequestIdFilter extends OncePerRequestFilter {
 
     private static final String HEADER = "X-Request-ID";

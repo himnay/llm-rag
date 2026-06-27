@@ -21,8 +21,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Exercises the {@code authEnabled = false} branch of {@link SecurityConfig#filterChain}: every
  * request is permitted through without authentication.
  */
-@WebMvcTest(controllers = GraphController.class)
 @Import({SecurityConfig.class, SecurityProperties.class})
+@WebMvcTest(controllers = GraphController.class)
 @TestPropertySource(properties = "app.security.auth-enabled=false")
 class SecurityConfigAuthDisabledTest {
 
@@ -42,8 +42,8 @@ class SecurityConfigAuthDisabledTest {
     @MockitoBean
     private TechnologyRepository techRepo;
 
-    @DisplayName("Unauthenticated request to /api/** is permitted when auth is disabled")
     @Test
+    @DisplayName("Unauthenticated request to /api/** is permitted when auth is disabled")
     void unauthenticatedRequestToApiIsPermitted() throws Exception {
         when(ragService.getStats()).thenReturn(new GraphStats(1, 1, 1, 1, 1, 1, 6, 6));
 

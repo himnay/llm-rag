@@ -19,8 +19,8 @@ import java.util.Map;
 
 @Validated
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/lifecycle")
+@RequiredArgsConstructor
 class LifecycleController {
 
     private final KnowledgeLifecycleService knowledgeLifecycleService;

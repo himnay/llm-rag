@@ -9,8 +9,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class AnthropicConfigTest {
 
-    @DisplayName("Builds an Anthropic client using the configured API key")
     @Test
+    @DisplayName("Builds an Anthropic client using the configured API key")
     void buildsClientFromConfiguredApiKey() {
         AnthropicConfig config = new AnthropicConfig();
         ReflectionTestUtils.setField(config, "apiKey", "sk-test-key");
@@ -20,8 +20,8 @@ class AnthropicConfigTest {
         assertThat(client).isNotNull();
     }
 
-    @DisplayName("Falls back to environment-based client creation when API key is blank")
     @Test
+    @DisplayName("Falls back to environment-based client creation when API key is blank")
     void fallsBackToEnvironmentWhenApiKeyBlank() {
         AnthropicConfig config = new AnthropicConfig();
         ReflectionTestUtils.setField(config, "apiKey", "");
