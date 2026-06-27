@@ -7,6 +7,7 @@ import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import java.net.http.HttpClient;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -30,9 +31,11 @@ public class CrossEncoderReranker implements Reranker {
      */
     public CrossEncoderReranker(RetrievalProperties properties) {
         this.properties = properties;
-        // A bounded read timeout so a slow rerank vendor degrades to pass-through instead of
-        // stalling every retrieval request.
-        JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory();
+        // Connect + read timeouts so a slow/unavailable rerank vendor degrades to pass-through.
+        HttpClient httpClient = HttpClient.newBuilder()
+                .connectTimeout(properties.getRerank().getConnectTimeout())
+                .build();
+        JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
         requestFactory.setReadTimeout(properties.getRerank().getTimeout());
         this.restClient = RestClient.builder()
                 .baseUrl(properties.getRerank().getBaseUrl())

@@ -67,124 +67,113 @@ public class GraphContextExtractor {
         List<String> contextLines = new ArrayList<>();
         List<Citation> citations = new ArrayList<>();
 
-        // ── 1. Full-text search across all node labels ──────────────────
-        for (String keyword : keywords) {
-            List<Map<String, Object>> hits = fullTextSearch(keyword);
-            for (Map<String, Object> hit : hits) {
-                String name = (String) hit.get("name");
-                String labels = (String) hit.get("labels");
-                if (name != null) entityNames.add(name);
-                if (name != null && labels != null) {
-                    contextLines.add("Found entity: " + name + " [" + labels + "]");
-                    citations.add(new Citation(labels.trim(), null, name, null));
-                }
+        // ── 1. Full-text search across all node labels (single round-trip) ─
+        fullTextSearchBatch(keywords).forEach(hit -> {
+            String name = (String) hit.get("name");
+            String labels = (String) hit.get("labels");
+            if (name != null) entityNames.add(name);
+            if (name != null && labels != null) {
+                contextLines.add("Found entity: " + name + " [" + labels + "]");
+                citations.add(new Citation(labels.trim(), null, name, null));
             }
-            if (entityNames.size() >= maxContextNodes) break;
-        }
+        });
 
-        // ── 2. Employee deep-context traversal ───────────────────────────
+        // ── 2. Employee deep-context traversal (single round-trip) ───────
         Set<Long> visitedEmployeeIds = new HashSet<>();
-        for (String keyword : keywords) {
-            employeeRepo.searchByKeyword(keyword).forEach(emp -> {
-                // Cycle-safe: skip employees already processed in this extraction
-                if (emp.getId() != null && !visitedEmployeeIds.add(emp.getId())) {
-                    return;
-                }
-                entityNames.add(emp.getName());
-                String empId = emp.getId() != null ? emp.getId().toString() : null;
-                citations.add(new Citation("Employee", empId, emp.getName(), null));
+        employeeRepo.searchByKeywords(keywords).forEach(emp -> {
+            if (emp.getId() != null && !visitedEmployeeIds.add(emp.getId())) {
+                return;
+            }
+            entityNames.add(emp.getName());
+            String empId = emp.getId() != null ? emp.getId().toString() : null;
+            citations.add(new Citation("Employee", empId, emp.getName(), null));
 
-                StringBuilder sb = new StringBuilder();
-                sb.append("Employee ").append(emp.getName())
-                        .append(" (").append(emp.getTitle()).append(")");
+            StringBuilder sb = new StringBuilder();
+            sb.append("Employee ").append(emp.getName())
+                    .append(" (").append(emp.getTitle()).append(")");
 
-                if (emp.getManager() != null) {
-                    sb.append(" reports to ").append(emp.getManager().getName());
-                    citations.add(new Citation("Employee", empId, emp.getName(), "REPORTS_TO"));
-                }
-                if (emp.getSkills() != null && !emp.getSkills().isEmpty()) {
-                    sb.append(". Skills: ").append(String.join(", ", emp.getSkills()));
-                }
-                if (emp.getProjectAssignments() != null) {
-                    emp.getProjectAssignments().forEach(wa -> {
-                        if (wa.getProject() != null) {
-                            sb.append(". Works on ").append(wa.getProject().getName())
-                                    .append(" as ").append(wa.getRole())
-                                    .append(" (").append(wa.getAllocationPct()).append("% allocation)");
-                            entityNames.add(wa.getProject().getName());
-                            citations.add(new Citation("Employee", empId, emp.getName(), "WORKS_ON"));
-                        }
-                    });
-                }
-                contextLines.add(sb.toString());
-            });
-        }
+            if (emp.getManager() != null) {
+                sb.append(" reports to ").append(emp.getManager().getName());
+                citations.add(new Citation("Employee", empId, emp.getName(), "REPORTS_TO"));
+            }
+            if (emp.getSkills() != null && !emp.getSkills().isEmpty()) {
+                sb.append(". Skills: ").append(String.join(", ", emp.getSkills()));
+            }
+            if (emp.getProjectAssignments() != null) {
+                emp.getProjectAssignments().forEach(wa -> {
+                    if (wa.getProject() != null) {
+                        sb.append(". Works on ").append(wa.getProject().getName())
+                                .append(" as ").append(wa.getRole())
+                                .append(" (").append(wa.getAllocationPct()).append("% allocation)");
+                        entityNames.add(wa.getProject().getName());
+                        citations.add(new Citation("Employee", empId, emp.getName(), "WORKS_ON"));
+                    }
+                });
+            }
+            contextLines.add(sb.toString());
+        });
 
-        // ── 3. Department-level traversal ────────────────────────────────
-        for (String keyword : keywords) {
-            deptRepo.searchByKeyword(keyword).forEach(dept -> {
-                entityNames.add(dept.getName());
-                String deptId = dept.getId() != null ? dept.getId().toString() : null;
-                citations.add(new Citation("Department", deptId, dept.getName(), null));
+        // ── 3. Department-level traversal (single round-trip) ────────────
+        deptRepo.searchByKeywords(keywords).forEach(dept -> {
+            entityNames.add(dept.getName());
+            String deptId = dept.getId() != null ? dept.getId().toString() : null;
+            citations.add(new Citation("Department", deptId, dept.getName(), null));
 
-                StringBuilder sb = new StringBuilder();
-                sb.append("Department ").append(dept.getName())
-                        .append(" (").append(dept.getHeadcount()).append(" headcount)");
+            StringBuilder sb = new StringBuilder();
+            sb.append("Department ").append(dept.getName())
+                    .append(" (").append(dept.getHeadcount()).append(" headcount)");
 
-                if (dept.getTeams() != null && !dept.getTeams().isEmpty()) {
-                    String teams = dept.getTeams().stream()
-                            .map(t -> t.getName())
-                            .collect(Collectors.joining(", "));
-                    sb.append(". Teams: ").append(teams);
-                    citations.add(new Citation("Department", deptId, dept.getName(), "HAS_TEAM"));
-                }
-                if (dept.getCollaborators() != null && !dept.getCollaborators().isEmpty()) {
-                    String collabs = dept.getCollaborators().stream()
-                            .map(d -> d.getName())
-                            .collect(Collectors.joining(", "));
-                    sb.append(". Collaborates with: ").append(collabs);
-                    citations.add(new Citation("Department", deptId, dept.getName(), "COLLABORATES_WITH"));
-                }
-                if (dept.getProjects() != null && !dept.getProjects().isEmpty()) {
-                    String projects = dept.getProjects().stream()
-                            .map(p -> p.getName())
-                            .collect(Collectors.joining(", "));
-                    sb.append(". Owns projects: ").append(projects);
-                    citations.add(new Citation("Department", deptId, dept.getName(), "OWNS_PROJECT"));
-                }
-                contextLines.add(sb.toString());
-            });
-        }
+            if (dept.getTeams() != null && !dept.getTeams().isEmpty()) {
+                String teams = dept.getTeams().stream()
+                        .map(t -> t.getName())
+                        .collect(Collectors.joining(", "));
+                sb.append(". Teams: ").append(teams);
+                citations.add(new Citation("Department", deptId, dept.getName(), "HAS_TEAM"));
+            }
+            if (dept.getCollaborators() != null && !dept.getCollaborators().isEmpty()) {
+                String collabs = dept.getCollaborators().stream()
+                        .map(d -> d.getName())
+                        .collect(Collectors.joining(", "));
+                sb.append(". Collaborates with: ").append(collabs);
+                citations.add(new Citation("Department", deptId, dept.getName(), "COLLABORATES_WITH"));
+            }
+            if (dept.getProjects() != null && !dept.getProjects().isEmpty()) {
+                String projects = dept.getProjects().stream()
+                        .map(p -> p.getName())
+                        .collect(Collectors.joining(", "));
+                sb.append(". Owns projects: ").append(projects);
+                citations.add(new Citation("Department", deptId, dept.getName(), "OWNS_PROJECT"));
+            }
+            contextLines.add(sb.toString());
+        });
 
-        // ── 4. Project + Technology traversal ────────────────────────────
-        for (String keyword : keywords) {
-            projectRepo.searchByKeyword(keyword).forEach(proj -> {
-                entityNames.add(proj.getName());
-                String projId = proj.getId() != null ? proj.getId().toString() : null;
-                citations.add(new Citation("Project", projId, proj.getName(), null));
+        // ── 4. Project + Technology traversal (single round-trip each) ───
+        projectRepo.searchByKeywords(keywords).forEach(proj -> {
+            entityNames.add(proj.getName());
+            String projId = proj.getId() != null ? proj.getId().toString() : null;
+            citations.add(new Citation("Project", projId, proj.getName(), null));
 
-                StringBuilder sb = new StringBuilder();
-                sb.append("Project ").append(proj.getName())
-                        .append(" (status: ").append(proj.getStatus()).append(")");
+            StringBuilder sb = new StringBuilder();
+            sb.append("Project ").append(proj.getName())
+                    .append(" (status: ").append(proj.getStatus()).append(")");
 
-                if (proj.getTechnologies() != null && !proj.getTechnologies().isEmpty()) {
-                    String techs = proj.getTechnologies().stream()
-                            .map(t -> t.getName())
-                            .collect(Collectors.joining(", "));
-                    sb.append(". Uses technologies: ").append(techs);
-                    citations.add(new Citation("Project", projId, proj.getName(), "USES_TECHNOLOGY"));
-                }
-                contextLines.add(sb.toString());
-            });
+            if (proj.getTechnologies() != null && !proj.getTechnologies().isEmpty()) {
+                String techs = proj.getTechnologies().stream()
+                        .map(t -> t.getName())
+                        .collect(Collectors.joining(", "));
+                sb.append(". Uses technologies: ").append(techs);
+                citations.add(new Citation("Project", projId, proj.getName(), "USES_TECHNOLOGY"));
+            }
+            contextLines.add(sb.toString());
+        });
 
-            techRepo.searchByKeyword(keyword).forEach(tech -> {
-                entityNames.add(tech.getName());
-                String techId = tech.getId() != null ? tech.getId().toString() : null;
-                citations.add(new Citation("Technology", techId, tech.getName(), null));
-                contextLines.add("Technology " + tech.getName()
-                        + " (" + tech.getCategory() + "): " + tech.getDescription());
-            });
-        }
+        techRepo.searchByKeywords(keywords).forEach(tech -> {
+            entityNames.add(tech.getName());
+            String techId = tech.getId() != null ? tech.getId().toString() : null;
+            citations.add(new Citation("Technology", techId, tech.getName(), null));
+            contextLines.add("Technology " + tech.getName()
+                    + " (" + tech.getCategory() + "): " + tech.getDescription());
+        });
 
         // ── 5. Pluggable extraction strategies (Strategy pattern) ────────
         // Strategies return free-form natural-language sentences without structured node/relationship
@@ -210,25 +199,29 @@ public class GraphContextExtractor {
         return new GraphContext(formatted, new ArrayList<>(entityNames), dedupedCitations);
     }
 
-    // ── Full-text search via Neo4j index ─────────────────────────────────
+    // ── Full-text search via Neo4j index (batch: all keywords, 1 round-trip) ─
 
-    private List<Map<String, Object>> fullTextSearch(String keyword) {
+    private List<Map<String, Object>> fullTextSearchBatch(List<String> keywords) {
+        if (keywords.isEmpty()) return Collections.emptyList();
         try {
+            String luceneQuery = keywords.stream()
+                    .map(k -> k.replaceAll("[^a-zA-Z0-9]", "") + "*")
+                    .collect(Collectors.joining(" OR "));
             String cypher = """
-                    CALL db.index.fulltext.queryNodes('entitySearch', $keyword + '*')
+                    CALL db.index.fulltext.queryNodes('entitySearch', $luceneQuery)
                     YIELD node, score
                     WITH node, score, labels(node) AS lbls
                     RETURN node.name AS name, reduce(s='', l IN lbls | s + l + ' ') AS labels, score
-                    ORDER BY score DESC LIMIT 10
+                    ORDER BY score DESC LIMIT 30
                     """;
             return neo4jClient.query(cypher)
-                    .bind(keyword).to("keyword")
+                    .bind(luceneQuery).to("luceneQuery")
                     .fetch()
                     .all()
                     .stream()
                     .collect(Collectors.toList());
         } catch (Exception e) {
-            log.debug("Full-text search failed for '{}': {}", keyword, e.getMessage());
+            log.debug("Full-text batch search failed for keywords={}: {}", keywords, e.getMessage());
             return Collections.emptyList();
         }
     }

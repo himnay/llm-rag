@@ -9,11 +9,13 @@ import com.org.llm.dto.GraphStats;
 import com.org.llm.repository.*;
 import com.org.llm.service.GraphRAGService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.neo4j.core.Neo4jClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/graph")
@@ -28,6 +30,7 @@ public class GraphController {
     private final DepartmentRepository departmentRepo;
     private final ProjectRepository projectRepo;
     private final TechnologyRepository techRepo;
+    private final Neo4jClient neo4jClient;
 
     /**
      * Returns aggregate node/relationship counts for the knowledge graph.
@@ -96,77 +99,55 @@ public class GraphController {
         return ResponseEntity.ok(employeeRepo.findByProjectName(name, offset, cappedLimit));
     }
 
+    private static final int EXPORT_NODE_LIMIT = 2000;
+    private static final int EXPORT_REL_LIMIT = 10000;
+    private static final String NODE_LABEL_FILTER =
+            "n:Company OR n:Department OR n:Project OR n:Technology OR n:Employee OR n:Team";
+
     /**
      * Export the full graph in D3.js-compatible format for visualization.
+     * Uses 2 Cypher queries (nodes + relationships) instead of 5 findAll() calls.
      * {@code GET /api/graph/export?format=json}
      */
     @GetMapping("/export")
     public ResponseEntity<GraphExportDto> export(
             @RequestParam(defaultValue = "json") String format) {
-        List<GraphNode> nodes = new ArrayList<>();
-        List<GraphLink> links = new ArrayList<>();
+        List<GraphNode> nodes = neo4jClient.query(
+                        "MATCH (n) WHERE " + NODE_LABEL_FILTER +
+                        " RETURN id(n) AS id, labels(n)[0] AS label, n.name AS name" +
+                        " LIMIT " + EXPORT_NODE_LIMIT)
+                .fetch()
+                .all()
+                .stream()
+                .filter(row -> row.get("id") != null && row.get("name") != null)
+                .map(row -> new GraphNode(
+                        toLong(row.get("id")),
+                        String.valueOf(row.get("label")),
+                        String.valueOf(row.get("name"))))
+                .toList();
 
-        // Collect all nodes
-        companyRepo.findAll().forEach(c -> {
-            if (c.getId() != null) {
-                nodes.add(new GraphNode(c.getId(), "Company", c.getName()));
-                c.getDepartments().forEach(d -> {
-                    if (d.getId() != null) {
-                        links.add(new GraphLink(c.getId(), d.getId(), "HAS_DEPARTMENT"));
-                    }
-                });
-            }
-        });
-
-        departmentRepo.findAll().forEach(d -> {
-            if (d.getId() != null) {
-                nodes.add(new GraphNode(d.getId(), "Department", d.getName()));
-                d.getProjects().forEach(p -> {
-                    if (p.getId() != null) {
-                        links.add(new GraphLink(d.getId(), p.getId(), "OWNS_PROJECT"));
-                    }
-                });
-                d.getCollaborators().forEach(c -> {
-                    if (c.getId() != null) {
-                        links.add(new GraphLink(d.getId(), c.getId(), "COLLABORATES_WITH"));
-                    }
-                });
-            }
-        });
-
-        projectRepo.findAll().forEach(p -> {
-            if (p.getId() != null) {
-                nodes.add(new GraphNode(p.getId(), "Project", p.getName()));
-                p.getTechnologies().forEach(t -> {
-                    if (t.getId() != null) {
-                        links.add(new GraphLink(p.getId(), t.getId(), "USES_TECHNOLOGY"));
-                    }
-                });
-            }
-        });
-
-        techRepo.findAll().forEach(t -> {
-            if (t.getId() != null) {
-                nodes.add(new GraphNode(t.getId(), "Technology", t.getName()));
-            }
-        });
-
-        employeeRepo.findAll().forEach(e -> {
-            if (e.getId() != null) {
-                nodes.add(new GraphNode(e.getId(), "Employee", e.getName()));
-                if (e.getManager() != null && e.getManager().getId() != null) {
-                    links.add(new GraphLink(e.getId(), e.getManager().getId(), "REPORTS_TO"));
-                }
-                if (e.getProjectAssignments() != null) {
-                    e.getProjectAssignments().forEach(wa -> {
-                        if (wa.getProject() != null && wa.getProject().getId() != null) {
-                            links.add(new GraphLink(e.getId(), wa.getProject().getId(), "WORKS_ON"));
-                        }
-                    });
-                }
-            }
-        });
+        List<GraphLink> links = neo4jClient.query(
+                        "MATCH (n)-[r]->(m)" +
+                        " WHERE (" + NODE_LABEL_FILTER.replace("n:", "n:") + ")" +
+                        "   AND (m:Company OR m:Department OR m:Project OR m:Technology OR m:Employee OR m:Team)" +
+                        " RETURN id(n) AS source, id(m) AS target, type(r) AS relType" +
+                        " LIMIT " + EXPORT_REL_LIMIT)
+                .fetch()
+                .all()
+                .stream()
+                .filter(row -> row.get("source") != null && row.get("target") != null)
+                .map(row -> new GraphLink(
+                        toLong(row.get("source")),
+                        toLong(row.get("target")),
+                        String.valueOf(row.get("relType"))))
+                .toList();
 
         return ResponseEntity.ok(new GraphExportDto(nodes, links));
+    }
+
+    private static Long toLong(Object value) {
+        if (value instanceof Long l) return l;
+        if (value instanceof Number n) return n.longValue();
+        return null;
     }
 }

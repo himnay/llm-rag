@@ -28,6 +28,16 @@ public interface ProjectRepository extends Neo4jRepository<Project, Long> {
             """)
     List<Project> searchByKeyword(String keyword);
 
+    @Query("""
+            UNWIND $keywords AS kw
+            MATCH (p:Project)
+            WHERE toLower(p.name) CONTAINS toLower(kw)
+               OR toLower(p.description) CONTAINS toLower(kw)
+               OR toLower(p.goal) CONTAINS toLower(kw)
+            RETURN DISTINCT p
+            """)
+    List<Project> searchByKeywords(List<String> keywords);
+
     /**
      * Finds the name of the department that owns the named project.
      */

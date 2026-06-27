@@ -202,6 +202,10 @@ public class RetrievalProperties {
          */
         private java.time.Duration timeout = java.time.Duration.ofSeconds(10);
         /**
+         * Connect timeout for the external cross-encoder call.
+         */
+        private java.time.Duration connectTimeout = java.time.Duration.ofSeconds(5);
+        /**
          * Drop re-scored chunks below this relevance (0 = off). Scales differ per strategy.
          */
         private double minScore = 0.0;
@@ -244,6 +248,14 @@ public class RetrievalProperties {
 
         public void setTimeout(java.time.Duration timeout) {
             this.timeout = timeout;
+        }
+
+        public java.time.Duration getConnectTimeout() {
+            return connectTimeout;
+        }
+
+        public void setConnectTimeout(java.time.Duration connectTimeout) {
+            this.connectTimeout = connectTimeout;
         }
 
         public String getBaseUrl() {

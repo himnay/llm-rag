@@ -49,6 +49,20 @@ public interface EmployeeRepository extends Neo4jRepository<Employee, Long> {
     List<Employee> searchByKeyword(String keyword);
 
     /**
+     * Batch variant: single round-trip for all keywords via UNWIND.
+     */
+    @Query("""
+            UNWIND $keywords AS kw
+            MATCH (e:Employee)
+            WHERE toLower(e.name) CONTAINS toLower(kw)
+               OR toLower(e.title) CONTAINS toLower(kw)
+               OR toLower(e.bio) CONTAINS toLower(kw)
+               OR ANY(skill IN e.skills WHERE toLower(skill) CONTAINS toLower(kw))
+            RETURN DISTINCT e
+            """)
+    List<Employee> searchByKeywords(List<String> keywords);
+
+    /**
      * Employees working on a given project, with Cypher-level pagination.
      */
     @Query("""

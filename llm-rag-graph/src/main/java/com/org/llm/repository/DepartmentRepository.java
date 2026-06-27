@@ -34,6 +34,16 @@ public interface DepartmentRepository extends Neo4jRepository<Department, Long> 
             """)
     List<Department> searchByKeyword(String keyword);
 
+    @Query("""
+            UNWIND $keywords AS kw
+            MATCH (d:Department)
+            WHERE toLower(d.name) CONTAINS toLower(kw)
+               OR toLower(d.description) CONTAINS toLower(kw)
+               OR toLower(d.focus) CONTAINS toLower(kw)
+            RETURN DISTINCT d
+            """)
+    List<Department> searchByKeywords(List<String> keywords);
+
     /**
      * Finds departments that the named department collaborates with.
      */

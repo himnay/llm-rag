@@ -28,6 +28,16 @@ public interface TechnologyRepository extends Neo4jRepository<Technology, Long> 
             """)
     List<Technology> searchByKeyword(String keyword);
 
+    @Query("""
+            UNWIND $keywords AS kw
+            MATCH (t:Technology)
+            WHERE toLower(t.name) CONTAINS toLower(kw)
+               OR toLower(t.category) CONTAINS toLower(kw)
+               OR toLower(t.description) CONTAINS toLower(kw)
+            RETURN DISTINCT t
+            """)
+    List<Technology> searchByKeywords(List<String> keywords);
+
     /**
      * Finds technologies in the given category.
      */
