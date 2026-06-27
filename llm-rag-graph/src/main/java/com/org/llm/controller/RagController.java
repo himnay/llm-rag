@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/rag")
+@RequestMapping("/api/v1/rag")
 @RequiredArgsConstructor
 public class RagController {
 

@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/graph")
+@RequestMapping("/api/v1/graph")
 @RequiredArgsConstructor
 public class GraphController {
 

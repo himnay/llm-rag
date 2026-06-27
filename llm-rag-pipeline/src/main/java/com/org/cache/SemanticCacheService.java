@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.springframework.scheduling.annotation.Scheduled;
 
 /**
  * Semantic answer cache: stores {@code (queryVector, answer)} pairs and, on a new query, returns a
@@ -51,13 +52,6 @@ public class SemanticCacheService {
         double bestSim = -1;
         String bestAnswer = null;
 
-        lock.writeLock().lock();
-        try {
-            entries.removeIf(e -> now >= e.expiresAtMillis());
-        } finally {
-            lock.writeLock().unlock();
-        }
-
         lock.readLock().lock();
         try {
             for (CacheEntry entry : entries) {
@@ -93,6 +87,17 @@ public class SemanticCacheService {
                 entries.remove(0);
             }
             entries.add(new CacheEntry(queryVector, answer, expiry));
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    @Scheduled(fixedRate = 30_000)
+    void evictExpiredEntries() {
+        long now = System.currentTimeMillis();
+        lock.writeLock().lock();
+        try {
+            entries.removeIf(e -> now >= e.expiresAtMillis());
         } finally {
             lock.writeLock().unlock();
         }

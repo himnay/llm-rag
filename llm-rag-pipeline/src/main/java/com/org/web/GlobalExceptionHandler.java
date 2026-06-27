@@ -105,6 +105,14 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Concurrent lifecycle operation rejected (e.g. ingest-all already running).
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiError> handleIllegalState(IllegalStateException ex) {
+        return build(HttpStatus.CONFLICT, "Operation conflict", ex.getMessage(), null);
+    }
+
+    /**
      * Ingestion / IO failures.
      */
     @ExceptionHandler(IOException.class)

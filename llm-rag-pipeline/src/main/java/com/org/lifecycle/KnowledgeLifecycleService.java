@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -33,6 +34,8 @@ public class KnowledgeLifecycleService {
      * Uses "anon-" prefix which cannot collide with real identities (PDF#..., WIKI#..., DB#...).
      */
     private static final String ANON = "anon-";
+
+    private final AtomicBoolean ingestAllRunning = new AtomicBoolean(false);
 
     private final ChunkVectorStoreService vectorStoreService;
     private final IngestionOrchestrator ingestionOrchestrator;
@@ -57,10 +60,18 @@ public class KnowledgeLifecycleService {
 
     /**
      * Wipes the vector store and re-ingests every known knowledge source from scratch.
+     * Guard: rejects concurrent calls — only one ingest-all may run at a time.
      */
     public void ingestAll() throws IOException {
-        deleteAll();
-        process(ingestionOrchestrator.ingestAll(), true);
+        if (!ingestAllRunning.compareAndSet(false, true)) {
+            throw new IllegalStateException("An ingest-all operation is already in progress. Try again after it completes.");
+        }
+        try {
+            deleteAll();
+            process(ingestionOrchestrator.ingestAll(), true);
+        } finally {
+            ingestAllRunning.set(false);
+        }
     }
 
     /**
