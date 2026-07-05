@@ -51,38 +51,56 @@ Employee -[:WORKS_ON]-> Project <-[:WORKS_ON]- Employee -[:REPORTS_TO*]-> Eve
 
 ## Architecture
 
+```mermaid
+flowchart TB
+    Req(["HTTP Request"]) --> RC["RagController\nPOST /api/rag/query"]
+    RC --> Svc["GraphRAGService\n(Facade — orchestrates the flow)"]
+    Svc --> Ext["GraphContextExtractor"]
+    Svc --> LLMSvc["AnthropicLLMService\nclaude-opus-4-8"]
+
+    subgraph EXT["GraphContextExtractor steps"]
+        direction TB
+        E1["1. Keyword extraction"]
+        E2["2. Full-text index search (APOC entitySearch)"]
+        E3["3. Entity traversal\n Employees+managers · Departments+teams · Projects+technologies"]
+        E4["4. Multi-level Cypher paths\n Org hierarchy (4 hops) · Management chains\n Project↔technology paths · Cross-dept collaboration"]
+        E5["5. Deduplicate & format"]
+        E1 --> E2 --> E3 --> E4 --> E5
+    end
+    Ext -.-> EXT
+
+    EXT --> Ctx["GraphContext\n(structured text + entity list)"]
+    Ctx --> LLMSvc
+    LLMSvc --> Gen["Injects graph context into the prompt\nLLM generates grounded answer"]
+    Gen --> Resp["RagResponse { question, answer, graphContext, entities, latencyMs }"]
 ```
-HTTP Request
-     │
-     ▼
-RagController  POST /api/rag/query
-     │
-     ▼
-GraphRAGService   ──── orchestrates ────┐
-     │                                  │
-     ▼                                  ▼
-GraphContextExtractor          AnthropicLLMService
-  1. Keyword extraction           claude-opus-4-8
-  2. Full-text index search       Injects graph context
-  3. Entity traversal             into the prompt
-     • Employees + managers
-     • Departments + teams
-     • Projects + technologies
-  4. Multi-level Cypher paths
-     • Org hierarchy (4 hops)
-     • Management chains
-     • Project ↔ technology paths
-     • Cross-dept collaboration
-  5. Deduplicate & format
-     │
-     ▼
-  GraphContext (structured text + entity list)
-     │
-     ▼
-LLM generates grounded answer
-     │
-     ▼
-RagResponse { question, answer, graphContext, entities, latencyMs }
+
+### Query sequence (`POST /api/rag/query`)
+
+```mermaid
+sequenceDiagram
+    actor Client
+    participant RC as RagController
+    participant Svc as GraphRAGService
+    participant Ext as GraphContextExtractor
+    participant Neo as Neo4j (APOC full-text + Cypher)
+    participant LLM as AnthropicLLMService
+
+    Client->>RC: POST /api/rag/query {"question": "..."}
+    RC->>Svc: query(question)
+    Svc->>Ext: extractContext(question)
+    Ext->>Ext: keyword extraction (strip stop words, up to 8 terms)
+    Ext->>Neo: entitySearch full-text lookup
+    Neo-->>Ext: matching node names across all labels
+    Ext->>Neo: typed Cypher traversals (org hierarchy, management chains,\nproject↔technology, cross-dept collaboration)
+    Neo-->>Ext: subgraph paths
+    Ext->>Ext: deduplicate & cap at maxContextNodes×3 lines
+    Ext-->>Svc: GraphContext (structured text + entity list)
+    Svc->>LLM: generate(systemPrompt + graphContext, question)
+    Note over LLM: ThinkingConfigAdaptive (extended thinking)<br/>enabled for deeper multi-hop reasoning
+    LLM-->>Svc: grounded answer
+    Svc-->>RC: RagResponse
+    RC-->>Client: {question, answer, graphContext, entities, latencyMs}
 ```
 
 ---
@@ -91,29 +109,49 @@ RagResponse { question, answer, graphContext, entities, latencyMs }
 
 The seeder (`GraphDataSeeder`) builds a realistic 4-level corporate hierarchy on startup.
 
-```
-TechCorp (Company)
-├── Engineering (Department)  ──COLLABORATES_WITH──► Data Science, Product
-│   ├── Backend Team
-│   │   ├── Alice Chen  (Principal Engineer)  ──REPORTS_TO──► James Wright
-│   │   └── Bob Martinez (Senior Engineer)   ──REPORTS_TO──► Alice
-│   └── Platform Team
-│       ├── Frank Kim   (Platform Engineer)  ──REPORTS_TO──► James
-│       └── James Wright (Staff Engineer)
-│
-├── Product (Department)      ──COLLABORATES_WITH──► Engineering, Data Science
-│   ├── Frontend Team
-│   │   ├── Charlie Wang (Tech Lead)         ──REPORTS_TO──► Alice
-│   │   └── Diana Patel  (Senior Frontend)   ──REPORTS_TO──► Charlie
-│   └── Product Management
-│       ├── Eve Johnson  (VP of Product)
-│       └── Isabel Torres (Senior PM)        ──REPORTS_TO──► Eve
-│
-└── Data Science (Department) ──COLLABORATES_WITH──► Engineering
-    ├── ML Engineering
-    │   └── Grace Liu    (ML Engineer)       ──REPORTS_TO──► Eve
-    └── Data Platform
-        └── Henry Brown  (Data Scientist)    ──REPORTS_TO──► Grace
+```mermaid
+flowchart TB
+    TC["TechCorp (Company)"]
+    Eng["Engineering (Department)"]
+    Prod["Product (Department)"]
+    DS["Data Science (Department)"]
+
+    TC --> Eng
+    TC --> Prod
+    TC --> DS
+
+    Eng -. COLLABORATES_WITH .-> DS
+    Eng -. COLLABORATES_WITH .-> Prod
+    Prod -. COLLABORATES_WITH .-> Eng
+    Prod -. COLLABORATES_WITH .-> DS
+    DS -. COLLABORATES_WITH .-> Eng
+
+    Eng --> BT["Backend Team"]
+    Eng --> PT["Platform Team"]
+    BT --> Alice["Alice Chen (Principal Engineer)"]
+    BT --> Bob["Bob Martinez (Senior Engineer)"]
+    PT --> Frank["Frank Kim (Platform Engineer)"]
+    PT --> James["James Wright (Staff Engineer)"]
+    Bob -. REPORTS_TO .-> Alice
+    Alice -. REPORTS_TO .-> James
+    Frank -. REPORTS_TO .-> James
+
+    Prod --> FT["Frontend Team"]
+    Prod --> PM["Product Management"]
+    FT --> Charlie["Charlie Wang (Tech Lead)"]
+    FT --> Diana["Diana Patel (Senior Frontend)"]
+    PM --> Eve["Eve Johnson (VP of Product)"]
+    PM --> Isabel["Isabel Torres (Senior PM)"]
+    Diana -. REPORTS_TO .-> Charlie
+    Charlie -. REPORTS_TO .-> Alice
+    Isabel -. REPORTS_TO .-> Eve
+
+    DS --> MLE["ML Engineering"]
+    DS --> DP["Data Platform"]
+    MLE --> Grace["Grace Liu (ML Engineer)"]
+    DP --> Henry["Henry Brown (Data Scientist)"]
+    Grace -. REPORTS_TO .-> Eve
+    Henry -. REPORTS_TO .-> Grace
 ```
 
 ### Projects (cross-cutting)

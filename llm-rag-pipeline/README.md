@@ -28,59 +28,70 @@ Mongo chunk hydration).
 
 ## High-level Architecture
 
-```
-┌──────────────────────────────────────────────────────────────────────────┐
-│                          API Layer (Spring MVC)                          │
-│  /api/v1/admin/lifecycle/{ingest,upload,delete}  ·  POST /api/v1/retrieve│
-│  POST /api/v1/generate  ·  POST /api/v1/admin/eval/run                  │
-│  Spring Security (Keycloak OAuth2 resource server · RateLimitFilter)    │
-│  RequestLoggingInterceptor (every request, no per-controller boilerplate)│
-└────────┬───────────────────────┬──────────────────────────┬─────────────┘
-         │                       │                          │
-┌────────┴─────────┐             │                          │
-│ InboxScheduler    │             │                          │
-│ @Scheduled poll   │             │                          │
-│ of drop-folder    │             │                          │
-│ (app.ingestion.   │             │                          │
-│  inbox.*) — feeds │             │                          │
-│  INGESTION too    │             │                          │
-└────────┬──────────┘             │                          │
-         ▼                       ▼                          ▼
-┌────────────────┐  ┌────────────────────────┐  ┌────────────────────────┐
-│  INGESTION     │  │  RETRIEVAL             │  │  GENERATION            │
-│                │  │                        │  │                        │
-│ FileIngestion  │  │ QueryTransformation    │  │ SemanticCache (in-mem) │
-│ PdfIngestion   │  │  NONE / REWRITE /      │  │ PromptOrchestrator     │
-│ WikiIngestion  │  │  MULTI_QUERY / HYDE /  │  │   → ContextBuilder     │
-│ DbIngestion    │  │  STEP_BACK             │  │   → GroundingPolicy    │
-│ ExcelReader    │  │         │              │  │ PromptInjectionGuard   │
-│ OcrAugmentor   │  │         ▼              │  │ ContextSufficiencyJudge│
-│ TextNormalizer │  │ SearchStrategy         │  │  (LLM-as-judge, pre-gen│
-│ PiiRedactor    │  │  vector / keyword /    │  │   — skips generation if│
-│ ChunkingStrat  │  │  hybrid (RRF)          │  │   context insufficient)│
-│  + LLM-based   │  │  → OpenSearch returns  │  │ ChatClient (OpenAI)    │
-│  classifier    │  │    chunkId candidates  │  │ GenerationEvaluator    │
-│    (auto mode) │  │         │              │  │  (faithfulness +       │
-│ ChunkDedupSvc  │  │         ▼              │  │   relevance — RAG Triad│
-│  (Redis hash,  │  │ ChunkHydrationService  │  │   via Spring AI eval)  │
-│   per-chunk)   │  │  → fetch text+metadata │  └──────────┬─────────────┘
-│ ChunkEnricher  │  │    from Mongo by       │             │
-│         │      │  │    chunkId             │             │
-│         ▼      │  │         │              │             │
-│ EmbeddingCache │  │         ▼              │    ┌────────▼─────────────┐
-│ ChunkVectorStoreService    │  │ PostProcessor chain    │    │  EVALUATION          │
-│  ├─ MongoDB    │  │  BusinessRuleFilter    │    │  RetrievalEvaluator  │
-│  │  (chunk text│  │  LengthFilter          │    │   MRR / P@k / R@k /  │
-│  │  + metadata,│  │  NearDuplicateFilter   │    │   nDCG / HitRate /   │
-│  │  keyed by   │  │  RerankingPostProc     │    │   ContextPrecision   │
-│  │  chunkId)   │  │   (6 strategies)       │    │  GenerationEvaluator │
-│  └─ OpenSearch │  │  ScoreAwareRanker      │    │   Faithfulness /     │
-│     (vector +  │  │  MmrDiversityProcessor │    │   Relevance (LLM)    │
-│     filters +  │  └────────────────────────┘    └──────────────────────┘
-│     chunkId)   │
-│ PostgreSQL     │
-│ (lifecycle log)│
-└────────────────┘
+```mermaid
+flowchart TB
+    Client(["Client"])
+    Inbox["InboxScheduler\n@Scheduled poll of drop-folder\n(app.ingestion.inbox.*)\nShedLock-guarded, Redis-backed"]
+
+    subgraph API["API Layer (Spring MVC)"]
+        direction LR
+        A1["/api/v1/admin/lifecycle/*\n(ingest · upload · delete)"]
+        A2["POST /api/v1/retrieve"]
+        A3["POST /api/v1/generate\n(+ /generate/stream SSE)"]
+        A4["POST /api/v1/admin/eval/run"]
+    end
+    Sec["Spring Security\nKeycloak OAuth2 resource server + RateLimitFilter\nRequestLoggingInterceptor on every request"]
+
+    subgraph ING["INGESTION"]
+        direction TB
+        I1["FileIngestion / PdfIngestion / WikiIngestion\nDbIngestion / ExcelReader / OcrAugmentor"]
+        I2["TextNormalizer → PiiRedactor"]
+        I3["ChunkingOrchestrator\n6 strategies + optional LLM classifier (auto mode)"]
+        I4["ChunkDedupService\nSHA-256 → Redis SETNX + TTL"]
+        I5["ChunkEnricher (opt-in LLM keywords/summary)"]
+        I6["EmbeddingCacheService"]
+        I7["ChunkVectorStoreService\n1. MongoDB upsert (text+metadata)\n2. OpenSearch add (vector+filters+chunkId)"]
+        I1 --> I2 --> I3 --> I4 --> I5 --> I6 --> I7
+    end
+
+    subgraph RET["RETRIEVAL"]
+        direction TB
+        R1["QueryTransformationService\nNONE / REWRITE / MULTI_QUERY / HYDE / STEP_BACK"]
+        R2["SearchStrategy\nvector / keyword / hybrid (RRF)\n→ OpenSearch returns chunkId candidates"]
+        R3["ChunkHydrationService\nfetch full text + metadata from Mongo by chunkId"]
+        R4["PostProcessor chain\nBusinessRuleFilter → LengthFilter → NearDuplicateFilter\n→ RerankingPostProc (6 strategies) → ScoreAwareRanker → MmrDiversityProcessor"]
+        R1 --> R2 --> R3 --> R4
+    end
+
+    subgraph GEN["GENERATION"]
+        direction TB
+        Gn1["SemanticCache (in-memory query→answer)"]
+        Gn2["PromptOrchestrator → ContextBuilder → GroundingPolicy"]
+        Gn3["PromptInjectionGuard"]
+        Gn4["ContextSufficiencyJudge\nLLM-as-judge, pre-gen — skips generation if context insufficient"]
+        Gn5["ChatClient (OpenAI-compatible)"]
+        Gn6["GenerationEvaluator\nfaithfulness + relevance — RAG Triad via Spring AI eval"]
+        Gn1 --> Gn2 --> Gn3 --> Gn4 --> Gn5 --> Gn6
+    end
+
+    subgraph EVAL["EVALUATION"]
+        direction TB
+        E1["RetrievalEvaluator\nMRR / P@k / R@k / nDCG / HitRate / ContextPrecision"]
+        E2["GenerationEvaluator\nFaithfulness / Relevance (LLM)"]
+    end
+
+    Store[("MongoDB — chunk text + metadata\nOpenSearch — vector + filters + chunkId\nPostgreSQL — source content + ingestion log")]
+
+    Client --> Sec --> API
+    Inbox -.feeds.-> ING
+    A1 --> ING --> Store
+    A2 --> RET
+    Store <---> RET
+    A3 --> GEN
+    RET --> GEN
+    A4 --> EVAL
+    RET -.-> EVAL
+    GEN -.-> EVAL
 ```
 
 ---
@@ -89,35 +100,41 @@ Mongo chunk hydration).
 
 ### Ingestion (once — build the knowledge base)
 
-```
-Client                LifecycleController       IngestionOrchestrator
-  │                          │                           │
-  │  POST /lifecycle/ingest  │                           │
-  │─────────────────────────►│                           │
-  │                          │──── orchestrate() ───────►│
-  │                          │                           │── read (PDF/Wiki/DB/Excel/…)
-  │                          │                           │── TextNormalizer.normalize()
-  │                          │                           │      └── PiiRedactor.redact()
-  │                          │                           │── ChunkingOrchestrator.chunk()
-  │                          │                           │      DB → whole-row (structural)
-  │                          │                           │      auto + classifier.enabled →
-  │                          │                           │        ChunkingStrategyClassifier
-  │                          │                           │        (LLM picks fixed|recursive|
-  │                          │                           │         token|semantic|markdown,
-  │                          │                           │         falls back to heuristic)
-  │                          │                           │── per-chunk dedup:
-  │                          │                           │      ChunkDedupService.isNewContent()
-  │                          │                           │      (SHA-256 → Redis SETNX+TTL;
-  │                          │                           │       duplicate chunks are skipped)
-  │                          │                           │── ChunkEnricher (opt-in)
-  │                          │                           │── EmbeddingCacheService.embed()
-  │                          │                           │── ChunkVectorStoreService.store():
-  │                          │                           │      1. MongoDB upsert (chunkId →
-  │                          │                           │         full text + metadata)
-  │                          │                           │      2. OpenSearch add() [batched]
-  │                          │                           │         (vector + filters + chunkId)
-  │◄─────────────────────────│◄──────────────────────────│
-  │       204 No Content     │                           │
+```mermaid
+sequenceDiagram
+    actor Client
+    participant LC as LifecycleController
+    participant Orc as IngestionOrchestrator
+    participant Norm as TextNormalizer/PiiRedactor
+    participant Chunk as ChunkingOrchestrator
+    participant Dedup as ChunkDedupService (Redis)
+    participant Enrich as ChunkEnricher (opt-in)
+    participant Embed as EmbeddingCacheService
+    participant Store as ChunkVectorStoreService
+
+    Client->>LC: POST /lifecycle/ingest
+    LC->>Orc: orchestrate()
+    Orc->>Orc: read source (PDF/Wiki/DB/Excel/…)
+    Orc->>Norm: normalize() then redact() PII
+    Norm-->>Orc: clean text
+    Orc->>Chunk: chunk()
+    Note over Chunk: DB source → whole-row (structural)<br/>auto + classifier.enabled → LLM picks<br/>fixed|recursive|token|semantic|markdown<br/>(falls back to heuristic on failure)
+    Chunk-->>Orc: chunk list
+    loop each chunk
+        Orc->>Dedup: isNewContent(chunk)?
+        Dedup-->>Orc: SHA-256 SETNX+TTL result
+        alt duplicate
+            Orc->>Orc: skip chunk
+        else new content
+            Orc->>Enrich: enrich (opt-in keywords/summary)
+            Orc->>Embed: embed(text)
+            Orc->>Store: store(chunk, vector)
+            Store->>Store: 1. MongoDB upsert (chunkId → text+metadata)
+            Store->>Store: 2. OpenSearch add() [batched] (vector+filters+chunkId)
+        end
+    end
+    Orc-->>LC: done
+    LC-->>Client: 204 No Content
 ```
 
 ### Scheduled ingestion (inbox watcher — no client request)
@@ -130,87 +147,98 @@ The scan is guarded by **ShedLock** (`@SchedulerLock`, backed by Redis via `Sche
 so when the app is scaled to multiple instances only one of them runs `scan()` at a time — without
 it, every instance would poll and ingest from the same shared folder concurrently.
 
-```
-InboxScheduler                  DocumentReaderFactory      FileIngestionService
-      │                                  │                          │
-      │ @Scheduled scan() every 30s      │                          │
-      │── list inbox/ (skip files newer than min-age — still being written)
-      │── readerFactory.supports(name)? ►│                          │
-      │   no  → move to inbox/failed/    │                          │
-      │   yes │                          │                          │
-      │───────┼── ingestFile(file, name) ───────────────────────────►│
-      │       │                          │   (same clean→chunk→dedup→store
-      │       │                          │    pipeline as the REST path)
-      │◄──────┼──────────────────────────┼──────────────────────────│
-      │── success → move to inbox/processed/
-      │── failure → move to inbox/failed/
+```mermaid
+sequenceDiagram
+    participant Sched as InboxScheduler
+    participant RF as DocumentReaderFactory
+    participant FIS as FileIngestionService
+
+    loop every poll-interval (default 30s), ShedLock-guarded
+        Sched->>Sched: list inbox/ (skip files newer than min-age)
+        Sched->>RF: supports(filename)?
+        alt unsupported type
+            RF-->>Sched: false
+            Sched->>Sched: move file to inbox/failed/
+        else supported type
+            RF-->>Sched: true
+            Sched->>FIS: ingestFile(file, name)
+            Note over FIS: same clean → chunk → dedup → store<br/>pipeline as the REST /lifecycle/ingest path
+            alt success
+                FIS-->>Sched: ok
+                Sched->>Sched: move file to inbox/processed/
+            else failure
+                FIS-->>Sched: error
+                Sched->>Sched: move file to inbox/failed/
+            end
+        end
+    end
 ```
 
 ### Retrieval (`POST /api/v1/retrieve`)
 
-```
-Client           RetrievalController      RetrievalService      OpenSearch      MongoDB
-  │                      │                       │                  │              │
-  │  POST /retrieve      │                       │                  │              │
-  │  {"query":"…","topK"}│                       │                  │              │
-  │─────────────────────►│                       │                  │              │
-  │                      │──── retrieve() ──────►│                  │              │
-  │                      │                       │── QueryTransformation             │
-  │                      │                       │   (REWRITE|MULTI_QUERY            │
-  │                      │                       │    |HYDE|STEP_BACK)               │
-  │                      │                       │── SearchStrategy ───────────────►│              │
-  │                      │                       │   (vector|keyword|    │ kNN/BM25/RRF over        │
-  │                      │                       │    hybrid)  ◄────────│ vector+filters+chunkId    │
-  │                      │                       │── toChunk() (chunkId in metadata) │
-  │                      │                       │── ChunkHydrationService.hydrate() │
-  │                      │                       │   findByIds(chunkIds) ──────────────────────────►│
-  │                      │                       │   ◄──────────────────────────────────────────────│
-  │                      │                       │   (replaces text with Mongo's copy; falls back   │
-  │                      │                       │    to OpenSearch-carried text if Mongo misses)   │
-  │                      │                       │── BusinessRuleFilter              │              │
-  │                      │                       │── LengthFilter                    │              │
-  │                      │                       │── NearDuplicateFilter (on hydrated text)          │
-  │                      │                       │── RerankingPostProc (on hydrated text)            │
-  │                      │                       │   (cross-encoder|bi-encoder|llm-pw|llm-lw|bm25|rrf)│
-  │                      │                       │── ScoreAwareRanker                │              │
-  │                      │                       │── MmrDiversityProc                │              │
-  │                      │                       │── toCitations()                   │              │
-  │◄─────────────────────│◄──────────────────────│                                   │              │
-  │  {chunks[], citations[]}                      │                                   │              │
+```mermaid
+sequenceDiagram
+    actor Client
+    participant RC as RetrievalController
+    participant RS as RetrievalService
+    participant OS as OpenSearch
+    participant Mongo as MongoDB
+
+    Client->>RC: POST /retrieve {"query":"…","topK"}
+    RC->>RS: retrieve()
+    RS->>RS: QueryTransformation (REWRITE|MULTI_QUERY|HYDE|STEP_BACK)
+    RS->>OS: SearchStrategy (vector|keyword|hybrid)
+    OS-->>RS: kNN/BM25/RRF results (vector+filters+chunkId)
+    RS->>RS: toChunk() — chunkId carried in metadata
+    RS->>Mongo: ChunkHydrationService.hydrate() findByIds(chunkIds)
+    Mongo-->>RS: full text + metadata
+    Note over RS: replaces text with Mongo's copy;<br/>falls back to OpenSearch-carried text if Mongo misses
+    RS->>RS: BusinessRuleFilter → LengthFilter
+    RS->>RS: NearDuplicateFilter (on hydrated text)
+    RS->>RS: RerankingPostProc (cross-encoder|bi-encoder|llm-pw|llm-lw|bm25|rrf)
+    RS->>RS: ScoreAwareRanker → MmrDiversityProc → toCitations()
+    RS-->>RC: RetrievalResult
+    RC-->>Client: {chunks[], citations[]}
 ```
 
 ### Generation — manual mode (default, `POST /api/v1/generate`)
 
-```
-Client         GenerationController   SemanticCache   PromptOrchestrator   ChatClient (LLM)
-  │                    │                    │                  │                    │
-  │  POST /generate    │                    │                  │                    │
-  │  {"query":"…"}     │                    │                  │                    │
-  │───────────────────►│                    │                  │                    │
-  │                    │── get(query) ─────►│                  │                    │
-  │                    │◄── hit? ───────────│                  │                    │
-  │◄───────────────────│   (return cached)  │                  │                    │
-  │  [cache hit path]  │                    │                  │                    │
-  │                    │                    │                  │                    │
-  │                    │── build(query,k) ─────────────────────►│                   │
-  │                    │                    │  retrieve chunks  │                   │
-  │                    │                    │  build context    │                   │
-  │                    │                    │  grounding rules  │                   │
-  │                    │◄────────────────────────────────────── │                   │
-  │                    │── PromptInjectionGuard.filter(chunks)  │                   │
-  │                    │   (remove malicious context)           │                   │
-  │                    │── ContextSufficiencyJudge.isSufficient(query, context)     │
-  │                    │   (structured-output LLM-as-judge — SufficiencyVerdict)    │
-  │                    │   ├─ INSUFFICIENT → return canned response, skip LLM call  │
-  │                    │   └─ SUFFICIENT   → continue                               │
-  │                    │── prompt().system().user()                                │
-  │                    │   .advisors(SafeGuardAdvisor if enabled) ──────────────────►│
-  │                    │                    │                   │  LLM generates    │
-  │                    │◄────────────────────────────────────────────────────────── │
-  │                    │── GenerationEvaluator.isFaithful() (opt-in)               │
-  │                    │── SemanticCache.put(query, answer)                         │
-  │◄───────────────────│                    │                   │                   │
-  │ {answer, citations[], faithful, fromCache, insufficientContext}
+```mermaid
+sequenceDiagram
+    actor Client
+    participant GC as GenerationController
+    participant SC as SemanticCache
+    participant PO as PromptOrchestrator
+    participant Guard as PromptInjectionGuard
+    participant Judge as ContextSufficiencyJudge
+    participant LLM as ChatClient (LLM)
+    participant Eval as GenerationEvaluator
+
+    Client->>GC: POST /generate {"query":"…"}
+    GC->>SC: get(query)
+    alt cache hit
+        SC-->>GC: cached answer
+        GC-->>Client: {answer, fromCache:true, ...}
+    else cache miss
+        GC->>PO: build(query, k)
+        PO->>PO: retrieve chunks, build context, apply grounding rules
+        PO-->>GC: context
+        GC->>Guard: filter(chunks) — remove malicious context
+        Guard-->>GC: safe chunks
+        GC->>Judge: isSufficient(query, context)
+        Note over Judge: structured-output LLM-as-judge → SufficiencyVerdict
+        alt INSUFFICIENT
+            Judge-->>GC: INSUFFICIENT
+            GC-->>Client: canned "insufficient context" response, no LLM call
+        else SUFFICIENT
+            Judge-->>GC: SUFFICIENT
+            GC->>LLM: prompt().system().user().advisors(SafeGuardAdvisor if enabled)
+            LLM-->>GC: generated answer
+            GC->>Eval: isFaithful(answer, context) (opt-in)
+            GC->>SC: put(query, answer)
+            GC-->>Client: {answer, citations[], faithful, fromCache:false, insufficientContext:false}
+        end
+    end
 ```
 
 ### Generation — advisor mode (`app.generation.mode=advisor`)
@@ -219,24 +247,27 @@ Delegates retrieval, augmentation, and generation to Spring AI's modular RAG adv
 simpler than manual mode (no custom post-processing chain), but now tracks real citations, unlike
 the previous `QuestionAnswerAdvisor`-based version which always returned an empty `citations[]`.
 
-```
-Client    GenerationController   RetrievalAugmentationAdvisor   VectorStoreDocumentRetriever
-  │                │                          │                            │
-  │  POST /generate│                          │                            │
-  │───────────────►│                          │                            │
-  │                │── prompt().user(query) ─►│                            │
-  │                │                          │── retrieve(query) ────────►│
-  │                │                          │                    similaritySearch
-  │                │                          │◄───────────────────────────│
-  │                │                          │   documents → context["rag_document_context"]
-  │                │                          │   ContextualQueryAugmenter.augment()
-  │                │                          │   (+ SafeGuardAdvisor if enabled)
-  │                │                          │── LLM generates ──────────►│ (ChatClient)
-  │                │◄───────────────────────── │                            │
-  │                │── toCitations(documents from context) ──────────────────┘
-  │                │── SemanticCache.put(query, answer)
-  │◄───────────────│
-  │ {answer, citations[] (now populated), faithful=null, fromCache, insufficientContext=false}
+```mermaid
+sequenceDiagram
+    actor Client
+    participant GC as GenerationController
+    participant Adv as RetrievalAugmentationAdvisor
+    participant Ret as VectorStoreDocumentRetriever
+    participant LLM as ChatClient
+
+    Client->>GC: POST /generate
+    GC->>Adv: prompt().user(query)
+    Adv->>Ret: retrieve(query)
+    Ret->>Ret: similaritySearch
+    Ret-->>Adv: documents
+    Adv->>Adv: documents → context["rag_document_context"]
+    Adv->>Adv: ContextualQueryAugmenter.augment() (+ SafeGuardAdvisor if enabled)
+    Adv->>LLM: generate
+    LLM-->>Adv: answer
+    Adv-->>GC: answer + context
+    GC->>GC: toCitations(documents from context)
+    GC->>GC: SemanticCache.put(query, answer)
+    GC-->>Client: {answer, citations[] (now populated), faithful=null, fromCache, insufficientContext=false}
 ```
 
 ---
@@ -771,7 +802,9 @@ Test infrastructure:
 
 - **Unit tests** — Mockito-based, fully offline
 - **Integration tests** (`@SpringBootTest`) — spin up real Postgres + OpenSearch + MongoDB + Redis via Testcontainers
-- **Coverage** — JaCoCo enforces ≥70% instruction coverage on `mvn verify`
+- **Coverage** — JaCoCo enforces ≥40% instruction coverage on `mvn verify` (`jacoco-check` in this
+  module's own `pom.xml`, `COVEREDRATIO ≥ 0.40`); the `llm-rag-graph` module gates at a stricter
+  70% — this module's lower bar reflects its much larger surface area relative to current test count
 
 ---
 

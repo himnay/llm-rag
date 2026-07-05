@@ -5,6 +5,117 @@ Generation (RAG)**: a production-grade vector pipeline, a vectorless keyword/tre
 service, and a knowledge-graph pipeline. Each module is an independent Spring Boot application;
 the root `pom.xml` is a plain aggregator.
 
+## The problem
+
+Large language models answer from frozen training-time knowledge. They cannot see a company's HR
+policies, an internal wiki, a product's release notes, or a live org chart — and asking them to
+guess produces confident, plausible, wrong answers. **Retrieval-Augmented Generation** fixes this
+by inserting a retrieval step between the question and the model: at query time, the system fetches
+whatever private, current, or structured data is actually relevant, and hands it to the LLM as
+context. The model's job shifts from "recall an answer" to "synthesize an answer from the evidence
+in front of it" — which is both more accurate and auditable, because every answer can point back to
+the source material it came from.
+
+There is, however, no single "correct" way to implement the retrieval half of that equation, and the
+right choice depends heavily on the shape of the data and the operational budget available:
+
+- If the corpus is large, heterogeneous, and growing (PDFs, wikis, spreadsheets, database rows),
+  **semantic vector search** over chunked, embedded documents is the standard approach — but it
+  requires an embedding model, a vector database, and a whole ingestion pipeline to keep the index
+  current.
+- If deploying an embedding model and a vector database is undesirable — no GPU budget, a small
+  fixed document set, a need to run fully offline — **lexical/keyword retrieval** (BM25) or a
+  **cloud reasoning-based retriever** (PageIndex) can ground the same kind of LLM answer without any
+  vector infrastructure at all.
+- If the underlying knowledge is inherently relational — an org chart, a project-to-technology
+  mapping, a management hierarchy — no amount of semantic similarity over flat text chunks can
+  answer a genuinely multi-hop question ("who works on ML projects *and* reports to the CTO?").
+  That requires **graph traversal**: retrieval becomes a Cypher query over typed nodes and edges
+  rather than a nearest-neighbour search over vectors.
+
+This repository implements all three retrieval paradigms as independent, runnable Spring Boot
+services so they can be studied, benchmarked, and compared side by side rather than read about in
+the abstract. Each module answers the same underlying question — *"how do I ground an LLM's answer
+in real data?"* — with a genuinely different architecture, tech stack, and set of trade-offs, and
+each module's own README documents its implementation in depth.
+
+## Architecture at a glance
+
+```mermaid
+flowchart TB
+    User(["Client / caller"])
+
+    subgraph PIPE["llm-rag-pipeline — Vector RAG"]
+        direction TB
+        P_ING["Ingestion\nPDF/OCR · Markdown · Excel · DB rows · Tika"]
+        P_CHUNK["Chunking + Embedding\n(6 pluggable strategies)"]
+        P_STORE[("OpenSearch kNN index\n+ MongoDB chunk store\n+ PostgreSQL metadata")]
+        P_RET["Retrieval\nvector / keyword / hybrid RRF\n+ rerank + MMR"]
+        P_GEN["Generation\nChatClient (OpenAI-compatible)\nguardrails + citations"]
+        P_ING --> P_CHUNK --> P_STORE --> P_RET --> P_GEN
+    end
+
+    subgraph VLESS["llm-rag-vectorless — Vectorless RAG"]
+        direction TB
+        V_BM25["BM25Retriever\nin-memory inverted index"]
+        V_PI["PageIndexClient\ncloud tree-reasoning (opt-in)"]
+        V_GEN["Generation\nChatClient (Claude)"]
+        V_BM25 --> V_GEN
+        V_PI --> V_GEN
+    end
+
+    subgraph GRAPH["llm-rag-graph — Graph RAG"]
+        direction TB
+        G_NEO[("Neo4j knowledge graph\nCompany→Department→Team→Employee\n+ Project/Technology edges")]
+        G_EXT["GraphContextExtractor\nfull-text lookup + multi-hop Cypher traversal"]
+        G_GEN["AnthropicLLMService\nraw anthropic-java SDK + extended thinking"]
+        G_NEO --> G_EXT --> G_GEN
+    end
+
+    User -- "POST /api/v1/generate" --> PIPE
+    User -- "POST /api/rag/chat[-pageindex]" --> VLESS
+    User -- "POST /api/rag/query" --> GRAPH
+```
+
+Each subgraph above is a **separate Maven module and a separate Spring Boot process** — there is no
+shared runtime, no shared database, and no cross-module network call. The only things they share are
+the root aggregator POM, the corporate `super-pom` parent (Java 25, Spring Boot 4.1), and the general
+shape of "retrieve, then generate."
+
+## How the three retrieval strategies compare answering the same question
+
+The sequence diagram below shows how differently each module resolves an identical natural-language
+question — this is the clearest way to see why they are three separate services rather than one
+configurable one.
+
+```mermaid
+sequenceDiagram
+    actor U as User
+    participant Pipe as llm-rag-pipeline
+    participant OS as OpenSearch/Mongo
+    participant VLess as llm-rag-vectorless
+    participant BM25 as In-memory BM25 index
+    participant Graph as llm-rag-graph
+    participant Neo as Neo4j
+
+    U->>Pipe: "Who is on Project Gamma and what tech does it use?"
+    Pipe->>Pipe: embed query (OpenAI text-embedding-3-small)
+    Pipe->>OS: kNN / BM25 / hybrid search
+    OS-->>Pipe: top-k chunk candidates (semantically similar text)
+    Pipe->>Pipe: rerank, dedupe, build prompt
+    Pipe-->>U: answer grounded in retrieved *text chunks*
+
+    U->>VLess: same question
+    VLess->>BM25: tokenize + score every chunk (k1=1.2, b=0.75)
+    BM25-->>VLess: top-k chunks by term overlap, no embeddings involved
+    VLess-->>U: answer grounded in *keyword-matched* text
+
+    U->>Graph: same question
+    Graph->>Neo: full-text entity lookup + typed Cypher traversal
+    Neo-->>Graph: structured subgraph (Employee, Project, Technology nodes + edges)
+    Graph-->>U: answer grounded in *traversed graph facts*, not text similarity
+```
+
 | Module                                               | Approach                           | Storage                           | LLM usage                                                   |
 |------------------------------------------------------|------------------------------------|-----------------------------------|-------------------------------------------------------------|
 | [`llm-rag-pipeline`](llm-rag-pipeline/README.md)     | Vector RAG (ingestion + retrieval) | OpenSearch (kNN) + PostgreSQL     | Embeddings always; chunking / enrichment / reranking opt-in |
@@ -606,11 +717,17 @@ the test run.
 
 **What it is:** The standard Java code-coverage measurement tool, integrated as a Maven plugin.
 
-**How it's used here:** `llm-rag-pipeline` runs JaCoCo as part of the `verify` Maven phase. It
-measures instruction coverage across the module and enforces a minimum threshold of 70%
-(`COVEREDRATIO ≥ 0.70`). The build fails if coverage drops below that gate, and a human-readable
-HTML report is generated in `target/site/jacoco/`. The threshold is documented in the `pom.xml`
-as intentionally conservative, with a note to raise it as the test suite grows.
+**How it's used here:** all three modules inherit JaCoCo's `prepare-agent` and `report` executions
+from the shared `super-pom` parent, so every module always produces a coverage report in
+`target/site/jacoco/` on `mvn verify`. Two of the three modules additionally add their own
+`jacoco-check` execution to *gate* the build on a minimum instruction-coverage ratio, and the two
+gates are set to different thresholds: `llm-rag-pipeline`'s own `pom.xml` enforces
+`COVEREDRATIO ≥ 0.40`, while `llm-rag-graph`'s enforces a stricter `COVEREDRATIO ≥ 0.70`.
+`llm-rag-vectorless` has no `jacoco-check` execution at all — coverage is measured and reported but
+never gates the build. The pipeline's 40% threshold is the most conservative of the three,
+reflecting that module's much larger surface area (ingestion, chunking, retrieval, reranking,
+caching, security) relative to its current test suite; raising it as coverage improves is an
+explicit TODO rather than an oversight.
 
 ---
 

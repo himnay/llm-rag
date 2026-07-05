@@ -32,8 +32,13 @@ Two vectorless retrieval approaches backed by Claude for generation — no embed
 - The index is built entirely in-memory at application startup — no external process or service is required
 - Queries run in-process with sub-millisecond latency and no network calls
 
-```
-Query ──► tokenise ──► BM25 score each chunk ──► top-k chunks ──► Claude prompt ──► answer
+```mermaid
+flowchart LR
+    Q(["Query"]) --> Tok["Tokenise\n(lowercase, strip punctuation,\nremove stop words)"]
+    Tok --> Score["BM25 score every chunk\n(k1=1.2, b=0.75)"]
+    Score --> Topk["Top-k chunks\n(default 5)"]
+    Topk --> Prompt["Claude prompt\n(context + question)"]
+    Prompt --> Ans(["Answer"])
 ```
 
 **Scoring formula:**
@@ -60,18 +65,35 @@ IDF(t) = log( (N − df(t) + 0.5) / (df(t) + 0.5) + 1 )
   running a vector similarity search
 - The tree search is entirely driven by language understanding, enabling accurate retrieval on long or complex documents
 
-```
-            ┌─ upload once ─────────────────────────┐
-.txt files ─┤ convert to PDF → POST /doc/ → doc_id  │
-            └───────────────────────────────────────┘
+```mermaid
+sequenceDiagram
+    participant App as PageIndexDocumentManager
+    participant PI as PageIndex cloud (api.pageindex.ai)
+    participant User
+    participant Ctrl as RagController
+    participant Client as PageIndexClient
+    participant LLM as Claude
 
-            ┌─ per query ────────────────────────────────────────────────────┐
-Query ──►   │ POST /retrieval/ {doc_id, query}                               │
-            │ GET  /retrieval/{id}/ → retrieved_nodes → relevant_content     │
-            └────────────────────────────────────────────────────────────────┘
-                                          │
-                                          ▼
-                               Claude prompt ──► answer
+    Note over App,PI: Startup — upload once per document
+    App->>App: convert .txt → PDF (PDFBox)
+    App->>PI: POST /doc/ (PDF)
+    PI-->>App: doc_id
+    App->>PI: poll until tree index status = ready
+
+    Note over User,LLM: Per query
+    User->>Ctrl: POST /api/rag/chat-pageindex {"question"}
+    Ctrl->>Client: retrieve(doc_id, query)
+    Client->>PI: POST /retrieval/ {doc_id, query}
+    PI-->>Client: retrieval job id
+    loop poll until completed
+        Client->>PI: GET /retrieval/{id}/
+        PI-->>Client: status
+    end
+    PI-->>Client: retrieved_nodes[].relevant_contents[].relevant_content
+    Client-->>Ctrl: merged relevant content
+    Ctrl->>LLM: prompt(context + question)
+    LLM-->>Ctrl: answer
+    Ctrl-->>User: {answer, sources}
 ```
 
 ---
