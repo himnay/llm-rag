@@ -1,5 +1,19 @@
 # llm-rag
 
+<img src="image/spring-logo.png" alt="logo" width="80"/>
+
+## Table of contents
+
+1. [The problem](#the-problem)
+2. [Architecture at a glance](#architecture-at-a-glance)
+3. [How the three retrieval strategies compare answering the same question](#how-the-three-retrieval-strategies-compare-answering-the-same-question)
+4. [Modules](#modules)
+5. [Design patterns](#design-patterns)
+6. [Recent improvements](#recent-improvements)
+7. [Prompt Injection Security](#prompt-injection-security)
+8. [Building and testing](#building-and-testing)
+9. [Technology Deep Dive](#technology-deep-dive)
+
 A multi-module Maven project exploring three complementary approaches to **Retrieval-Augmented
 Generation (RAG)**: a production-grade vector pipeline, a vectorless keyword/tree-reasoning
 service, and a knowledge-graph pipeline. Each module is an independent Spring Boot application;
