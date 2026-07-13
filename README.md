@@ -34,6 +34,8 @@ the source material it came from.
 There is, however, no single "correct" way to implement the retrieval half of that equation, and the
 right choice depends heavily on the shape of the data and the operational budget available:
 
+<ul>
+
 - If the corpus is large, heterogeneous, and growing (PDFs, wikis, spreadsheets, database rows),
   **semantic vector search** over chunked, embedded documents is the standard approach — but it
   requires an embedding model, a vector database, and a whole ingestion pipeline to keep the index
@@ -47,6 +49,8 @@ right choice depends heavily on the shape of the data and the operational budget
   answer a genuinely multi-hop question ("who works on ML projects *and* reports to the CTO?").
   That requires **graph traversal**: retrieval becomes a Cypher query over typed nodes and edges
   rather than a nearest-neighbour search over vectors.
+
+</ul>
 
 This repository implements all three retrieval paradigms as independent, runnable Spring Boot
 services so they can be studied, benchmarked, and compared side by side rather than read about in
@@ -144,6 +148,8 @@ sequenceDiagram
 
 ### [llm-rag-pipeline](llm-rag-pipeline/README.md) — Spring AI vector RAG backend
 
+<ul>
+
 - **Ingestion:** reads PDF/OCR, Markdown, Excel, and generic formats via Tika; normalises, deduplicates by content hash,
   and chunks via a pluggable `ChunkingStrategy`
 - **Storage:** vectors written to OpenSearch kNN index; structured source data and operational metadata in PostgreSQL
@@ -154,7 +160,11 @@ sequenceDiagram
 - **Quality:** retrieval evaluation (MRR, P@k, R@k, RAGAS context precision); answer generation is out of scope —
   downstream consumers handle that
 
+</ul>
+
 ### [llm-rag-vectorless](llm-rag-vectorless/README.md) — RAG without embeddings
+
+<ul>
 
 - **No vectors required:** works without an embedding model, vector database, or GPU
 - **BM25 retriever:** in-process inverted index built at startup (k1=1.2, b=0.75); always on
@@ -163,7 +173,11 @@ sequenceDiagram
 - **Generation:** Claude (via Spring AI `ChatClient`) produces grounded answers from retrieved chunks
 - **Comparison:** both retrievers feed the same prompt template, enabling side-by-side evaluation on identical questions
 
+</ul>
+
 ### [llm-rag-graph](llm-rag-graph/README.md) — Graph RAG on Neo4j
+
+<ul>
 
 - **Graph traversal:** answers questions by walking a knowledge graph rather than comparing vectors
 - **Schema:** 4-level corporate graph — Company → Department → Team → Employee — plus Projects, Technologies, and
@@ -173,6 +187,8 @@ sequenceDiagram
   structured facts rather than inventing them
 - **Strength:** multi-hop questions flat RAG cannot answer, e.g. *"Who in Engineering works on ML projects and reports
   to the CTO?"*
+
+</ul>
 
 <a id="design-patterns"></a>
 ## 5. 🏗️ Design patterns
@@ -293,6 +309,8 @@ overrides either property, and the Dockerfiles for `llm-rag-pipeline`, `llm-rag-
 
 What was verified in this pass (compiling and running with an Azul Zulu 25 JDK, offline `mvn -o`):
 
+<ul>
+
 - **Compile** — `mvn -o clean compile` succeeds for the aggregator and all three submodules.
 - **Test** — `mvn -o clean test` succeeds for all three submodules: `llm-rag-pipeline` (150 passed,
   21 skipped — Testcontainers-backed Postgres/OpenSearch tests, no Docker available here),
@@ -310,6 +328,8 @@ What was verified in this pass (compiling and running with an Azul Zulu 25 JDK, 
 - **Not verified** — full integration against live Postgres, OpenSearch, or Neo4j, and anything
   requiring Docker/Testcontainers or `docker compose up`, since Docker is unavailable in this
   environment.
+
+</ul>
 
 ---
 
@@ -371,6 +391,8 @@ loaders.
 
 **How it's used here across modules:**
 
+<ul>
+
 - **llm-rag-pipeline** uses `spring-ai-starter-model-openai` to call OpenAI's
   `text-embedding-3-small` model and convert document chunks into 1536-dimension float vectors
   before writing them to OpenSearch. It also uses `spring-ai-starter-vector-store-opensearch` as
@@ -385,6 +407,8 @@ loaders.
   by Claude. The `RagController` calls `chatClient.prompt().user(message).call().content()` to
   generate grounded answers from BM25- or PageIndex-retrieved context. No vector store is
   involved.
+
+</ul>
 
 ---
 
@@ -413,11 +437,15 @@ search via the HNSW algorithm.
 so Spring AI's `OpenSearchVectorStore` can do cosine-similarity vector search. Three interchangeable
 `SearchStrategy` implementations exist:
 
+<ul>
+
 - `VectorSearchStrategy` — pure kNN vector search using the embedded query.
 - `KeywordSearchStrategy` — BM25 full-text search using the `match` query DSL.
 - `HybridSearchStrategy` — runs both sides and fuses their ranked lists with **Reciprocal Rank
   Fusion** (damping constant k=60 from the original Cormack et al. paper), so neither score scale
   needs to be normalized before merging.
+
+</ul>
 
 OpenSearch Dashboards (port 5601) is also included in `docker-compose.yml` for visual inspection
 of the index during development.
@@ -514,6 +542,8 @@ blocks for `isText()`.
 
 **How it's used here:**
 
+<ul>
+
 - In **llm-rag-graph**, Claude receives the formatted graph-context string extracted from Neo4j
   (structured as bullet points listing entity facts, management chains, project assignments, and
   collaboration edges) plus the user's natural-language question. It is instructed to answer
@@ -530,6 +560,8 @@ blocks for `isText()`.
   `SummaryMetadataEnricher` and `KeywordMetadataEnricher` to generate per-chunk summaries and
   keyword tags.
 
+</ul>
+
 ---
 
 ### BM25 (Okapi BM25)
@@ -539,6 +571,8 @@ behind most traditional search engines. It scores documents by term-frequency sa
 document-length normalization without any machine learning.
 
 **How it's used here in two distinct modules:**
+
+<ul>
 
 - **llm-rag-vectorless** implements BM25 from scratch in `BM25Retriever`. At startup it builds
   an in-memory inverted index over all loaded document chunks (TF arrays keyed by term, plus IDF
@@ -550,6 +584,8 @@ document-length normalization without any machine learning.
   `match` query (which OpenSearch computes server-side over its inverted index), and a
   `Bm25Reranker` that re-scores an already-retrieved candidate set in-process for a second-pass
   reranking step.
+
+</ul>
 
 ---
 
