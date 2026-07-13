@@ -19,7 +19,8 @@ Generation (RAG)**: a production-grade vector pipeline, a vectorless keyword/tre
 service, and a knowledge-graph pipeline. Each module is an independent Spring Boot application;
 the root `pom.xml` is a plain aggregator.
 
-## The problem
+<a id="the-problem"></a>
+## 1. 🔹 The problem
 
 Large language models answer from frozen training-time knowledge. They cannot see a company's HR
 policies, an internal wiki, a product's release notes, or a live org chart — and asking them to
@@ -53,7 +54,8 @@ the abstract. Each module answers the same underlying question — *"how do I gr
 in real data?"* — with a genuinely different architecture, tech stack, and set of trade-offs, and
 each module's own README documents its implementation in depth.
 
-## Architecture at a glance
+<a id="architecture-at-a-glance"></a>
+## 2. 🏗️ Architecture at a glance
 
 ```mermaid
 flowchart TB
@@ -96,7 +98,8 @@ shared runtime, no shared database, and no cross-module network call. The only t
 the root aggregator POM, the corporate `super-pom` parent (Java 25, Spring Boot 4.1), and the general
 shape of "retrieve, then generate."
 
-## How the three retrieval strategies compare answering the same question
+<a id="how-the-three-retrieval-strategies-compare-answering-the-same-question"></a>
+## 3. ❓ How the three retrieval strategies compare answering the same question
 
 The sequence diagram below shows how differently each module resolves an identical natural-language
 question — this is the clearest way to see why they are three separate services rather than one
@@ -136,7 +139,8 @@ sequenceDiagram
 | [`llm-rag-vectorless`](llm-rag-vectorless/README.md) | Vectorless RAG (BM25 + PageIndex)  | In-memory index / PageIndex cloud | Claude for answer generation                                |
 | [`llm-rag-graph`](llm-rag-graph/README.md)           | Graph RAG                          | Neo4j knowledge graph             | Claude reasons over traversed graph context                 |
 
-## Modules
+<a id="modules"></a>
+## 4. 🏗️ Modules
 
 ### [llm-rag-pipeline](llm-rag-pipeline/README.md) — Spring AI vector RAG backend
 
@@ -170,7 +174,8 @@ sequenceDiagram
 - **Strength:** multi-hop questions flat RAG cannot answer, e.g. *"Who in Engineering works on ML projects and reports
   to the CTO?"*
 
-## Design patterns
+<a id="design-patterns"></a>
+## 5. 🏗️ Design patterns
 
 The variation points across the modules are modelled with classic Gang-of-Four patterns —
 Strategy, Chain of Responsibility, Factory, Template Method, Composite, Proxy, Facade, Adapter —
@@ -188,7 +193,8 @@ Patterns are deliberately *omitted* where no real variation point exists.
 | **Factory / Builder**        | `ChatClient.Builder`, `QuestionAnswerAdvisor.Builder`                                                               | Spring AI advisor configuration                                      |
 | **Facade**                   | `KnowledgeLifecycleService`, `GraphRAGService`                                                                      | Hide multi-step orchestration behind a single interface              |
 
-## Recent improvements
+<a id="recent-improvements"></a>
+## 6. 🔹 Recent improvements
 
 ### llm-rag-pipeline
 
@@ -221,7 +227,8 @@ Patterns are deliberately *omitted* where no real variation point exists.
 | **Strategy pattern for graph extraction** | `GraphExtractionStrategy` interface + `PathTraversalStrategy` implementation. New traversal approaches (semantic, embedding-based) can be added without modifying `GraphContextExtractor`. |
 | **Test coverage**                         | `AnthropicLLMServiceTest` — network failure and auth failure scenarios. `GraphRAGServiceTest` — LLM exception propagation test.                                                            |
 
-## Prompt Injection Security
+<a id="prompt-injection-security"></a>
+## 7. 🔐 Prompt Injection Security
 
 `llm-rag-pipeline` implements a two-layer defence against prompt injection. Both layers are active whenever generation is enabled.
 
@@ -260,7 +267,8 @@ To disable the guard entirely (not recommended in production): set `INJECTION_GU
 
 ---
 
-## Building and testing
+<a id="building-and-testing"></a>
+## 8. 🧪 Building and testing
 
 ```bash
 # build everything
@@ -305,7 +313,8 @@ What was verified in this pass (compiling and running with an Azul Zulu 25 JDK, 
 
 ---
 
-## Technology Deep Dive
+<a id="technology-deep-dive"></a>
+## 9. 🧰 Technology Deep Dive
 
 This section explains every significant technology used across the three modules — what each one is
 and exactly how this project uses it.
