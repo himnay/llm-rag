@@ -58,7 +58,7 @@ management:
       show-components: when-authorized
       roles: ACTUATOR
     info:
-      enabled: true
+      access: read-only
   info:
     git:
       mode: full
@@ -73,9 +73,6 @@ management:
   tracing:
     sampling:
       probability: ${TRACING_SAMPLING:1.0}
-  otlp:
-    tracing:
-      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/traces
   metrics:
     tags:
       application: ${spring.application.name}
@@ -85,6 +82,11 @@ management:
       slo:
         http.server.requests: 50ms,100ms,200ms,300ms,500ms,1s,2s,5s
 
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/traces
 resilience4j:
   circuitbreaker:
     instances:
@@ -101,8 +103,8 @@ resilience4j:
         max-attempts: 2
         wait-duration: 1s
         retry-exceptions:
-          - java.io.IOException
-          - org.springframework.web.client.ResourceAccessException
+        - java.io.IOException
+        - org.springframework.web.client.ResourceAccessException
   ratelimiter:
     instances:
       rag-query:

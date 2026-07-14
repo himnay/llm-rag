@@ -14,8 +14,7 @@ spring:
     openai:
       api-key: ${OPENAI_API_KEY:sk-placeholder}
       embedding:
-        options:
-          model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
+        model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
     vectorstore:
       opensearch:
         aws:
@@ -41,10 +40,10 @@ spring:
           # Shared Keycloak instance defined in llm-gateway's docker-compose; this service has its
           # own client (llm-rag-pipeline-client) in the same "llm-gateway" realm.
           issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8081/realms/llm-gateway}
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://localhost:27017/llm-rag}
+    auto-index-creation: false   # indexes are created explicitly at startup (see ChunkDocumentRepository)
   data:
-    mongodb:
-      uri: ${MONGODB_URI:mongodb://localhost:27017/llm-rag}
-      auto-index-creation: false   # indexes are created explicitly at startup (see ChunkDocumentRepository)
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
@@ -68,7 +67,7 @@ management:
         enabled: true
       roles: ACTUATOR
     info:
-      enabled: true
+      access: read-only
   info:
     git:
       mode: full
@@ -83,9 +82,11 @@ management:
   tracing:
     sampling:
       probability: 1.0
-  otlp:
+  opentelemetry:
     tracing:
-      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/traces
+      export:
+        otlp:
+          endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/traces
   metrics:
     tags:
       application: ${spring.application.name}
@@ -205,38 +206,9 @@ app:
       enabled: ${SAFEGUARD_ENABLED:false}
       sensitive-words: []
       failure-response: "I'm unable to respond to that due to sensitive content. Could we rephrase or discuss something else?"
-  generation:
-    enabled: ${GENERATION_ENABLED:false}  # expose POST /api/v1/generate
-    mode: ${GENERATION_MODE:manual}       # manual (Section 7 pattern) | advisor (Section 12 pattern)
-    top-k: 5
-    include-citations: true
-    evaluate-faithfulness: ${EVALUATE_FAITHFULNESS:true}  # adds one extra LLM call per generation
-    advisor:
-      similarity-threshold: 0.7
-    judge: # pre-generation LLM-as-judge — skips generation when retrieved context is insufficient
-      enabled: ${GENERATION_JUDGE_ENABLED:true}
-      insufficient-answer: "I don't have enough information in the available context to answer that question."
-  cache:
-    embedding:
-      enabled: ${EMBEDDING_CACHE_ENABLED:true}   # cache text→vector to avoid re-embedding identical sentences
-      max-size: 5000
-      ttl: 24h
-    semantic:
-      enabled: ${SEMANTIC_CACHE_ENABLED:false}   # cache query→answer for FAQ-style traffic
-      max-size: 500
-      ttl: 30m
-      similarity-threshold: 0.95
-    chunk-dedup: # chunk-level content-hash dedup (Redis) — replaces identity-level Postgres dedup
-      enabled: ${CHUNK_DEDUP_ENABLED:true}
-      key-prefix: "chunkhash:"
-      ttl: 720h                                   # 30 days; chunk re-ingested after this gets re-embedded once
-
-# ── Prompt injection guard ────────────────────────────────────────────────────
-# Patterns are loaded by InjectionGuardProperties and compiled at startup.
-# To add new signatures, append to this list — no code change required.
-# To disable: set app.security.injection-guard.enabled=false
-app:
-  security:
+    # Patterns are loaded by InjectionGuardProperties and compiled at startup.
+    # To add new signatures, append to this list — no code change required.
+    # To disable: set app.security.injection-guard.enabled=false
     injection-guard:
       enabled: ${INJECTION_GUARD_ENABLED:true}
       block-message: "Your request contains disallowed instructions and cannot be processed."
@@ -266,3 +238,28 @@ app:
         - "(?i)jailbreak"
         - "(?i)developer\\s+mode"
         - "(?i)DAN\\s+mode"
+  generation:
+    enabled: ${GENERATION_ENABLED:false}  # expose POST /api/v1/generate
+    mode: ${GENERATION_MODE:manual}       # manual (Section 7 pattern) | advisor (Section 12 pattern)
+    top-k: 5
+    include-citations: true
+    evaluate-faithfulness: ${EVALUATE_FAITHFULNESS:true}  # adds one extra LLM call per generation
+    advisor:
+      similarity-threshold: 0.7
+    judge: # pre-generation LLM-as-judge — skips generation when retrieved context is insufficient
+      enabled: ${GENERATION_JUDGE_ENABLED:true}
+      insufficient-answer: "I don't have enough information in the available context to answer that question."
+  cache:
+    embedding:
+      enabled: ${EMBEDDING_CACHE_ENABLED:true}   # cache text→vector to avoid re-embedding identical sentences
+      max-size: 5000
+      ttl: 24h
+    semantic:
+      enabled: ${SEMANTIC_CACHE_ENABLED:false}   # cache query→answer for FAQ-style traffic
+      max-size: 500
+      ttl: 30m
+      similarity-threshold: 0.95
+    chunk-dedup: # chunk-level content-hash dedup (Redis) — replaces identity-level Postgres dedup
+      enabled: ${CHUNK_DEDUP_ENABLED:true}
+      key-prefix: "chunkhash:"
+      ttl: 720h                                   # 30 days; chunk re-ingested after this gets re-embedded once

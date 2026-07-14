@@ -1,0 +1,492 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-07-14T00:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v12.0.0",
+  "resources": [
+    {
+      "_id": "wrk_llmrag_0000000000000000000000000001",
+      "_type": "workspace",
+      "parentId": null,
+      "name": "llm-rag :: REST",
+      "scope": "collection",
+      "created": 1784063187842,
+      "modified": 1784063187842
+    },
+    {
+      "_id": "env_llmrag_0000000000000000000000000002",
+      "_type": "environment",
+      "parentId": "wrk_llmrag_0000000000000000000000000001",
+      "name": "Base Environment",
+      "data": {
+        "host": "localhost"
+      },
+      "created": 1784063187842,
+      "modified": 1784063187842
+    },
+    {
+      "_id": "fld_llmrag_0000000000000000000000000003",
+      "_type": "request_group",
+      "parentId": "wrk_llmrag_0000000000000000000000000001",
+      "name": "llm-rag-graph (:8080)",
+      "created": 1784063187842,
+      "modified": 1784063187842
+    },
+    {
+      "_id": "req_llmrag_0000000000000000000000000004",
+      "_type": "request",
+      "parentId": "fld_llmrag_0000000000000000000000000003",
+      "name": "GET /api/v1/graph/companies/{name}/employees",
+      "method": "GET",
+      "url": "http://{{ _.host }}:8080/api/v1/graph/companies/<name>/employees",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "metaSortKey": 0,
+      "created": 1784063187842,
+      "modified": 1784063187842
+    },
+    {
+      "_id": "req_llmrag_0000000000000000000000000005",
+      "_type": "request",
+      "parentId": "fld_llmrag_0000000000000000000000000003",
+      "name": "GET /api/v1/graph/companies/{name}/hierarchy",
+      "method": "GET",
+      "url": "http://{{ _.host }}:8080/api/v1/graph/companies/<name>/hierarchy",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "metaSortKey": 100,
+      "created": 1784063187842,
+      "modified": 1784063187842
+    },
+    {
+      "_id": "req_llmrag_0000000000000000000000000006",
+      "_type": "request",
+      "parentId": "fld_llmrag_0000000000000000000000000003",
+      "name": "GET /api/v1/graph/employees/{name}/context",
+      "method": "GET",
+      "url": "http://{{ _.host }}:8080/api/v1/graph/employees/<name>/context",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "metaSortKey": 200,
+      "created": 1784063187842,
+      "modified": 1784063187842
+    },
+    {
+      "_id": "req_llmrag_0000000000000000000000000007",
+      "_type": "request",
+      "parentId": "fld_llmrag_0000000000000000000000000003",
+      "name": "GET /api/v1/graph/employees/{name}/reports",
+      "method": "GET",
+      "url": "http://{{ _.host }}:8080/api/v1/graph/employees/<name>/reports",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "metaSortKey": 300,
+      "created": 1784063187842,
+      "modified": 1784063187842
+    },
+    {
+      "_id": "req_llmrag_0000000000000000000000000008",
+      "_type": "request",
+      "parentId": "fld_llmrag_0000000000000000000000000003",
+      "name": "GET /api/v1/graph/export",
+      "method": "GET",
+      "url": "http://{{ _.host }}:8080/api/v1/graph/export",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "metaSortKey": 400,
+      "created": 1784063187842,
+      "modified": 1784063187842
+    },
+    {
+      "_id": "req_llmrag_0000000000000000000000000009",
+      "_type": "request",
+      "parentId": "fld_llmrag_0000000000000000000000000003",
+      "name": "GET /api/v1/graph/projects/{name}/team",
+      "method": "GET",
+      "url": "http://{{ _.host }}:8080/api/v1/graph/projects/<name>/team",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "metaSortKey": 500,
+      "created": 1784063187842,
+      "modified": 1784063187842
+    },
+    {
+      "_id": "req_llmrag_0000000000000000000000000010",
+      "_type": "request",
+      "parentId": "fld_llmrag_0000000000000000000000000003",
+      "name": "GET /api/v1/graph/stats",
+      "method": "GET",
+      "url": "http://{{ _.host }}:8080/api/v1/graph/stats",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "metaSortKey": 600,
+      "created": 1784063187842,
+      "modified": 1784063187842
+    },
+    {
+      "_id": "req_llmrag_0000000000000000000000000011",
+      "_type": "request",
+      "parentId": "fld_llmrag_0000000000000000000000000003",
+      "name": "POST /api/v1/rag/query",
+      "method": "POST",
+      "url": "http://{{ _.host }}:8080/api/v1/rag/query",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "metaSortKey": 700,
+      "created": 1784063187842,
+      "modified": 1784063187842,
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \n}"
+      }
+    },
+    {
+      "_id": "fld_llmrag_0000000000000000000000000012",
+      "_type": "request_group",
+      "parentId": "wrk_llmrag_0000000000000000000000000001",
+      "name": "llm-rag-pipeline (:8081)",
+      "created": 1784063187842,
+      "modified": 1784063187842
+    },
+    {
+      "_id": "req_llmrag_0000000000000000000000000013",
+      "_type": "request",
+      "parentId": "fld_llmrag_0000000000000000000000000012",
+      "name": "DELETE /api/v1/admin/lifecycle/delete",
+      "method": "DELETE",
+      "url": "http://{{ _.host }}:8081/api/v1/admin/lifecycle/delete",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "metaSortKey": 0,
+      "created": 1784063187842,
+      "modified": 1784063187842,
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \n}"
+      }
+    },
+    {
+      "_id": "req_llmrag_0000000000000000000000000014",
+      "_type": "request",
+      "parentId": "fld_llmrag_0000000000000000000000000012",
+      "name": "DELETE /api/v1/admin/lifecycle/delete-all",
+      "method": "DELETE",
+      "url": "http://{{ _.host }}:8081/api/v1/admin/lifecycle/delete-all",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "metaSortKey": 100,
+      "created": 1784063187842,
+      "modified": 1784063187842
+    },
+    {
+      "_id": "req_llmrag_0000000000000000000000000015",
+      "_type": "request",
+      "parentId": "fld_llmrag_0000000000000000000000000012",
+      "name": "GET /api/v1/admin/lifecycle/upload/{jobId}/status",
+      "method": "GET",
+      "url": "http://{{ _.host }}:8081/api/v1/admin/lifecycle/upload/<jobId>/status",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "metaSortKey": 200,
+      "created": 1784063187842,
+      "modified": 1784063187842
+    },
+    {
+      "_id": "req_llmrag_0000000000000000000000000016",
+      "_type": "request",
+      "parentId": "fld_llmrag_0000000000000000000000000012",
+      "name": "POST /api/v1/admin/eval/run",
+      "method": "POST",
+      "url": "http://{{ _.host }}:8081/api/v1/admin/eval/run",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "metaSortKey": 300,
+      "created": 1784063187842,
+      "modified": 1784063187842
+    },
+    {
+      "_id": "req_llmrag_0000000000000000000000000017",
+      "_type": "request",
+      "parentId": "fld_llmrag_0000000000000000000000000012",
+      "name": "POST /api/v1/admin/eval/run/generation",
+      "method": "POST",
+      "url": "http://{{ _.host }}:8081/api/v1/admin/eval/run/generation",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "metaSortKey": 400,
+      "created": 1784063187842,
+      "modified": 1784063187842
+    },
+    {
+      "_id": "req_llmrag_0000000000000000000000000018",
+      "_type": "request",
+      "parentId": "fld_llmrag_0000000000000000000000000012",
+      "name": "POST /api/v1/admin/lifecycle/ingest",
+      "method": "POST",
+      "url": "http://{{ _.host }}:8081/api/v1/admin/lifecycle/ingest",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "metaSortKey": 500,
+      "created": 1784063187842,
+      "modified": 1784063187842,
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \n}"
+      }
+    },
+    {
+      "_id": "req_llmrag_0000000000000000000000000019",
+      "_type": "request",
+      "parentId": "fld_llmrag_0000000000000000000000000012",
+      "name": "POST /api/v1/admin/lifecycle/ingest-all",
+      "method": "POST",
+      "url": "http://{{ _.host }}:8081/api/v1/admin/lifecycle/ingest-all",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "metaSortKey": 600,
+      "created": 1784063187842,
+      "modified": 1784063187842
+    },
+    {
+      "_id": "req_llmrag_0000000000000000000000000020",
+      "_type": "request",
+      "parentId": "fld_llmrag_0000000000000000000000000012",
+      "name": "POST /api/v1/admin/lifecycle/upload",
+      "method": "POST",
+      "url": "http://{{ _.host }}:8081/api/v1/admin/lifecycle/upload",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "metaSortKey": 700,
+      "created": 1784063187842,
+      "modified": 1784063187842
+    },
+    {
+      "_id": "req_llmrag_0000000000000000000000000021",
+      "_type": "request",
+      "parentId": "fld_llmrag_0000000000000000000000000012",
+      "name": "POST /api/v1/admin/lifecycle/upload/async",
+      "method": "POST",
+      "url": "http://{{ _.host }}:8081/api/v1/admin/lifecycle/upload/async",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "metaSortKey": 800,
+      "created": 1784063187842,
+      "modified": 1784063187842
+    },
+    {
+      "_id": "req_llmrag_0000000000000000000000000022",
+      "_type": "request",
+      "parentId": "fld_llmrag_0000000000000000000000000012",
+      "name": "POST /api/v1/generate",
+      "method": "POST",
+      "url": "http://{{ _.host }}:8081/api/v1/generate",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "metaSortKey": 900,
+      "created": 1784063187842,
+      "modified": 1784063187842,
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \n}"
+      }
+    },
+    {
+      "_id": "req_llmrag_0000000000000000000000000023",
+      "_type": "request",
+      "parentId": "fld_llmrag_0000000000000000000000000012",
+      "name": "POST /api/v1/generate/stream",
+      "method": "POST",
+      "url": "http://{{ _.host }}:8081/api/v1/generate/stream",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "metaSortKey": 1000,
+      "created": 1784063187842,
+      "modified": 1784063187842,
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \n}"
+      }
+    },
+    {
+      "_id": "req_llmrag_0000000000000000000000000024",
+      "_type": "request",
+      "parentId": "fld_llmrag_0000000000000000000000000012",
+      "name": "POST /api/v1/retrieve",
+      "method": "POST",
+      "url": "http://{{ _.host }}:8081/api/v1/retrieve",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "metaSortKey": 1100,
+      "created": 1784063187842,
+      "modified": 1784063187842,
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \n}"
+      }
+    },
+    {
+      "_id": "fld_llmrag_0000000000000000000000000025",
+      "_type": "request_group",
+      "parentId": "wrk_llmrag_0000000000000000000000000001",
+      "name": "llm-rag-vectorless (:8080)",
+      "created": 1784063187842,
+      "modified": 1784063187842
+    },
+    {
+      "_id": "req_llmrag_0000000000000000000000000026",
+      "_type": "request",
+      "parentId": "fld_llmrag_0000000000000000000000000025",
+      "name": "GET /api/rag/documents",
+      "method": "GET",
+      "url": "http://{{ _.host }}:8080/api/rag/documents",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "metaSortKey": 0,
+      "created": 1784063187842,
+      "modified": 1784063187842
+    },
+    {
+      "_id": "req_llmrag_0000000000000000000000000027",
+      "_type": "request",
+      "parentId": "fld_llmrag_0000000000000000000000000025",
+      "name": "GET /api/rag/health",
+      "method": "GET",
+      "url": "http://{{ _.host }}:8080/api/rag/health",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "metaSortKey": 100,
+      "created": 1784063187842,
+      "modified": 1784063187842
+    },
+    {
+      "_id": "req_llmrag_0000000000000000000000000028",
+      "_type": "request",
+      "parentId": "fld_llmrag_0000000000000000000000000025",
+      "name": "POST /api/rag/chat",
+      "method": "POST",
+      "url": "http://{{ _.host }}:8080/api/rag/chat",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "metaSortKey": 200,
+      "created": 1784063187842,
+      "modified": 1784063187842,
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \n}"
+      }
+    },
+    {
+      "_id": "req_llmrag_0000000000000000000000000029",
+      "_type": "request",
+      "parentId": "fld_llmrag_0000000000000000000000000025",
+      "name": "POST /api/rag/chat-pageindex",
+      "method": "POST",
+      "url": "http://{{ _.host }}:8080/api/rag/chat-pageindex",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "metaSortKey": 300,
+      "created": 1784063187842,
+      "modified": 1784063187842,
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \n}"
+      }
+    }
+  ]
+}
