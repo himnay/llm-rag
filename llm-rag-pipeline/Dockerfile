@@ -13,7 +13,8 @@ RUN ./mvnw -q -B -DskipTests clean package
 FROM eclipse-temurin:25-jre AS extract
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
-RUN java -Djarmode=layertools -jar app.jar extract
+# Boot 3.3+/4 replaced -Djarmode=layertools with the 'tools' jarmode
+RUN java -Djarmode=tools -jar app.jar extract --layers --launcher --destination extracted
 
 # ---- runtime stage ----
 FROM eclipse-temurin:25-jre
@@ -25,10 +26,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 # Run as a non-root user
 RUN useradd --system --uid 10001 appuser
-COPY --from=extract /app/dependencies/ ./
-COPY --from=extract /app/spring-boot-loader/ ./
-COPY --from=extract /app/snapshot-dependencies/ ./
-COPY --from=extract /app/application/ ./
+COPY --from=extract /app/extracted/dependencies/ ./
+COPY --from=extract /app/extracted/spring-boot-loader/ ./
+COPY --from=extract /app/extracted/snapshot-dependencies/ ./
+COPY --from=extract /app/extracted/application/ ./
 USER appuser
 EXPOSE 8081
 ENTRYPOINT ["java", "org.springframework.boot.loader.launch.JarLauncher"]
