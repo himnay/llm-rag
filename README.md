@@ -275,11 +275,11 @@ To disable the guard entirely (not recommended in production): set `INJECTION_GU
 
 ### Additional defences in `llm-rag-pipeline`
 
-| Defence | Where | What it does |
-|---|---|---|
-| System-prompt SECURITY section | `system-prompt.st` | Instructs the model to ignore instructions embedded in retrieved context and never reveal its system prompt — model-layer defence complementing the Java guard |
-| Delimiter escaping | `PromptAugmenter` | Wraps each retrieved chunk in triple-backtick fences so injected structural markers (` ```system `, `[SYSTEM]`) cannot break out of the context block |
-| `SafeGuardAdvisor` | Advisor-mode generation path | Spring AI advisor that blocks requests containing configured sensitive words before they reach the model; configured under `app.security.safeguard.*` |
+| Defence                        | Where                        | What it does                                                                                                                                                   |
+|--------------------------------|------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| System-prompt SECURITY section | `system-prompt.st`           | Instructs the model to ignore instructions embedded in retrieved context and never reveal its system prompt — model-layer defence complementing the Java guard |
+| Delimiter escaping             | `PromptAugmenter`            | Wraps each retrieved chunk in triple-backtick fences so injected structural markers (` ```system `, `[SYSTEM]`) cannot break out of the context block          |
+| `SafeGuardAdvisor`             | Advisor-mode generation path | Spring AI advisor that blocks requests containing configured sensitive words before they reach the model; configured under `app.security.safeguard.*`          |
 
 ---
 

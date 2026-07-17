@@ -519,13 +519,13 @@ they reach the prompt. Both can be active at once. It's wired as a `defaultAdvis
 
 Before retrieval, the raw query can be rewritten to improve recall. Controlled by `app.retrieval.query-transform.mode`:
 
-| Mode          | Class                         | Mechanism                                                                                                                                                                                                      | Best for                                                |
-|---------------|-------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------|
-| `NONE`        | —                             | Query passed through unchanged                                                                                                                                                                                 | Fast lookups, exact keyword queries                     |
-| `REWRITE`     | `RewriteQueryTransformerImpl` | Delegates to Spring AI's `RewriteQueryTransformer` — LLM rephrases the query (grammar fix, abbreviation expansion)                                                                                             | Conversational or ambiguous queries                     |
-| `MULTI_QUERY` | `MultiQueryExpanderImpl`      | Delegates to Spring AI's `MultiQueryExpander` — LLM generates N alternative phrasings (default 3, always includes the original); requires an *exact* line-count match or falls back to the original query only | Broad topics where one phrasing misses relevant chunks  |
-| `HYDE`        | `HydeQueryTransformer`        | Custom (no Spring AI equivalent) — LLM generates a *hypothetical* answer passage; that passage's embedding is used as the retrieval key (not the query itself)                                                 | Sparse corpora, highly technical questions              |
-| `STEP_BACK`   | `StepBackQueryTransformer`    | Custom (no Spring AI equivalent) — LLM reformulates the query at a higher abstraction level before retrieving                                                                                                  | Multi-hop or overly specific queries                    |
+| Mode          | Class                         | Mechanism                                                                                                                                                                                                      | Best for                                               |
+|---------------|-------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------|
+| `NONE`        | —                             | Query passed through unchanged                                                                                                                                                                                 | Fast lookups, exact keyword queries                    |
+| `REWRITE`     | `RewriteQueryTransformerImpl` | Delegates to Spring AI's `RewriteQueryTransformer` — LLM rephrases the query (grammar fix, abbreviation expansion)                                                                                             | Conversational or ambiguous queries                    |
+| `MULTI_QUERY` | `MultiQueryExpanderImpl`      | Delegates to Spring AI's `MultiQueryExpander` — LLM generates N alternative phrasings (default 3, always includes the original); requires an *exact* line-count match or falls back to the original query only | Broad topics where one phrasing misses relevant chunks |
+| `HYDE`        | `HydeQueryTransformer`        | Custom (no Spring AI equivalent) — LLM generates a *hypothetical* answer passage; that passage's embedding is used as the retrieval key (not the query itself)                                                 | Sparse corpora, highly technical questions             |
+| `STEP_BACK`   | `StepBackQueryTransformer`    | Custom (no Spring AI equivalent) — LLM reformulates the query at a higher abstraction level before retrieving                                                                                                  | Multi-hop or overly specific queries                   |
 
 Both `search.mode` and `query-transform.mode` above are normally static config. Set
 `app.retrieval.classifier.enabled=true` to have `RetrievalStrategyClassifier` decide both together,
@@ -573,14 +573,14 @@ Six `ChunkingStrategy` implementations, selected via `app.chunking.strategy`:
 A second-stage reranker re-scores candidates after first-stage retrieval. Controlled by
 `app.retrieval.rerank.strategy` (requires `rerank.enabled: true`):
 
-| Strategy        | `isCostly()` | Mechanism                                                                                                                | Latency   | Best for                                                   |
-|-----------------|--------------|--------------------------------------------------------------------------------------------------------------------------|-----------|------------------------------------------------------------|
-| `cross-encoder` | `true`       | Jointly encodes (query, chunk) via a cross-encoder model; most accurate                                                  | Medium    | When precision matters more than throughput                |
-| `bi-encoder`    | `false`      | Re-embeds query + chunks separately, scores by cosine; faster but lower accuracy                                         | Low       | High-throughput retrieval                                  |
-| `llm-pointwise` | `true`       | Each chunk scored individually via Spring AI structured output (0–100 `RelevanceGrade`); N parallel virtual-thread calls | High      | Authoritative answers where one misranked chunk is costly  |
-| `llm-listwise`  | `true`       | All candidates sent to LLM in one prompt, returns a structured-output `RankedOrder`; fewer API calls than pointwise      | High      | Final precision pass for generation endpoints              |
-| `bm25`          | `false`      | Re-scores vector-retrieved candidates by BM25 term frequency in-process                                                  | Very low  | Keyword-heavy technical queries as cheap second pass       |
-| `rrf`           | `false`      | Reciprocal Rank Fusion (k=60) merges vector + keyword rank lists                                                         | Very low  | Default safe choice with hybrid search                     |
+| Strategy        | `isCostly()` | Mechanism                                                                                                                | Latency  | Best for                                                  |
+|-----------------|--------------|--------------------------------------------------------------------------------------------------------------------------|----------|-----------------------------------------------------------|
+| `cross-encoder` | `true`       | Jointly encodes (query, chunk) via a cross-encoder model; most accurate                                                  | Medium   | When precision matters more than throughput               |
+| `bi-encoder`    | `false`      | Re-embeds query + chunks separately, scores by cosine; faster but lower accuracy                                         | Low      | High-throughput retrieval                                 |
+| `llm-pointwise` | `true`       | Each chunk scored individually via Spring AI structured output (0–100 `RelevanceGrade`); N parallel virtual-thread calls | High     | Authoritative answers where one misranked chunk is costly |
+| `llm-listwise`  | `true`       | All candidates sent to LLM in one prompt, returns a structured-output `RankedOrder`; fewer API calls than pointwise      | High     | Final precision pass for generation endpoints             |
+| `bm25`          | `false`      | Re-scores vector-retrieved candidates by BM25 term frequency in-process                                                  | Very low | Keyword-heavy technical queries as cheap second pass      |
+| `rrf`           | `false`      | Reciprocal Rank Fusion (k=60) merges vector + keyword rank lists                                                         | Very low | Default safe choice with hybrid search                    |
 
 `RerankingPostProcessor` wraps any reranker behind a circuit breaker (`com.org.common.CircuitBreaker`
 — a small homegrown breaker, not Resilience4j, which is declared as a dependency but currently
@@ -618,16 +618,16 @@ project's dual-store architecture).
 
 ## Design Patterns
 
-| Pattern                     | Where                                                                                                                                                                                                                   | Why                                                |
-|-----------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------|
-| **Strategy**                | `ChunkingStrategy` (6 chunking algorithms) · `SearchStrategy` (3 search modes) · `Reranker` (6 rerankers) · `QueryTransformer` (4 transformers, 2 of which delegate internally to Spring AI's own transformer/expander) | Swap algorithm at runtime via config               |
-| **Chain of Responsibility** | `RetrievalPostProcessor` chain (filter → dedup → rerank → rank → MMR)                                                                                                                                                   | Each stage handles and forwards                    |
-| **Factory**                 | `ChunkingStrategyFactory` · `DocumentReaderFactory`                                                                                                                                                                     | Name/extension → implementation                    |
-| **Template Method**         | `AbstractChunkingStrategy`                                                                                                                                                                                              | Shared skeleton; subclasses supply the split step  |
-| **Composite**               | `HybridSearchStrategy`                                                                                                                                                                                                  | Composes vector + keyword + RRF                    |
-| **Proxy (protection)**      | `RerankingPostProcessor` wrapping `Reranker`                                                                                                                                                                            | Adds circuit breaker, cache, cost cap, metrics     |
-| **Facade**                  | `IngestionOrchestrator` · `PromptOrchestrator`                                                                                                                                                                          | One entry point over multi-step pipelines          |
-| **Adapter**                 | `ExcelDocumentReader` · `OcrPdfAugmentor`                                                                                                                                                                               | Bridge third-party APIs into the document model    |
+| Pattern                     | Where                                                                                                                                                                                                                   | Why                                               |
+|-----------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------|
+| **Strategy**                | `ChunkingStrategy` (6 chunking algorithms) · `SearchStrategy` (3 search modes) · `Reranker` (6 rerankers) · `QueryTransformer` (4 transformers, 2 of which delegate internally to Spring AI's own transformer/expander) | Swap algorithm at runtime via config              |
+| **Chain of Responsibility** | `RetrievalPostProcessor` chain (filter → dedup → rerank → rank → MMR)                                                                                                                                                   | Each stage handles and forwards                   |
+| **Factory**                 | `ChunkingStrategyFactory` · `DocumentReaderFactory`                                                                                                                                                                     | Name/extension → implementation                   |
+| **Template Method**         | `AbstractChunkingStrategy`                                                                                                                                                                                              | Shared skeleton; subclasses supply the split step |
+| **Composite**               | `HybridSearchStrategy`                                                                                                                                                                                                  | Composes vector + keyword + RRF                   |
+| **Proxy (protection)**      | `RerankingPostProcessor` wrapping `Reranker`                                                                                                                                                                            | Adds circuit breaker, cache, cost cap, metrics    |
+| **Facade**                  | `IngestionOrchestrator` · `PromptOrchestrator`                                                                                                                                                                          | One entry point over multi-step pipelines         |
+| **Adapter**                 | `ExcelDocumentReader` · `OcrPdfAugmentor`                                                                                                                                                                               | Bridge third-party APIs into the document model   |
 
 ---
 
@@ -730,9 +730,9 @@ curl -s -X POST http://localhost:8081/api/v1/retrieve \
 
 `PromptInjectionGuard` provides two distinct check modes, both driven by `InjectionGuardProperties` (`app.security.injection-guard.*`):
 
-| Method | Called from | What it checks |
-|---|---|---|
-| `isQuerySafe(String query)` | `GenerationService` before any LLM or retrieval call | The raw user query |
+| Method                       | Called from                                                         | What it checks              |
+|------------------------------|---------------------------------------------------------------------|-----------------------------|
+| `isQuerySafe(String query)`  | `GenerationService` before any LLM or retrieval call                | The raw user query          |
 | `filter(List<Chunk> chunks)` | `GenerationService` after retrieval, before the prompt is assembled | Each retrieved chunk's text |
 
 `InjectionGuardProperties` ships 21 compiled regex patterns covering:
