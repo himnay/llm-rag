@@ -114,7 +114,7 @@ class GraphControllerTest {
     @Test
     @DisplayName("Employees endpoint returns the list of employees for a company")
     void employeesReturnsPagedList() throws Exception {
-        when(employeeRepo.findByCompanyName("TechCorp")).thenReturn(List.of(alice, manager));
+        when(employeeRepo.findByCompanyName("TechCorp", 0, 20)).thenReturn(List.of(alice, manager));
 
         mockMvc.perform(get("/api/graph/companies/TechCorp/employees"))
                 .andExpect(status().isOk())
@@ -143,7 +143,7 @@ class GraphControllerTest {
     @Test
     @DisplayName("Direct reports endpoint returns the list of direct reports for a manager")
     void directReportsReturnsList() throws Exception {
-        when(employeeRepo.findDirectReports("Boss Person")).thenReturn(List.of(alice));
+        when(employeeRepo.findDirectReports("Boss Person", 0, 20)).thenReturn(List.of(alice));
 
         mockMvc.perform(get("/api/graph/employees/Boss Person/reports"))
                 .andExpect(status().isOk())
@@ -153,7 +153,7 @@ class GraphControllerTest {
     @Test
     @DisplayName("Project team endpoint returns the list of employees assigned to a project")
     void projectTeamReturnsList() throws Exception {
-        when(employeeRepo.findByProjectName("Project Alpha")).thenReturn(List.of(alice));
+        when(employeeRepo.findByProjectName("Project Alpha", 0, 20)).thenReturn(List.of(alice));
 
         mockMvc.perform(get("/api/graph/projects/Project Alpha/team"))
                 .andExpect(status().isOk())

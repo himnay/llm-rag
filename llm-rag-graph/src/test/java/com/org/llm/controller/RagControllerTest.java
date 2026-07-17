@@ -36,15 +36,14 @@ class RagControllerTest {
     @Test
     @DisplayName("A valid question returns 200 with the LLM-generated answer")
     void validQuestionReturns200() throws Exception {
-        RagResponse response = RagResponse.builder()
+        RagResponse response = new RagResponse()
                 .question("Who is Alice?")
                 .answer("Alice is an engineer.")
                 .graphContext("context")
                 .relevantEntities(List.of("Alice"))
                 .citations(List.of())
                 .processingTimeMs(100L)
-                .timestamp(OffsetDateTime.now())
-                .build();
+                .timestamp(OffsetDateTime.now());
         when(ragService.query(any(RagRequest.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/rag/query")
