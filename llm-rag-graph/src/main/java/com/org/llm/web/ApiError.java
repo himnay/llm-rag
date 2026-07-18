@@ -20,10 +20,12 @@ public record ApiError(
         Map<String, String> fieldErrors
 ) {
 
+    /** Returns the of. */
     public static ApiError of(int status, String error, String message, String path) {
         return new ApiError(status, error, message, Instant.now(), path, null);
     }
 
+    /** Returns the of. */
     public static ApiError of(int status, String error, String message, String path,
                               Map<String, String> fieldErrors) {
         return new ApiError(status, error, message, Instant.now(), path, fieldErrors);

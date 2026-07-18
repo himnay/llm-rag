@@ -6,7 +6,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class PdfIngestionServiceTest extends IntegrationTest {
+class PdfIngestionServiceTest extends IntegrationTest {
     @Autowired
     private PdfIngestionService pdfIngestionService;
 

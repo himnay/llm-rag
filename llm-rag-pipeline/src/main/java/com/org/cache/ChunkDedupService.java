@@ -20,6 +20,7 @@ public class ChunkDedupService {
     private final StringRedisTemplate redisTemplate;
     private final ChunkDedupProperties properties;
 
+    /** Hashes of. */
     public static String hashOf(String content) {
         return DigestUtils.sha256Hex(content);
     }

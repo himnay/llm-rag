@@ -12,7 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 
-public class FixedSizeChunkerTest extends IntegrationTest {
+class FixedSizeChunkerTest extends IntegrationTest {
     private static final Logger log = LoggerFactory.getLogger(FixedSizeChunkerTest.class);
 
     @Autowired
@@ -34,7 +34,7 @@ public class FixedSizeChunkerTest extends IntegrationTest {
 
     @Test
     @DisplayName("Splits a document into fixed-size chunks with and without overlap")
-    public void chunkerTest() throws Exception {
+    void chunkerTest() throws Exception {
         List<IngestedDocument> documents = ingestionOrchestrator.ingestAll();
 
         IngestedDocument document = documents.get(0);

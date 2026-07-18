@@ -46,6 +46,7 @@ public class ChunkVectorStoreService {
     private final VectorStoreWriteProperties props;
     private final ChunkDocumentRepository chunkDocumentRepository;
 
+    /** Handles store. */
     public void store(List<Chunk> chunks) {
         if (chunks.isEmpty()) {
             return;
@@ -99,6 +100,7 @@ public class ChunkVectorStoreService {
         log.info("Stored {} documents in {} parallel batches", documents.size(), batches.size());
     }
 
+    /** Deletes all. */
     public void deleteAll() {
         // Every chunk has chunkIndex >= 0, so this matches all stored documents.
         FilterExpressionBuilder filterBuilder = new FilterExpressionBuilder();
@@ -106,6 +108,7 @@ public class ChunkVectorStoreService {
         vectorStore.delete(filter);
     }
 
+    /** Deletes by identity. */
     public void deleteByIdentity(String identity) {
         FilterExpressionBuilder filterBuilder = new FilterExpressionBuilder();
         vectorStore.delete(filterBuilder.eq("identity", identity).build());

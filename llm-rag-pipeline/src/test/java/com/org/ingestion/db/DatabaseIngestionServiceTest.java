@@ -6,13 +6,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class DatabaseIngestionServiceTest extends IntegrationTest {
+class DatabaseIngestionServiceTest extends IntegrationTest {
     @Autowired
     private DatabaseIngestionService databaseIngestionService;
 
     @Test
     @DisplayName("Ingests FAQs, release notes, and announcements from the database without throwing")
-    public void testDatabaseIngestionService() {
+    void testDatabaseIngestionService() {
         databaseIngestionService.ingestFaqs();
         databaseIngestionService.ingestReleaseNotes();
         databaseIngestionService.ingestAnnouncements();

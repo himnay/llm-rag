@@ -36,6 +36,7 @@ public class RetrievalStrategyClassifier {
     private final ChatClient chatClient;
     private final RetrievalProperties properties;
 
+    /** Returns the classify. */
     public RetrievalStrategy classify(String query) {
         SearchMode fallbackSearch = properties.getSearch().getMode();
         QueryTransformMode fallbackTransform = properties.getQueryTransform().getMode();

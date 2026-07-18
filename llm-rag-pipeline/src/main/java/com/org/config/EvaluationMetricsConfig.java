@@ -13,11 +13,13 @@ public class EvaluationMetricsConfig {
 
     private final ChatClient.Builder chatClientBuilder;
 
+    /** Defines the fact checking evaluator bean. */
     @Bean
     public FactCheckingEvaluator factCheckingEvaluator() {
         return FactCheckingEvaluator.builder(chatClientBuilder).build();
     }
 
+    /** Defines the relevancy evaluator bean. */
     @Bean
     public RelevancyEvaluator relevancyEvaluator() {
         return RelevancyEvaluator.builder().chatClientBuilder(chatClientBuilder).build();

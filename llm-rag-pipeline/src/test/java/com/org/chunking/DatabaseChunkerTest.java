@@ -12,7 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 
-public class DatabaseChunkerTest extends IntegrationTest {
+class DatabaseChunkerTest extends IntegrationTest {
 
     private static final Logger log = LoggerFactory.getLogger(DatabaseChunkerTest.class);
 

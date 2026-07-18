@@ -38,6 +38,7 @@ public class RagController {
     private final GenerationEvaluator generationEvaluator;
     private final RagProperties ragProperties;
 
+    /** Chats. */
     @PostMapping("/chat")
     @Operation(summary = "Answer a question using BM25 retrieval over local documents")
     public ChatResponse chat(@Valid @RequestBody ChatRequest request) {
@@ -56,6 +57,7 @@ public class RagController {
         return generate(context, docs, citations, request.getQuestion());
     }
 
+    /** Chats page index. */
     @PostMapping("/chat-pageindex")
     @Operation(summary = "Answer a question using PageIndex cloud retrieval")
     public ChatResponse chatPageIndex(@Valid @RequestBody ChatRequest request) {
@@ -100,6 +102,7 @@ public class RagController {
         return generate(context, contextDocs, citations, request.getQuestion());
     }
 
+    /** Returns the documents. */
     @GetMapping("/documents")
     @Operation(summary = "List all indexed documents and total chunk count")
     public Map<String, Object> documents() {
@@ -111,6 +114,7 @@ public class RagController {
         return Map.of("documents", sources, "totalChunks", chunks.size());
     }
 
+    /** Healths. */
     @GetMapping("/health")
     @Operation(summary = "Check the health of the RAG service and document index")
     public Map<String, Object> health() {

@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class AppConfig {
 
+    /** Defines the chat client bean. */
     @Bean
     public ChatClient chatClient(ChatClient.Builder builder) {
         return builder

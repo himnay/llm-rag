@@ -23,6 +23,7 @@ public class DocumentLoader {
     private final RagProperties ragProperties;
     private final List<Chunk> chunks = new ArrayList<>();
 
+    /** Loads. */
     @PostConstruct
     public void load() throws IOException {
         PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();

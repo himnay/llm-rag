@@ -55,6 +55,7 @@ public class ChunkDocumentRepository {
         bulk.execute();
     }
 
+    /** Finds by id. */
     public Optional<ChunkDocument> findById(String chunkId) {
         return Optional.ofNullable(mongoTemplate.findById(chunkId, ChunkDocument.class, COLLECTION));
     }
@@ -71,10 +72,12 @@ public class ChunkDocumentRepository {
         return found.stream().collect(Collectors.toMap(ChunkDocument::getChunkId, Function.identity()));
     }
 
+    /** Deletes by identity. */
     public void deleteByIdentity(String identity) {
         mongoTemplate.remove(Query.query(Criteria.where("identity").is(identity)), COLLECTION);
     }
 
+    /** Deletes all. */
     public void deleteAll() {
         mongoTemplate.remove(new Query(), COLLECTION);
     }

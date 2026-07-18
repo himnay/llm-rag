@@ -6,8 +6,9 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
 @SpringBootApplication
 @ConfigurationPropertiesScan
-public class LlmVectorlessRagApplication {
+class LlmVectorlessRagApplication {
 
+    /** Application entry point. */
     public static void main(String[] args) {
         SpringApplication.run(LlmVectorlessRagApplication.class, args);
     }

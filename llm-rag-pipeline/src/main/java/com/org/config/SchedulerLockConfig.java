@@ -17,6 +17,7 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 @EnableSchedulerLock(defaultLockAtMostFor = "PT5M")
 public class SchedulerLockConfig {
 
+    /** Defines the lock provider bean. */
     @Bean
     public LockProvider lockProvider(RedisConnectionFactory redisConnectionFactory) {
         return new RedisLockProvider(redisConnectionFactory, "llm-rag-pipeline");

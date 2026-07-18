@@ -8,7 +8,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 @SpringBootApplication
 @ConfigurationPropertiesScan
-public class RagPipelineApplication {
+class RagPipelineApplication {
 
     /**
      * Application entry point.

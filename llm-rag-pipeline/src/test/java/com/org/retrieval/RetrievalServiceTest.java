@@ -11,7 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 
-public class RetrievalServiceTest extends IntegrationTest {
+class RetrievalServiceTest extends IntegrationTest {
     private static final Logger log = LoggerFactory.getLogger(RetrievalServiceTest.class);
 
     @Autowired

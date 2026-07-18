@@ -8,7 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 
-public class IngestionOrchestratorTest extends IntegrationTest {
+class IngestionOrchestratorTest extends IntegrationTest {
 
     @Autowired
     private IngestionOrchestrator ingestionOrchestrator;

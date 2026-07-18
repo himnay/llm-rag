@@ -30,6 +30,7 @@ public class ChunkHydrationService {
 
     private final ChunkDocumentRepository chunkDocumentRepository;
 
+    /** Returns the hydrate. */
     public List<Chunk> hydrate(List<Chunk> chunks) {
         List<String> chunkIds = chunks.stream()
                 .map(c -> Objects.toString(c.metadata().get("chunkId"), null))

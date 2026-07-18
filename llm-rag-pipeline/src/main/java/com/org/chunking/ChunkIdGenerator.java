@@ -16,10 +16,12 @@ public final class ChunkIdGenerator {
     private ChunkIdGenerator() {
     }
 
+    /** Returns the id for. */
     public static String idFor(Chunk chunk) {
         return idFor(Objects.toString(chunk.metadata().get("identity"), ""), chunk.source(), chunk.chunkIndex());
     }
 
+    /** Returns the id for. */
     public static String idFor(String identity, String source, int chunkIndex) {
         return DigestUtils.sha256Hex(identity + "|" + source + "|" + chunkIndex);
     }

@@ -19,6 +19,7 @@ public record ApiError(
         String path
 ) {
 
+    /** Returns the of. */
     public static ApiError of(int status, String error, String message, String path) {
         return new ApiError(status, error, message, Instant.now(), path);
     }

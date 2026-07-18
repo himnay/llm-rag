@@ -12,7 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 
-public class WikiSemanticChunkerTest extends IntegrationTest {
+class WikiSemanticChunkerTest extends IntegrationTest {
     private static final Logger log = LoggerFactory.getLogger(WikiSemanticChunkerTest.class);
     @Autowired
     private IngestionOrchestrator ingestionOrchestrator;
@@ -36,7 +36,7 @@ public class WikiSemanticChunkerTest extends IntegrationTest {
 
     @Test
     @DisplayName("Compares fixed-size and wiki semantic chunking on a wiki document")
-    public void testChunker() throws Exception {
+    void testChunker() throws Exception {
         List<IngestedDocument> documents = ingestionOrchestrator.ingestAll();
 
         // pick a wiki document

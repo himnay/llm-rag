@@ -12,7 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 
-public class PdfPragmaticChunkerTest extends IntegrationTest {
+class PdfPragmaticChunkerTest extends IntegrationTest {
     private static final Logger log = LoggerFactory.getLogger(WikiSemanticChunkerTest.class);
 
     @Autowired

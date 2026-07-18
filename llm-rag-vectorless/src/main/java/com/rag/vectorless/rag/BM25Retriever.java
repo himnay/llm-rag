@@ -43,6 +43,7 @@ public class BM25Retriever {
     private double[] docLengths;
     private double avgDocLength;
 
+    /** Builds index. */
     @PostConstruct
     public void buildIndex() {
         chunks = documentLoader.getChunks();
@@ -85,6 +86,7 @@ public class BM25Retriever {
         log.info("BM25 index built: {} chunks, {} unique terms, avg length {}", n, idf.size(), String.format("%.1f", avgDocLength));
     }
 
+    /** Returns the retrieve. */
     @Retry(name = "llm-vectorless")
     public List<Document> retrieve(String query) {
         if (chunks == null || chunks.isEmpty()) {

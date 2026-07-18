@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-public class DatabaseConnectivityTest extends IntegrationTest {
+class DatabaseConnectivityTest extends IntegrationTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;

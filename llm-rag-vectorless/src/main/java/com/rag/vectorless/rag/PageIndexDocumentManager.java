@@ -32,6 +32,7 @@ public class PageIndexDocumentManager {
         this.client = client;
     }
 
+    /** Uploads all. */
     @PostConstruct
     public void uploadAll() throws IOException, InterruptedException {
         PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();

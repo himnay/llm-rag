@@ -39,6 +39,7 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, "Validation failed", "One or more fields are invalid", fieldErrors);
     }
 
+    /** Handles constraint. */
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ApiError> handleConstraint(ConstraintViolationException ex) {
         return build(HttpStatus.BAD_REQUEST, "Validation failed", ex.getMessage(), null);
@@ -60,11 +61,13 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Unsupported file type", ex.getMessage(), null);
     }
 
+    /** Handles unknown chunking strategy. */
     @ExceptionHandler(UnknownChunkingStrategyException.class)
     public ResponseEntity<ApiError> handleUnknownChunkingStrategy(UnknownChunkingStrategyException ex) {
         return build(HttpStatus.BAD_REQUEST, "Unknown chunking strategy", ex.getMessage(), null);
     }
 
+    /** Handles unknown ingestion table. */
     @ExceptionHandler(UnknownIngestionTableException.class)
     public ResponseEntity<ApiError> handleUnknownIngestionTable(UnknownIngestionTableException ex) {
         return build(HttpStatus.BAD_REQUEST, "Unknown ingestion table", ex.getMessage(), null);
@@ -121,6 +124,7 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_GATEWAY, "Ingestion error", ex.getMessage(), null);
     }
 
+    /** Handles generic. */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGeneric(Exception ex) {
         log.error("Unhandled error", ex);
