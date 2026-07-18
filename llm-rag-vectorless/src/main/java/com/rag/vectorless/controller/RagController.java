@@ -23,11 +23,11 @@ import org.springframework.web.bind.annotation.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Tag(name = "Vector-less RAG", description = "BM25-based retrieval-augmented generation without vector stores")
 @Slf4j
 @RestController
-@RequestMapping("/api/rag")
 @RequiredArgsConstructor
+@RequestMapping("/api/rag")
+@Tag(name = "Vector-less RAG", description = "BM25-based retrieval-augmented generation without vector stores")
 public class RagController {
 
     private final ChatClient chatClient;
@@ -38,8 +38,8 @@ public class RagController {
     private final GenerationEvaluator generationEvaluator;
     private final RagProperties ragProperties;
 
-    @Operation(summary = "Answer a question using BM25 retrieval over local documents")
     @PostMapping("/chat")
+    @Operation(summary = "Answer a question using BM25 retrieval over local documents")
     public ChatResponse chat(@Valid @RequestBody ChatRequest request) {
         List<Document> docs = bm25Retriever.retrieve(request.getQuestion());
 
@@ -56,8 +56,8 @@ public class RagController {
         return generate(context, docs, citations, request.getQuestion());
     }
 
-    @Operation(summary = "Answer a question using PageIndex cloud retrieval")
     @PostMapping("/chat-pageindex")
+    @Operation(summary = "Answer a question using PageIndex cloud retrieval")
     public ChatResponse chatPageIndex(@Valid @RequestBody ChatRequest request) {
         if (pageIndexClient.isEmpty() || pageIndexManager.isEmpty()) {
             return ChatResponse.builder()
@@ -100,8 +100,8 @@ public class RagController {
         return generate(context, contextDocs, citations, request.getQuestion());
     }
 
-    @Operation(summary = "List all indexed documents and total chunk count")
     @GetMapping("/documents")
+    @Operation(summary = "List all indexed documents and total chunk count")
     public Map<String, Object> documents() {
         List<Chunk> chunks = documentLoader.getChunks();
         List<String> sources = chunks.stream()
@@ -111,8 +111,8 @@ public class RagController {
         return Map.of("documents", sources, "totalChunks", chunks.size());
     }
 
-    @Operation(summary = "Check the health of the RAG service and document index")
     @GetMapping("/health")
+    @Operation(summary = "Check the health of the RAG service and document index")
     public Map<String, Object> health() {
         int chunks = documentLoader.getChunks().size();
         Map<String, Object> result = new java.util.LinkedHashMap<>();

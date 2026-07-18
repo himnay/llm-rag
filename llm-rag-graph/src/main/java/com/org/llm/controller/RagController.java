@@ -17,8 +17,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1/rag")
 @RequiredArgsConstructor
+@RequestMapping("/api/v1/rag")
 public class RagController {
 
     private final GraphRAGService ragService;

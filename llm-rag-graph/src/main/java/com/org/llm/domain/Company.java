@@ -15,9 +15,9 @@ import java.util.List;
  * Level 0 — root node of the 4-level hierarchy:
  * Company → Department → Team → Employee
  */
-@Node("Company")
 @Getter
 @Setter
+@Node("Company")
 @NoArgsConstructor
 public class Company {
 

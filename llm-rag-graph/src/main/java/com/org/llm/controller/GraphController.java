@@ -18,8 +18,8 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1/graph")
 @RequiredArgsConstructor
+@RequestMapping("/api/v1/graph")
 public class GraphController {
 
     private static final int MAX_LIMIT = 100;

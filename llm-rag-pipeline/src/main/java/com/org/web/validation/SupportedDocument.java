@@ -11,9 +11,9 @@ import java.lang.annotation.*;
  * Bean Validation provider + {@code GlobalExceptionHandler}) rather than imperative in a controller
  * or service.
  */
-@Target({ElementType.PARAMETER, ElementType.FIELD})
-@Retention(RetentionPolicy.RUNTIME)
 @Documented
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.PARAMETER, ElementType.FIELD})
 @Constraint(validatedBy = SupportedDocumentValidator.class)
 public @interface SupportedDocument {
 

@@ -15,10 +15,10 @@ import java.util.List;
  * Level 1 — child of Company; parent of Team and owner of Projects.
  * Departments also form a collaboration network between themselves.
  */
-@Node("Department")
 @Getter
 @Setter
 @NoArgsConstructor
+@Node("Department")
 public class Department {
 
     @Id

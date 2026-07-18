@@ -16,9 +16,9 @@ import java.util.List;
  * Employees form a management chain (REPORTS_TO) and contribute to Projects (WORKS_ON).
  * This node is the richest in cross-cutting edges, making it the best entry point for RAG traversal.
  */
-@Node("Employee")
 @Getter
 @Setter
+@Node("Employee")
 @NoArgsConstructor
 public class Employee {
 

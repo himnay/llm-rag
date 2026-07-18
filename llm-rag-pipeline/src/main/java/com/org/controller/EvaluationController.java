@@ -28,8 +28,8 @@ import java.util.Map;
  * <p>Requires a populated vector store. Refreshes the {@code rag.eval.*} Prometheus gauges.</p>
  */
 @RestController
-@RequestMapping("/api/v1/admin/eval")
 @RequiredArgsConstructor
+@RequestMapping("/api/v1/admin/eval")
 class EvaluationController {
 
     private final RetrievalEvaluator retrievalEvaluator;

@@ -19,8 +19,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Exercises the {@code authEnabled = true} branch of {@link SecurityConfig#filterChain}: requests
  * to {@code /api/**} must be rejected when unauthenticated.
  */
-@Import({SecurityConfig.class, SecurityProperties.class})
 @WebMvcTest(controllers = GraphController.class)
+@Import({SecurityConfig.class, SecurityProperties.class})
 @TestPropertySource(properties = "app.security.auth-enabled=true")
 class SecurityConfigAuthEnabledTest {
 

@@ -27,8 +27,8 @@ import java.util.List;
  */
 @Slf4j
 @Service
-@ConditionalOnProperty(name = "app.graph.seed-data", havingValue = "true", matchIfMissing = true)
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "app.graph.seed-data", havingValue = "true", matchIfMissing = true)
 public class GraphDataSeeder {
 
     private final CompanyRepository companyRepo;
@@ -42,8 +42,8 @@ public class GraphDataSeeder {
     /**
      * Seeds the sample TechCorp knowledge graph on application startup, unless data already exists.
      */
-    @EventListener(ApplicationReadyEvent.class)
     @Transactional
+    @EventListener(ApplicationReadyEvent.class)
     public void seed() {
         if (companyRepo.count() > 0) {
             log.info("Graph data already present — skipping seeding");

@@ -15,9 +15,9 @@ import java.util.List;
  * Cross-cutting node: owned by a Department, worked on by Employees,
  * and uses specific Technologies. Creates horizontal edges across the hierarchy.
  */
-@Node("Project")
 @Getter
 @Setter
+@Node("Project")
 @NoArgsConstructor
 public class Project {
 

@@ -10,10 +10,10 @@ import org.springframework.data.neo4j.core.schema.Node;
 /**
  * Leaf node used by Projects — represents frameworks, languages, and platforms.
  */
-@Node("Technology")
 @Getter
 @Setter
 @NoArgsConstructor
+@Node("Technology")
 public class Technology {
 
     @Id

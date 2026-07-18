@@ -21,8 +21,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Exercises the {@code authEnabled = false} branch of {@link SecurityConfig#filterChain}: every
  * request is permitted through without authentication.
  */
-@Import({SecurityConfig.class, SecurityProperties.class})
 @WebMvcTest(controllers = GraphController.class)
+@Import({SecurityConfig.class, SecurityProperties.class})
 @TestPropertySource(properties = "app.security.auth-enabled=false")
 class SecurityConfigAuthDisabledTest {
 

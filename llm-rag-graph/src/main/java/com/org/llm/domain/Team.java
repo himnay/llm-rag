@@ -14,9 +14,9 @@ import java.util.List;
 /**
  * Level 2 — child of Department; parent of Employees.
  */
-@Node("Team")
 @Getter
 @Setter
+@Node("Team")
 @NoArgsConstructor
 public class Team {
 

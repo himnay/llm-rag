@@ -52,8 +52,8 @@ import java.util.UUID;
  */
 @Slf4j
 @Service
-@ConditionalOnProperty(name = "app.generation.enabled", havingValue = "true")
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "app.generation.enabled", havingValue = "true")
 public class GenerationService {
 
     private final GenerationProperties properties;

@@ -28,8 +28,8 @@ import java.time.Duration;
  * context). They start once and are reaped by Ryuk / JVM shutdown. OpenSearch runs single-node
  * with the security plugin disabled (test only).</p>
  */
-@Import(FakeEmbeddingConfig.class)
 @SpringBootTest
+@Import(FakeEmbeddingConfig.class)
 @Testcontainers(disabledWithoutDocker = true)
 public abstract class IntegrationTest {
 
