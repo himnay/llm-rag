@@ -69,6 +69,10 @@ class GenerationServiceTest {
         when(properties.getAdvisor()).thenReturn(new GenerationProperties.Advisor());
         lenient().when(properties.getJudge()).thenReturn(new GenerationProperties.Judge());
         lenient().when(sufficiencyJudge.isSufficient(any(), any())).thenReturn(true);
+        // GenerationService.generate()/stream() reject the request up front unless the query
+        // passes the injection guard; every test's query is legitimate, so stub it safe here
+        // rather than repeating it per test.
+        lenient().when(injectionGuard.isQuerySafe(anyString())).thenReturn(true);
 
         service = new GenerationService(
                 properties, promptOrchestrator,
@@ -294,7 +298,9 @@ class GenerationServiceTest {
 
         when(semanticCache.get(query)).thenReturn(Optional.empty());
         when(properties.getMode()).thenReturn("advisor");
-        when(chatClientBuilder.build().prompt().user(query).call().chatClientResponse()).thenReturn(clientResponse);
+        when(promptOrchestrator.getSystemInstructions()).thenReturn("system instructions");
+        when(chatClientBuilder.build().prompt().system("system instructions").user(query).call().chatClientResponse())
+                .thenReturn(clientResponse);
 
         GenerateResponse response = service.generate(new GenerateRequest(query));
 
@@ -313,7 +319,9 @@ class GenerationServiceTest {
 
         when(semanticCache.get(query)).thenReturn(Optional.empty());
         when(properties.getMode()).thenReturn("advisor");
-        when(chatClientBuilder.build().prompt().user(query).call().chatClientResponse()).thenReturn(clientResponse);
+        when(promptOrchestrator.getSystemInstructions()).thenReturn("system instructions");
+        when(chatClientBuilder.build().prompt().system("system instructions").user(query).call().chatClientResponse())
+                .thenReturn(clientResponse);
 
         GenerateResponse response = service.generate(new GenerateRequest(query));
 
