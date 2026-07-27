@@ -41,8 +41,6 @@
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-vector-store-advisor</artifactId>
         </dependency>
-        <!-- Modular RAG advisor pipeline: RetrievalAugmentationAdvisor, RewriteQueryTransformer,
-             MultiQueryExpander, VectorStoreDocumentRetriever -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-rag</artifactId>
@@ -109,20 +107,15 @@
             <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
 
-        <!-- MongoDB — per-chunk text + descriptive metadata store, keyed by chunkId (MongoTemplate) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
-        <!-- Redis — chunk-level content-hash dedup cache -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
-        <!-- ShedLock — distributed lock so @Scheduled tasks (InboxScheduler) run on only one
-             instance at a time when the app is scaled horizontally; backed by Redis.
-             Version managed by the learning-bom (see ../../../maven-bom). -->
         <dependency>
             <groupId>net.javacrumbs.shedlock</groupId>
             <artifactId>shedlock-spring</artifactId>
@@ -141,7 +134,6 @@
             <artifactId>aspectjweaver</artifactId>
         </dependency>
 
-        <!-- Resilience4j — circuit breaker + retry for outbound LLM/rerank calls -->
         <dependency>
             <groupId>io.github.resilience4j</groupId>
             <artifactId>resilience4j-spring-boot3</artifactId>
@@ -178,7 +170,6 @@
             <artifactId>logstash-logback-encoder</artifactId>
         </dependency>
 
-        <!-- OpenAPI — auto-generated spec at /v3/api-docs, Swagger UI at /swagger-ui.html -->
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
@@ -207,7 +198,6 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- Required at runtime by openapi-generator (spring) generated models even without nullable:true -->
         <dependency>
             <groupId>org.openapitools</groupId>
             <artifactId>jackson-databind-nullable</artifactId>
@@ -408,7 +398,6 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <!-- version + prepare-agent + report goals inherited from root pluginManagement -->
                 <executions>
                     <execution>
                         <id>jacoco-check</id>
