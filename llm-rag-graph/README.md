@@ -1,4 +1,4 @@
-# <span style="color:hsl(198,68%,36%)">LLM RAG Graph</span>
+# <span style="color:hsl(198,80%,58%)">LLM RAG Graph</span>
 
 A **Graph RAG** (Retrieval-Augmented Generation) pipeline built on **Neo4j** and **Anthropic Claude**.
 
@@ -9,7 +9,7 @@ A **Graph RAG** (Retrieval-Augmented Generation) pipeline built on **Neo4j** and
 
 ---
 
-## <span style="color:hsl(211,68%,44%)">What is RAG?</span>
+## <span style="color:hsl(336,80%,58%)">What is RAG?</span>
 
 - **Retrieval-Augmented Generation (RAG)** combines a structured retrieval step with a large language model
 - Instead of relying solely on the model's training-time knowledge, relevant context is fetched at query time
@@ -18,7 +18,7 @@ A **Graph RAG** (Retrieval-Augmented Generation) pipeline built on **Neo4j** and
 
 ---
 
-## <span style="color:hsl(225,68%,44%)">Traditional RAG vs Graph RAG</span>
+## <span style="color:hsl(113,80%,58%)">Traditional RAG vs Graph RAG</span>
 
 | Dimension                  | Traditional RAG                               | Graph RAG                                                          |
 |----------------------------|-----------------------------------------------|--------------------------------------------------------------------|
@@ -31,7 +31,7 @@ A **Graph RAG** (Retrieval-Augmented Generation) pipeline built on **Neo4j** and
 | **Query type**             | "What does doc X say about topic Y?"          | "Who in Engineering works on ML projects and reports to the CTO?"  |
 | **Hallucination risk**     | Higher — context gaps are silent              | Lower — missing relationships return no path, not a wrong answer   |
 
-### <span style="color:hsl(238,68%,44%)">Why relationships matter</span>
+### <span style="color:hsl(251,80%,58%)">Why relationships matter</span>
 
 - Traditional RAG retrieves the most similar text chunks, which requires the full answer to be co-located in a single
   chunk
@@ -49,7 +49,7 @@ Employee -[:WORKS_ON]-> Project <-[:WORKS_ON]- Employee -[:REPORTS_TO*]-> Eve
 
 ---
 
-## <span style="color:hsl(251,68%,44%)">Architecture</span>
+## <span style="color:hsl(28,80%,58%)">Architecture</span>
 
 ```mermaid
 flowchart TB
@@ -75,7 +75,7 @@ flowchart TB
     Gen --> Resp["RagResponse { question, answer, graphContext, entities, latencyMs }"]
 ```
 
-### <span style="color:hsl(265,68%,44%)">Query sequence (`POST /api/rag/query`)</span>
+### <span style="color:hsl(166,80%,58%)">Query sequence (`POST /api/rag/query`)</span>
 
 ```mermaid
 sequenceDiagram
@@ -105,7 +105,7 @@ sequenceDiagram
 
 ---
 
-## <span style="color:hsl(278,68%,44%)">Knowledge Graph — TechCorp</span>
+## <span style="color:hsl(303,80%,58%)">Knowledge Graph — TechCorp</span>
 
 The seeder (`GraphDataSeeder`) builds a realistic 4-level corporate hierarchy on startup.
 
@@ -154,7 +154,7 @@ flowchart TB
     Henry -. REPORTS_TO .-> Grace
 ```
 
-### <span style="color:hsl(291,68%,44%)">Projects (cross-cutting)</span>
+### <span style="color:hsl(81,80%,58%)">Projects (cross-cutting)</span>
 
 | Project         | Status | Technologies                                | Owner dept   |
 |-----------------|--------|---------------------------------------------|--------------|
@@ -164,7 +164,7 @@ flowchart TB
 | Project Delta   | active | Apache Kafka, Java, Spring Boot, Kubernetes | Engineering  |
 | Project Epsilon | active | Neo4j, Python, Java, Spring Boot            | Data Science |
 
-### <span style="color:hsl(305,68%,44%)">Relationship types</span>
+### <span style="color:hsl(218,80%,58%)">Relationship types</span>
 
 | Relationship        | From → To               | Properties                           |
 |---------------------|-------------------------|--------------------------------------|
@@ -179,7 +179,7 @@ flowchart TB
 
 ---
 
-## <span style="color:hsl(318,68%,44%)">Tech Stack</span>
+## <span style="color:hsl(356,80%,58%)">Tech Stack</span>
 
 | Layer       | Technology                                                       |
 |-------------|------------------------------------------------------------------|
@@ -192,7 +192,7 @@ flowchart TB
 
 ---
 
-## <span style="color:hsl(331,68%,44%)">Prerequisites</span>
+## <span style="color:hsl(133,80%,58%)">Prerequisites</span>
 
 - Java 25
 - Maven 3.9+
@@ -201,9 +201,9 @@ flowchart TB
 
 ---
 
-## <span style="color:hsl(345,68%,44%)">Setup</span>
+## <span style="color:hsl(271,80%,58%)">Setup</span>
 
-### <span style="color:hsl(358,68%,44%)">1. Start Neo4j</span>
+### <span style="color:hsl(48,80%,50%)">1. Start Neo4j</span>
 
 Using Docker:
 
@@ -217,14 +217,14 @@ docker run -d \
 
 Or use [Neo4j Desktop](https://neo4j.com/download/).
 
-### <span style="color:hsl(11,68%,44%)">2. Set environment variables</span>
+### <span style="color:hsl(186,80%,58%)">2. Set environment variables</span>
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
 export NEO4J_PASSWORD=password       # default: password
 ```
 
-### <span style="color:hsl(25,68%,44%)">3. Build and run</span>
+### <span style="color:hsl(323,80%,58%)">3. Build and run</span>
 
 ```bash
 ./mvnw spring-boot:run
@@ -236,9 +236,9 @@ export NEO4J_PASSWORD=password       # default: password
 
 ---
 
-## <span style="color:hsl(38,68%,44%)">API Reference</span>
+## <span style="color:hsl(101,80%,58%)">API Reference</span>
 
-### <span style="color:hsl(51,68%,32%)">Query the RAG pipeline</span>
+### <span style="color:hsl(238,80%,58%)">Query the RAG pipeline</span>
 
 ```
 POST /api/rag/query
@@ -261,7 +261,7 @@ Content-Type: application/json
 }
 ```
 
-### <span style="color:hsl(65,68%,32%)">Graph inspection endpoints</span>
+### <span style="color:hsl(16,80%,58%)">Graph inspection endpoints</span>
 
 | Method | Path                                    | Description                        |
 |--------|-----------------------------------------|------------------------------------|
@@ -272,7 +272,7 @@ Content-Type: application/json
 | `GET`  | `/api/graph/employees/{name}/reports`   | Direct reports of an employee      |
 | `GET`  | `/api/graph/projects/{name}/team`       | Everyone working on a project      |
 
-### <span style="color:hsl(78,68%,32%)">Health check</span>
+### <span style="color:hsl(153,80%,58%)">Health check</span>
 
 ```
 GET /actuator/health
@@ -280,7 +280,7 @@ GET /actuator/health
 
 ---
 
-## <span style="color:hsl(91,68%,32%)">Example questions to try</span>
+## <span style="color:hsl(291,80%,58%)">Example questions to try</span>
 
 ```
 Who does Alice Chen report to?
@@ -295,7 +295,7 @@ What projects is James Wright involved in?
 
 ---
 
-## <span style="color:hsl(105,68%,32%)">Configuration</span>
+## <span style="color:hsl(68,80%,50%)">Configuration</span>
 
 Key settings in `application.yaml`:
 
@@ -312,7 +312,7 @@ app:
 
 ---
 
-## <span style="color:hsl(118,68%,32%)">How the context extraction works</span>
+## <span style="color:hsl(206,80%,58%)">How the context extraction works</span>
 
 1. **Keyword extraction** — stop words are stripped; up to 8 meaningful terms are pulled from the question.
 2. **Full-text index search** — Neo4j's `entitySearch` index is queried for matching node names across all labels.
@@ -325,7 +325,7 @@ app:
 5. **Prompt injection** — the formatted context block is prepended to the LLM prompt so Claude reasons over graph facts,
    not its training weights.
 
-## <span style="color:hsl(131,68%,32%)">🧩 Design patterns</span>
+## <span style="color:hsl(343,80%,58%)">🧩 Design patterns</span>
 
 - `GraphRAGService` acts as a **Facade** over the full multi-step flow: keyword extraction → graph traversal → prompt
   assembly → LLM call
@@ -337,7 +337,7 @@ app:
   full GoF pattern inventory used across the llm-rag modules and the reasoning about where patterns are deliberately not
   applied
 
-## <span style="color:hsl(145,68%,32%)">LLM Integration — Anthropic Java SDK (not Spring AI)</span>
+## <span style="color:hsl(121,80%,58%)">LLM Integration — Anthropic Java SDK (not Spring AI)</span>
 
 `AnthropicLLMService` calls Claude via the **`anthropic-java` SDK** (version 2.34) directly, bypassing Spring AI's
 `ChatClient` abstraction entirely. This is intentional: Anthropic-specific features — extended thinking mode and
@@ -357,7 +357,7 @@ The service builds a `MessageCreateParams` with:
 - Model: `claude-opus-4-8` (configured in `app.anthropic.model`)
 - `AnthropicOkHttpClient.fromEnv()` — picks up `ANTHROPIC_API_KEY` automatically; no manual client wiring required
 
-### <span style="color:hsl(158,68%,36%)">Why not Spring AI's ChatClient?</span>
+### <span style="color:hsl(258,80%,58%)">Why not Spring AI's ChatClient?</span>
 
 | Spring AI `ChatClient`                   | Anthropic Java SDK                                        |
 |------------------------------------------|-----------------------------------------------------------|
@@ -366,7 +366,7 @@ The service builds a `MessageCreateParams` with:
 | Adds transitive Spring AI dependencies   | Lightweight; only `anthropic-java` jar required           |
 | Good fit for multi-provider or advisors  | Good fit when you need precise model control              |
 
-### <span style="color:hsl(171,68%,36%)">Resilience</span>
+### <span style="color:hsl(36,80%,58%)">Resilience</span>
 
 All Anthropic calls are guarded by Resilience4j via Spring AOP annotations:
 
@@ -380,7 +380,7 @@ clients always receive a valid JSON response.
 
 ---
 
-## <span style="color:hsl(185,68%,36%)">🏗️ Build & test</span>
+## <span style="color:hsl(173,80%,58%)">🏗️ Build & test</span>
 
 ```bash
 mvn test

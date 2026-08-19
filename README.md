@@ -1,8 +1,8 @@
-# <span style="color:hsl(32,68%,44%)">llm-rag</span>
+# <span style="color:hsl(32,80%,58%)">llm-rag</span>
 
 <img src="image/spring-logo.png" alt="logo" width="80"/>
 
-## <span style="color:hsl(39,68%,44%)">Table of contents</span>
+## <span style="color:hsl(170,80%,58%)">Table of contents</span>
 
 1. 🔹 [The problem](#the-problem)
 2. 🏗️ [Architecture at a glance](#architecture-at-a-glance)
@@ -20,7 +20,7 @@ service, and a knowledge-graph pipeline. Each module is an independent Spring Bo
 the root `pom.xml` is a plain aggregator.
 
 <a id="the-problem"></a>
-## <span style="color:hsl(46,68%,32%)">1. 🔹 The problem</span>
+## <span style="color:hsl(307,80%,58%)">1. 🔹 The problem</span>
 
 Large language models answer from frozen training-time knowledge. They cannot see a company's HR
 policies, an internal wiki, a product's release notes, or a live org chart — and asking them to
@@ -59,7 +59,7 @@ in real data?"* — with a genuinely different architecture, tech stack, and set
 each module's own README documents its implementation in depth.
 
 <a id="architecture-at-a-glance"></a>
-## <span style="color:hsl(54,68%,32%)">2. 🏗️ Architecture at a glance</span>
+## <span style="color:hsl(85,80%,58%)">2. 🏗️ Architecture at a glance</span>
 
 ```mermaid
 flowchart TB
@@ -103,7 +103,7 @@ the root aggregator POM, the corporate `super-pom` parent (Java 25, Spring Boot 
 shape of "retrieve, then generate."
 
 <a id="how-the-three-retrieval-strategies-compare-answering-the-same-question"></a>
-## <span style="color:hsl(61,68%,32%)">3. ❓ How the three retrieval strategies compare answering the same question</span>
+## <span style="color:hsl(222,80%,58%)">3. ❓ How the three retrieval strategies compare answering the same question</span>
 
 The sequence diagram below shows how differently each module resolves an identical natural-language
 question — this is the clearest way to see why they are three separate services rather than one
@@ -144,9 +144,9 @@ sequenceDiagram
 | [`llm-rag-graph`](llm-rag-graph/README.md)           | Graph RAG                          | Neo4j knowledge graph             | Claude reasons over traversed graph context                 |
 
 <a id="modules"></a>
-## <span style="color:hsl(68,68%,32%)">4. 🏗️ Modules</span>
+## <span style="color:hsl(360,80%,58%)">4. 🏗️ Modules</span>
 
-### <span style="color:hsl(75,68%,32%)">[llm-rag-pipeline](llm-rag-pipeline/README.md) — Spring AI vector RAG backend</span>
+### <span style="color:hsl(137,80%,58%)">[llm-rag-pipeline](llm-rag-pipeline/README.md) — Spring AI vector RAG backend</span>
 
 <ul>
 
@@ -162,7 +162,7 @@ sequenceDiagram
 
 </ul>
 
-### <span style="color:hsl(82,68%,32%)">[llm-rag-vectorless](llm-rag-vectorless/README.md) — RAG without embeddings</span>
+### <span style="color:hsl(275,80%,58%)">[llm-rag-vectorless](llm-rag-vectorless/README.md) — RAG without embeddings</span>
 
 <ul>
 
@@ -175,7 +175,7 @@ sequenceDiagram
 
 </ul>
 
-### <span style="color:hsl(90,68%,32%)">[llm-rag-graph](llm-rag-graph/README.md) — Graph RAG on Neo4j</span>
+### <span style="color:hsl(52,80%,50%)">[llm-rag-graph](llm-rag-graph/README.md) — Graph RAG on Neo4j</span>
 
 <ul>
 
@@ -191,7 +191,7 @@ sequenceDiagram
 </ul>
 
 <a id="design-patterns"></a>
-## <span style="color:hsl(97,68%,32%)">5. 🏗️ Design patterns</span>
+## <span style="color:hsl(190,80%,58%)">5. 🏗️ Design patterns</span>
 
 The variation points across the modules are modelled with classic Gang-of-Four patterns —
 Strategy, Chain of Responsibility, Factory, Template Method, Composite, Proxy, Facade, Adapter —
@@ -210,9 +210,9 @@ Patterns are deliberately *omitted* where no real variation point exists.
 | **Facade**                   | `KnowledgeLifecycleService`, `GraphRAGService`                                                                      | Hide multi-step orchestration behind a single interface              |
 
 <a id="recent-improvements"></a>
-## <span style="color:hsl(104,68%,32%)">6. 🔹 Recent improvements</span>
+## <span style="color:hsl(327,80%,58%)">6. 🔹 Recent improvements</span>
 
-### <span style="color:hsl(111,68%,32%)">llm-rag-pipeline</span>
+### <span style="color:hsl(105,80%,58%)">llm-rag-pipeline</span>
 
 | Area                                         | Change                                                                                                                                                                                                                                                                                                                                                             |
 |----------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -233,7 +233,7 @@ Patterns are deliberately *omitted* where no real variation point exists.
 | **UnsupportedDocumentTypeException**         | Custom exception replaces `IllegalArgumentException` for unknown file types. `GlobalExceptionHandler` maps it to HTTP 415 Unsupported Media Type.                                                                                                                                                                                                                  |
 | **Lombok boilerplate removed**               | 9 `@ConfigurationProperties` classes converted from manual getters/setters to `@Data`. Command classes (`IngestCommand`, `DeleteCommand`, `IngestAllCommand`) use `@RequiredArgsConstructor`. Event classes (`IngestionCompletedEvent`, `VectorsStoredEvent`) use `@Getter` in place of manual accessors.                                                          |
 
-### <span style="color:hsl(118,68%,32%)">llm-rag-graph</span>
+### <span style="color:hsl(242,80%,58%)">llm-rag-graph</span>
 
 | Area                                      | Change                                                                                                                                                                                     |
 |-------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -244,19 +244,19 @@ Patterns are deliberately *omitted* where no real variation point exists.
 | **Test coverage**                         | `AnthropicLLMServiceTest` — network failure and auth failure scenarios. `GraphRAGServiceTest` — LLM exception propagation test.                                                            |
 
 <a id="prompt-injection-security"></a>
-## <span style="color:hsl(126,68%,32%)">7. 🔐 Prompt Injection Security</span>
+## <span style="color:hsl(20,80%,58%)">7. 🔐 Prompt Injection Security</span>
 
 `llm-rag-pipeline` implements a two-layer defence against prompt injection. Both layers are active whenever generation is enabled.
 
-### <span style="color:hsl(133,68%,32%)">Layer 1 — User query guard (direct injection)</span>
+### <span style="color:hsl(157,80%,58%)">Layer 1 — User query guard (direct injection)</span>
 
 `PromptInjectionGuard.isQuerySafe(userQuery)` is called on every incoming question before retrieval starts. If the query matches any configured pattern the request is rejected immediately and the caller receives the `block-message` defined in configuration. The check is explicit and fails closed: the query never enters the pipeline.
 
-### <span style="color:hsl(140,68%,32%)">Layer 2 — Retrieved chunk filter (indirect injection)</span>
+### <span style="color:hsl(295,80%,58%)">Layer 2 — Retrieved chunk filter (indirect injection)</span>
 
 `PromptInjectionGuard.filter(chunks)` is called on every batch of chunks returned by the vector store. A malicious document embedded in the knowledge base (a "poisoned" source) is silently dropped from the context rather than causing a full request rejection, because one bad chunk should not prevent a legitimate answer from the remaining safe chunks. Dropped chunks are logged at `WARN` with their source and chunk index for audit.
 
-### <span style="color:hsl(147,68%,32%)">Externalised pattern catalogue</span>
+### <span style="color:hsl(72,80%,58%)">Externalised pattern catalogue</span>
 
 All 21 default patterns (instruction override, roleplay/persona hijack, system-prompt exfiltration, structural delimiter injection, jailbreak keywords) live in `InjectionGuardProperties` and are bound from `application.yml` under `app.security.injection-guard.patterns`. Adding or tuning a signature requires only a configuration change — no code change, no redeployment when patterns are supplied via environment-specific YAML or a config server.
 
@@ -273,7 +273,7 @@ app:
 
 To disable the guard entirely (not recommended in production): set `INJECTION_GUARD_ENABLED=false`.
 
-### <span style="color:hsl(154,68%,36%)">Additional defences in `llm-rag-pipeline`</span>
+### <span style="color:hsl(210,80%,58%)">Additional defences in `llm-rag-pipeline`</span>
 
 | Defence                        | Where                        | What it does                                                                                                                                                   |
 |--------------------------------|------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -284,7 +284,7 @@ To disable the guard entirely (not recommended in production): set `INJECTION_GU
 ---
 
 <a id="building-and-testing"></a>
-## <span style="color:hsl(162,68%,36%)">8. 🧪 Building and testing</span>
+## <span style="color:hsl(347,80%,58%)">8. 🧪 Building and testing</span>
 
 ```bash
 # build everything
@@ -300,7 +300,7 @@ mvn -pl llm-rag-graph test
 Each module's README documents its own runtime prerequisites (Docker infra, API keys) — those are
 needed to **run** the services, not to build or test them.
 
-### <span style="color:hsl(169,68%,36%)">Java 25 / Spring AI 2.0 migration verification</span>
+### <span style="color:hsl(125,80%,58%)">Java 25 / Spring AI 2.0 migration verification</span>
 
 All three modules build against Java 25 and Spring AI 2.0.0 by inheritance from the shared
 `super-pom` → `llm-bom` parent chain (`java.version=25`, `spring-ai.version=2.0.0`); no module
@@ -334,14 +334,14 @@ What was verified in this pass (compiling and running with an Azul Zulu 25 JDK, 
 ---
 
 <a id="technology-deep-dive"></a>
-## <span style="color:hsl(176,68%,36%)">9. 🧰 Technology Deep Dive</span>
+## <span style="color:hsl(262,80%,58%)">9. 🧰 Technology Deep Dive</span>
 
 This section explains every significant technology used across the three modules — what each one is
 and exactly how this project uses it.
 
 ---
 
-### <span style="color:hsl(183,68%,36%)">Java 25</span>
+### <span style="color:hsl(40,80%,58%)">Java 25</span>
 
 **What it is:** The latest release of the Java platform (GA June 2025, Azul Zulu build used here).
 
@@ -354,7 +354,7 @@ the virtual-threads feature introduced in Java 21 and available here on Java 25.
 
 ---
 
-### <span style="color:hsl(190,68%,36%)">Apache Maven (multi-module aggregator)</span>
+### <span style="color:hsl(177,80%,58%)">Apache Maven (multi-module aggregator)</span>
 
 **What it is:** The standard Java build tool, here used in its multi-module mode where a root POM
 aggregates child modules without sharing dependency management with them.
@@ -368,7 +368,7 @@ with a single `mvn clean install` from the root.
 
 ---
 
-### <span style="color:hsl(198,68%,36%)">Spring Boot 4.1</span>
+### <span style="color:hsl(315,80%,58%)">Spring Boot 4.1</span>
 
 **What it is:** The industry-standard opinionated application framework for Java, providing
 auto-configuration, an embedded Tomcat server, actuator endpoints, and a unified starter
@@ -383,7 +383,7 @@ dev-only) auto-manages the Docker Compose stack when running from an IDE.
 
 ---
 
-### <span style="color:hsl(205,68%,44%)">Spring AI 2.0.0</span>
+### <span style="color:hsl(92,80%,58%)">Spring AI 2.0.0</span>
 
 **What it is:** Anthropic's (and VMware's) abstraction layer that gives Spring applications a
 uniform interface over multiple LLM providers, embedding models, vector stores, and document
@@ -412,7 +412,7 @@ loaders.
 
 ---
 
-### <span style="color:hsl(212,68%,44%)">OpenAI Embeddings (`text-embedding-3-small`)</span>
+### <span style="color:hsl(230,80%,58%)">OpenAI Embeddings (`text-embedding-3-small`)</span>
 
 **What it is:** OpenAI's general-purpose text embedding model that converts arbitrary text into a
 1536-dimension dense vector capturing semantic meaning.
@@ -426,7 +426,7 @@ all stored chunk vectors. The dimension `1536` is pinned in `application.yml` an
 
 ---
 
-### <span style="color:hsl(219,68%,44%)">OpenSearch 2.17.1</span>
+### <span style="color:hsl(7,80%,58%)">OpenSearch 2.17.1</span>
 
 **What it is:** An open-source search and analytics engine (AWS fork of Elasticsearch) that
 supports both traditional BM25 keyword search and approximate k-nearest-neighbor (kNN) vector
@@ -452,7 +452,7 @@ of the index during development.
 
 ---
 
-### <span style="color:hsl(226,68%,44%)">PostgreSQL 18</span>
+### <span style="color:hsl(145,80%,58%)">PostgreSQL 18</span>
 
 **What it is:** The leading open-source relational database.
 
@@ -471,7 +471,7 @@ layer thin and explicit.
 
 ---
 
-### <span style="color:hsl(234,68%,44%)">Flyway</span>
+### <span style="color:hsl(282,80%,58%)">Flyway</span>
 
 **What it is:** A database migration library that applies versioned SQL scripts to a schema in
 order, tracking which have already run in a `flyway_schema_history` table.
@@ -486,7 +486,7 @@ split that is explicitly documented in the `pom.xml` comments.
 
 ---
 
-### <span style="color:hsl(241,68%,44%)">Neo4j 5 with APOC</span>
+### <span style="color:hsl(60,80%,50%)">Neo4j 5 with APOC</span>
 
 **What it is:** A native graph database where data is stored as nodes and directed relationships
 rather than rows and columns. APOC (Awesome Procedures On Cypher) is a plugin that adds hundreds
@@ -503,7 +503,7 @@ for all application-to-database communication.
 
 ---
 
-### <span style="color:hsl(248,68%,44%)">Spring Data Neo4j</span>
+### <span style="color:hsl(197,80%,58%)">Spring Data Neo4j</span>
 
 **What it is:** The Spring Data module for Neo4j, providing `@Node`-annotated domain objects,
 `Neo4jRepository` interfaces, and a `Neo4jClient` for raw Cypher queries.
@@ -519,7 +519,7 @@ express as derived query methods).
 
 ---
 
-### <span style="color:hsl(255,68%,44%)">Anthropic Java SDK (`anthropic-java` 2.34.0)</span>
+### <span style="color:hsl(335,80%,58%)">Anthropic Java SDK (`anthropic-java` 2.34.0)</span>
 
 **What it is:** Anthropic's official first-party Java SDK for calling the Claude API directly,
 without going through a Spring AI abstraction layer.
@@ -534,7 +534,7 @@ blocks for `isText()`.
 
 ---
 
-### <span style="color:hsl(262,68%,44%)">Claude (Anthropic LLM)</span>
+### <span style="color:hsl(112,80%,58%)">Claude (Anthropic LLM)</span>
 
 **What it is:** Anthropic's family of large language models, accessed via API. This project uses
 `claude-opus-4-8` by default in `llm-rag-graph` and whichever model is configured in
@@ -564,7 +564,7 @@ blocks for `isText()`.
 
 ---
 
-### <span style="color:hsl(270,68%,44%)">BM25 (Okapi BM25)</span>
+### <span style="color:hsl(250,80%,58%)">BM25 (Okapi BM25)</span>
 
 **What it is:** A classic probabilistic information-retrieval ranking function — the algorithm
 behind most traditional search engines. It scores documents by term-frequency saturation and
@@ -589,7 +589,7 @@ document-length normalization without any machine learning.
 
 ---
 
-### <span style="color:hsl(277,68%,44%)">PageIndex (cloud tree-reasoning retrieval)</span>
+### <span style="color:hsl(27,80%,58%)">PageIndex (cloud tree-reasoning retrieval)</span>
 
 **What it is:** A third-party cloud service (`api.pageindex.ai`) that accepts PDF uploads, builds
 a hierarchical document index, and performs retrieval using LLM-guided tree reasoning rather than
@@ -604,7 +604,7 @@ module runs fully offline using only BM25 when the key is absent.
 
 ---
 
-### <span style="color:hsl(284,68%,44%)">Apache PDFBox 3.x</span>
+### <span style="color:hsl(165,80%,58%)">Apache PDFBox 3.x</span>
 
 **What it is:** An open-source Java library for reading, rendering, and extracting text from PDF
 files.
@@ -618,7 +618,7 @@ downgrading to 2.x would cause class conflicts.
 
 ---
 
-### <span style="color:hsl(291,68%,44%)">Apache Tika</span>
+### <span style="color:hsl(302,80%,58%)">Apache Tika</span>
 
 **What it is:** A content-detection and extraction toolkit that can parse hundreds of file formats
 (Word, PowerPoint, HTML, XML, etc.) and return plain text.
@@ -631,7 +631,7 @@ Office documents and other binary formats without writing a dedicated reader.
 
 ---
 
-### <span style="color:hsl(298,68%,44%)">Apache POI</span>
+### <span style="color:hsl(80,80%,58%)">Apache POI</span>
 
 **What it is:** The Java library for reading and writing Microsoft Office file formats (`.xlsx`,
 `.xls`, `.docx`, etc.).
@@ -643,7 +643,7 @@ becomes searchable vector chunks.
 
 ---
 
-### <span style="color:hsl(306,68%,44%)">Tesseract OCR (tess4j)</span>
+### <span style="color:hsl(217,80%,58%)">Tesseract OCR (tess4j)</span>
 
 **What it is:** Google's open-source OCR engine, wrapped for Java by tess4j.
 
@@ -656,7 +656,7 @@ extracted directly.
 
 ---
 
-### <span style="color:hsl(313,68%,44%)">Spring Security</span>
+### <span style="color:hsl(355,80%,58%)">Spring Security</span>
 
 **What it is:** The standard security framework for Spring applications, handling authentication,
 authorization, CORS, session management, and security response headers.
@@ -674,7 +674,7 @@ rate-limiting behavior active.
 
 ---
 
-### <span style="color:hsl(320,68%,44%)">Micrometer + Prometheus + Grafana</span>
+### <span style="color:hsl(132,80%,58%)">Micrometer + Prometheus + Grafana</span>
 
 **What it is:** Micrometer is a metrics facade for JVM applications; Prometheus is a time-series
 database that scrapes metrics endpoints; Grafana is the visualization layer that turns Prometheus
@@ -691,7 +691,7 @@ time the `RetrievalEvaluator` runs against the gold query set. A pre-built Grafa
 
 ---
 
-### <span style="color:hsl(327,68%,44%)">OpenTelemetry + Grafana Tempo</span>
+### <span style="color:hsl(270,80%,58%)">OpenTelemetry + Grafana Tempo</span>
 
 **What it is:** OpenTelemetry is the vendor-neutral standard for distributed tracing. Grafana Tempo
 is a high-scale distributed-tracing backend that stores and queries OTLP traces.
@@ -705,7 +705,7 @@ spans.
 
 ---
 
-### <span style="color:hsl(334,68%,44%)">Loki + Logstash Logback Encoder</span>
+### <span style="color:hsl(47,80%,50%)">Loki + Logstash Logback Encoder</span>
 
 **What it is:** Grafana Loki is a horizontally-scalable log aggregation system; Logstash Logback
 Encoder is a Logback appender that emits structured JSON logs instead of plain text.
@@ -717,7 +717,7 @@ correlatable with Prometheus metrics and Tempo traces — all three signals in o
 
 ---
 
-### <span style="color:hsl(342,68%,44%)">Retrieval Evaluation (MRR, P@k, R@k, RAGAS Context Precision)</span>
+### <span style="color:hsl(185,80%,58%)">Retrieval Evaluation (MRR, P@k, R@k, RAGAS Context Precision)</span>
 
 **What it is:** A set of information-retrieval quality metrics: Mean Reciprocal Rank (MRR)
 measures how early the first relevant result appears; Precision@k measures the fraction of top-k
@@ -733,7 +733,7 @@ etc.) so they appear in Grafana alongside latency and throughput metrics. The ev
 
 ---
 
-### <span style="color:hsl(349,68%,44%)">Lombok</span>
+### <span style="color:hsl(322,80%,58%)">Lombok</span>
 
 **What it is:** A compile-time annotation processor that generates boilerplate Java code
 (`getters`, `setters`, `constructors`, `toString`, `equals`, `hashCode`, `@Slf4j` loggers) from
@@ -757,7 +757,7 @@ DTOs (`GenerateRequest`, `RagRequest`, `RagResponse`, `GraphStats`, …) are rec
 
 ---
 
-### <span style="color:hsl(356,68%,44%)">Testcontainers</span>
+### <span style="color:hsl(100,80%,58%)">Testcontainers</span>
 
 **What it is:** A Java testing library that spins up real Docker containers (databases, message
 brokers, etc.) for the duration of a test suite, eliminating the need for mocks or external
@@ -772,7 +772,7 @@ the test run.
 
 ---
 
-### <span style="color:hsl(3,68%,44%)">JaCoCo</span>
+### <span style="color:hsl(237,80%,58%)">JaCoCo</span>
 
 **What it is:** The standard Java code-coverage measurement tool, integrated as a Maven plugin.
 
@@ -790,7 +790,7 @@ explicit TODO rather than an oversight.
 
 ---
 
-### <span style="color:hsl(10,68%,44%)">OpenAPI / Swagger Parser</span>
+### <span style="color:hsl(15,80%,58%)">OpenAPI / Swagger Parser</span>
 
 **What it is:** A static contract-validation library (Swagger Parser v3) that can parse and
 validate an OpenAPI 3.x YAML/JSON file against the specification.
@@ -802,7 +802,7 @@ as the code evolves.
 
 ---
 
-### <span style="color:hsl(18,68%,44%)">Docker Compose</span>
+### <span style="color:hsl(152,80%,58%)">Docker Compose</span>
 
 **What it is:** A tool for defining and running multi-container Docker applications from a single
 YAML file.
@@ -816,7 +816,7 @@ auto-start and auto-stop the Compose services when running from an IDE.
 
 ---
 
-### <span style="color:hsl(25,68%,44%)">git-commit-id Maven Plugin</span>
+### <span style="color:hsl(290,80%,58%)">git-commit-id Maven Plugin</span>
 
 **What it is:** A Maven plugin that reads the current git commit hash, branch, and timestamp at
 build time and writes them to a `git.properties` file baked into the JAR.

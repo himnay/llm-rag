@@ -1,4 +1,4 @@
-# <span style="color:hsl(216,68%,44%)">LLM Vectorless RAG</span>
+# <span style="color:hsl(216,80%,58%)">LLM Vectorless RAG</span>
 
 Two vectorless retrieval approaches backed by Claude for generation — no embeddings, no vector databases, no GPU.
 
@@ -9,7 +9,7 @@ Two vectorless retrieval approaches backed by Claude for generation — no embed
 
 ---
 
-## <span style="color:hsl(234,68%,44%)">What is Vectorless RAG?</span>
+## <span style="color:hsl(354,80%,58%)">What is Vectorless RAG?</span>
 
 - **Standard RAG** converts every document chunk into a high-dimensional vector using an embedding model
     - Those vectors are stored in a vector database (Pinecone, Weaviate, pgvector, etc.)
@@ -25,7 +25,7 @@ Two vectorless retrieval approaches backed by Claude for generation — no embed
 
 ---
 
-## <span style="color:hsl(252,68%,44%)">Retriever 1 — BM25 (local, always-on)</span>
+## <span style="color:hsl(131,80%,58%)">Retriever 1 — BM25 (local, always-on)</span>
 
 - **BM25 (Best Match 25)** is a classic probabilistic information-retrieval ranking function developed from the BM (Best
   Match) family of models
@@ -55,7 +55,7 @@ IDF(t) = log( (N − df(t) + 0.5) / (df(t) + 0.5) + 1 )
 
 ---
 
-## <span style="color:hsl(270,68%,44%)">Retriever 2 — PageIndex (cloud, reasoning-based)</span>
+## <span style="color:hsl(269,80%,58%)">Retriever 2 — PageIndex (cloud, reasoning-based)</span>
 
 - [PageIndex](https://pageindex.ai) by VectifyAI is a vectorless RAG cloud service with no embedding step on either the
   indexing or query side
@@ -98,7 +98,7 @@ sequenceDiagram
 
 ---
 
-## <span style="color:hsl(288,68%,44%)">Project Architecture</span>
+## <span style="color:hsl(46,80%,50%)">Project Architecture</span>
 
 ```
 src/main/
@@ -124,21 +124,21 @@ src/main/
         └── PageIndexDocumentManager.java ← uploads docs to PageIndex at startup (optional)
 ```
 
-### <span style="color:hsl(306,68%,44%)">Startup sequence (BM25 always runs; PageIndex is conditional)</span>
+### <span style="color:hsl(184,80%,58%)">Startup sequence (BM25 always runs; PageIndex is conditional)</span>
 
 1. `DocumentLoader` reads all `*.txt` files, splits into 500-char overlapping chunks.
 2. `BM25Retriever` builds the in-memory TF/IDF index from those chunks.
 3. *(If `RAG_PAGEINDEX_ENABLED=true`)* `PageIndexDocumentManager` converts each `.txt` to a PDF (via PDFBox), uploads to
    `api.pageindex.ai/doc/`, and waits for PageIndex to finish building the tree index.
 
-### <span style="color:hsl(324,68%,44%)">Request flow — BM25 (`POST /api/rag/chat`)</span>
+### <span style="color:hsl(321,80%,58%)">Request flow — BM25 (`POST /api/rag/chat`)</span>
 
 1. Tokenise the query (lowercase, strip punctuation, remove stop words).
 2. Score every chunk with BM25; pick top-k (default 5).
 3. Concatenate chunk text into a context block.
 4. Call Claude with the augmented prompt.
 
-### <span style="color:hsl(342,68%,44%)">Request flow — PageIndex (`POST /api/rag/chat-pageindex`)</span>
+### <span style="color:hsl(99,80%,58%)">Request flow — PageIndex (`POST /api/rag/chat-pageindex`)</span>
 
 1. For each indexed document, call `POST /retrieval/` with the doc_id + query.
 2. Poll `GET /retrieval/{id}/` until status = `completed`.
@@ -147,9 +147,9 @@ src/main/
 
 ---
 
-## <span style="color:hsl(0,68%,44%)">API Endpoints</span>
+## <span style="color:hsl(236,80%,58%)">API Endpoints</span>
 
-### <span style="color:hsl(18,68%,44%)">`POST /api/rag/chat`</span>
+### <span style="color:hsl(14,80%,58%)">`POST /api/rag/chat`</span>
 
 BM25 retrieval + Claude. No external dependencies.
 
@@ -161,7 +161,7 @@ BM25 retrieval + Claude. No external dependencies.
 { "answer": "BM25 normalises by dividing by average document length ...", "sources": ["vectorless-rag.txt"] }
 ```
 
-### <span style="color:hsl(36,68%,44%)">`POST /api/rag/chat-pageindex`</span>
+### <span style="color:hsl(151,80%,58%)">`POST /api/rag/chat-pageindex`</span>
 
 PageIndex tree-reasoning retrieval + Claude. Requires PageIndex to be enabled.
 
@@ -173,13 +173,13 @@ PageIndex tree-reasoning retrieval + Claude. Requires PageIndex to be enabled.
 { "answer": "Virtual threads are lightweight threads managed by the JVM ...", "sources": ["java-21-features.txt"] }
 ```
 
-### <span style="color:hsl(54,68%,32%)">`GET /api/rag/documents`</span>
+### <span style="color:hsl(289,80%,58%)">`GET /api/rag/documents`</span>
 
 ```json
 { "documents": ["java-21-features.txt", "spring-ai-guide.txt", "vectorless-rag.txt"], "totalChunks": 42 }
 ```
 
-### <span style="color:hsl(72,68%,32%)">`GET /api/rag/health`</span>
+### <span style="color:hsl(66,80%,50%)">`GET /api/rag/health`</span>
 
 ```json
 { "status": "ok", "chunks": 42, "pageindex": "enabled", "pageindexDocs": 3 }
@@ -187,7 +187,7 @@ PageIndex tree-reasoning retrieval + Claude. Requires PageIndex to be enabled.
 
 ---
 
-## <span style="color:hsl(90,68%,32%)">Configuration</span>
+## <span style="color:hsl(204,80%,58%)">Configuration</span>
 
 ```yaml
 # application.yaml
@@ -211,18 +211,18 @@ rag:
 
 ---
 
-## <span style="color:hsl(108,68%,32%)">Running Locally</span>
+## <span style="color:hsl(341,80%,58%)">Running Locally</span>
 
 **Prerequisites:** Java 25, Maven 3.9+, Anthropic API key.
 
-### <span style="color:hsl(126,68%,32%)">BM25 only</span>
+### <span style="color:hsl(119,80%,58%)">BM25 only</span>
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
 ./mvnw spring-boot:run
 ```
 
-### <span style="color:hsl(144,68%,32%)">BM25 + PageIndex</span>
+### <span style="color:hsl(256,80%,58%)">BM25 + PageIndex</span>
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
@@ -254,7 +254,7 @@ curl -s -X POST http://localhost:8080/api/rag/chat-pageindex \
 
 ---
 
-## <span style="color:hsl(162,68%,36%)">BM25 vs PageIndex</span>
+## <span style="color:hsl(34,80%,58%)">BM25 vs PageIndex</span>
 
 |                            | BM25                            | PageIndex                             |
 |----------------------------|---------------------------------|---------------------------------------|
@@ -273,7 +273,7 @@ Sources:
 - [PageIndex GitHub (VectifyAI/PageIndex)](https://github.com/VectifyAI/PageIndex)
 - [Vectorless RAG cookbook](https://docs.pageindex.ai/cookbook/vectorless-rag-pageindex)
 
-## <span style="color:hsl(180,68%,36%)">🧩 Design patterns</span>
+## <span style="color:hsl(171,80%,58%)">🧩 Design patterns</span>
 
 - The two retrieval paths (local **BM25** and remote **PageIndex**) are exposed as separate endpoints with intentionally
   different response shapes
@@ -285,7 +285,7 @@ Sources:
 - See the [Design patterns section](../llm-rag-pipeline/README.md#-design-patterns-gof) in `llm-rag-pipeline` for the
   full GoF pattern inventory used across the llm-rag modules
 
-## <span style="color:hsl(198,68%,36%)">🏗️ Build & test</span>
+## <span style="color:hsl(309,80%,58%)">🏗️ Build & test</span>
 
 ```bash
 mvn test
