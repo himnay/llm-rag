@@ -1,39 +1,39 @@
-# Deployment Architecture at NexaCorp
+# <span style="color:hsl(81,68%,32%)">Deployment Architecture at NexaCorp</span>
 
-## Overview
+## <span style="color:hsl(126,68%,32%)">Overview</span>
 
 NexaCorp deploys its applications using a cloud-native architecture designed for scalability,
 resilience, and security. All core services are containerized and managed centrally.
 
-## Infrastructure Model
+## <span style="color:hsl(171,68%,36%)">Infrastructure Model</span>
 
 - Applications run as Docker containers
 - Containers are orchestrated using Kubernetes
 - Separate environments exist for Dev, QA, and Production
 
-## Service Deployment
+## <span style="color:hsl(216,68%,44%)">Service Deployment</span>
 
 Each service is deployed independently and can be scaled based on demand.
 Stateless services are preferred wherever possible to simplify scaling.
 
-## Configuration Management
+## <span style="color:hsl(261,68%,44%)">Configuration Management</span>
 
 - Configuration is externalized using environment variables and config files
 - Secrets are managed using a secure secrets manager
 - No sensitive data is stored directly in application code
 
-## Networking & Security
+## <span style="color:hsl(306,68%,44%)">Networking & Security</span>
 
 - Services communicate over internal networks
 - External access is routed through an API Gateway
 - Network policies restrict unauthorized service communication
 
-## Observability
+## <span style="color:hsl(351,68%,44%)">Observability</span>
 
 - Centralized logging is enabled for all services
 - Metrics are collected for latency, error rates, and throughput
 - Alerts are configured for critical system failures
 
-## Related Documentation
+## <span style="color:hsl(36,68%,44%)">Related Documentation</span>
 
 Refer to the API Guidelines and Information Security Policy for additional operational standards.
