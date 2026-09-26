@@ -219,7 +219,7 @@ rag:
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
-./mvnw spring-boot:run
+./mvnw -pl llm-rag-vectorless spring-boot:run   # from the llm-rag root
 ```
 
 ### <span style="color:hsl(256,80%,58%)">BM25 + PageIndex</span>
@@ -228,7 +228,7 @@ export ANTHROPIC_API_KEY=sk-ant-...
 export ANTHROPIC_API_KEY=sk-ant-...
 export PAGEINDEX_API_KEY=<your-pageindex-api-key>   # from app.pageindex.ai
 export RAG_PAGEINDEX_ENABLED=true
-./mvnw spring-boot:run
+./mvnw -pl llm-rag-vectorless spring-boot:run   # from the llm-rag root
 ```
 
 - On startup, all `.txt` files are converted to PDFs (via PDFBox) and uploaded to PageIndex
@@ -282,7 +282,7 @@ Sources:
       request
     - Forcing both paths behind a shared interface would be speculative abstraction with no current caller
     - The simpler design keeps each path independently testable and deployable
-- See the [Design patterns section](../llm-rag-pipeline/README.md#-design-patterns-gof) in `llm-rag-pipeline` for the
+- See the [Design patterns section](../llm-rag-pipeline/README.md#design-patterns) in `llm-rag-pipeline` for the
   full GoF pattern inventory used across the llm-rag modules
 
 ## <span style="color:hsl(309,80%,58%)">🏗️ Build & test</span>

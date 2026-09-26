@@ -33,15 +33,34 @@ public class FileIngestionService {
      * (see {@code @SupportedDocument}); the reader factory remains the final guard.
      */
     public void ingestUpload(MultipartFile file) throws IOException {
-        String name = StringUtils.cleanPath(
-                file.getOriginalFilename() != null ? file.getOriginalFilename() : "upload");
-        Path tmp = Files.createTempFile("upload-", "-" + name);
+        String name = safeFileName(file);
+        Path tmp = copyToTempFile(file, name);
         try {
-            file.transferTo(tmp);
             ingestFile(tmp, name);
         } finally {
             Files.deleteIfExists(tmp);
         }
+    }
+
+    /**
+     * The upload's file name reduced to its last path segment: browsers may send
+     * {@code "C:\\dir\\a.pdf"}, and a crafted {@code "../../x.pdf"} must neither reach a temp-file
+     * name nor become part of the document identity.
+     */
+    public static String safeFileName(MultipartFile file) {
+        String name = StringUtils.getFilename(StringUtils.cleanPath(
+                file.getOriginalFilename() != null ? file.getOriginalFilename() : "upload"));
+        return name == null || name.isBlank() || name.equals("..") ? "upload" : name;
+    }
+
+    /**
+     * Copies the upload out of the servlet container's multipart storage, which is deleted when
+     * the request completes — anything processed after the response must work from this copy.
+     */
+    public static Path copyToTempFile(MultipartFile file, String name) throws IOException {
+        Path tmp = Files.createTempFile("upload-", "-" + name);
+        file.transferTo(tmp);
+        return tmp;
     }
 
     /**

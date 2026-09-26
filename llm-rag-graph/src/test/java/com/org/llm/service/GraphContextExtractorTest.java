@@ -19,6 +19,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -72,10 +73,10 @@ class GraphContextExtractorTest {
                 List.of("Java", "Spring"), 5);
         emp.getProjectAssignments().add(new WorksOnRelationship("lead", "2024-01", 80, new Project("Alpha", "", "active", "2024-01", "")));
 
-        when(employeeRepo.searchByKeyword(anyString())).thenReturn(List.of(emp));
-        when(deptRepo.searchByKeyword(anyString())).thenReturn(List.of());
-        when(projectRepo.searchByKeyword(anyString())).thenReturn(List.of());
-        when(techRepo.searchByKeyword(anyString())).thenReturn(List.of());
+        when(employeeRepo.searchByKeywords(anyList())).thenReturn(List.of(emp));
+        when(deptRepo.searchByKeywords(anyList())).thenReturn(List.of());
+        when(projectRepo.searchByKeywords(anyList())).thenReturn(List.of());
+        when(techRepo.searchByKeywords(anyList())).thenReturn(List.of());
 
         GraphContextExtractor.GraphContext ctx = extractor.extract("Who is Alice Chen?");
 
@@ -86,10 +87,10 @@ class GraphContextExtractorTest {
     @Test
     @DisplayName("Extract returns no context message when keywords match nothing in the graph")
     void extractReturnsNoContextForUnknownKeywords() {
-        when(employeeRepo.searchByKeyword(anyString())).thenReturn(List.of());
-        when(deptRepo.searchByKeyword(anyString())).thenReturn(List.of());
-        when(projectRepo.searchByKeyword(anyString())).thenReturn(List.of());
-        when(techRepo.searchByKeyword(anyString())).thenReturn(List.of());
+        when(employeeRepo.searchByKeywords(anyList())).thenReturn(List.of());
+        when(deptRepo.searchByKeywords(anyList())).thenReturn(List.of());
+        when(projectRepo.searchByKeywords(anyList())).thenReturn(List.of());
+        when(techRepo.searchByKeywords(anyList())).thenReturn(List.of());
 
         GraphContextExtractor.GraphContext ctx = extractor.extract("What is the weather today?");
 
@@ -108,10 +109,10 @@ class GraphContextExtractorTest {
         emp1.setManager(emp2);
         emp2.setManager(emp1); // cycle
 
-        when(employeeRepo.searchByKeyword(anyString())).thenReturn(List.of(emp1, emp2));
-        when(deptRepo.searchByKeyword(anyString())).thenReturn(List.of());
-        when(projectRepo.searchByKeyword(anyString())).thenReturn(List.of());
-        when(techRepo.searchByKeyword(anyString())).thenReturn(List.of());
+        when(employeeRepo.searchByKeywords(anyList())).thenReturn(List.of(emp1, emp2));
+        when(deptRepo.searchByKeywords(anyList())).thenReturn(List.of());
+        when(projectRepo.searchByKeywords(anyList())).thenReturn(List.of());
+        when(techRepo.searchByKeywords(anyList())).thenReturn(List.of());
 
         // Should complete without StackOverflow or infinite loop
         assertThatCode(() -> extractor.extract("Who manages Bob?"))

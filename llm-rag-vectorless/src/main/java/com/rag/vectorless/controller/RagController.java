@@ -1,22 +1,19 @@
 package com.rag.vectorless.controller;
 
-import com.rag.vectorless.config.RagProperties;
 import com.rag.vectorless.dto.ChatRequest;
 import com.rag.vectorless.dto.ChatResponse;
 import com.rag.vectorless.dto.Chunk;
 import com.rag.vectorless.dto.Citation;
-import com.rag.vectorless.eval.GenerationEvaluator;
 import com.rag.vectorless.rag.BM25Retriever;
 import com.rag.vectorless.rag.DocumentLoader;
+import com.rag.vectorless.rag.GroundedAnswerGenerator;
 import com.rag.vectorless.rag.PageIndexClient;
 import com.rag.vectorless.rag.PageIndexDocumentManager;
-import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.document.Document;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,13 +27,11 @@ import java.util.stream.Collectors;
 @Tag(name = "Vector-less RAG", description = "BM25-based retrieval-augmented generation without vector stores")
 public class RagController {
 
-    private final ChatClient chatClient;
+    private final GroundedAnswerGenerator answerGenerator;
     private final BM25Retriever bm25Retriever;
     private final DocumentLoader documentLoader;
     private final Optional<PageIndexClient> pageIndexClient;
     private final Optional<PageIndexDocumentManager> pageIndexManager;
-    private final GenerationEvaluator generationEvaluator;
-    private final RagProperties ragProperties;
 
     /** Chats. */
     @PostMapping("/chat")
@@ -54,7 +49,7 @@ public class RagController {
 
         List<Citation> citations = toCitations(docs);
 
-        return generate(context, docs, citations, request.getQuestion());
+        return answerGenerator.answer(context, docs, citations, request.getQuestion());
     }
 
     /** Chats page index. */
@@ -99,7 +94,7 @@ public class RagController {
                 .map(source -> Citation.builder().source(source).chunkIndex(null).score(null).build())
                 .toList();
         List<Document> contextDocs = allContent.stream().map(Document::new).toList();
-        return generate(context, contextDocs, citations, request.getQuestion());
+        return answerGenerator.answer(context, contextDocs, citations, request.getQuestion());
     }
 
     /** Returns the documents. */
@@ -125,39 +120,6 @@ public class RagController {
         result.put("pageindex", pageIndexManager.isPresent() ? "enabled" : "disabled");
         pageIndexManager.ifPresent(m -> result.put("pageindexDocs", m.getDocIds().size()));
         return result;
-    }
-
-    // ── shared prompt + Claude call ──────────────────────────────────────────
-
-    @CircuitBreaker(name = "llm-vectorless", fallbackMethod = "generateFallback")
-    ChatResponse generate(String context, List<Document> contextDocs, List<Citation> citations, String question) {
-        String userMessage = """
-                Use only the context below to answer the question.
-                If the context does not contain the answer, say "I don't have information about that."
-                
-                Context:
-                %s
-                
-                Question: %s
-                """.formatted(context, question);
-
-        String answer = chatClient.prompt()
-                .user(userMessage)
-                .call()
-                .content();
-
-        Boolean faithful = null;
-        if (ragProperties.evaluateFaithfulness()) {
-            faithful = generationEvaluator.isFaithful(question, contextDocs, answer);
-        }
-
-        return ChatResponse.builder().answer(answer).citations(citations).faithful(faithful).build();
-    }
-
-    @SuppressWarnings("unused")
-    ChatResponse generateFallback(String context, List<Document> contextDocs, List<Citation> citations, String question, Throwable t) {
-        log.warn("LLM circuit breaker triggered for question='{}': {}", question, t.getMessage());
-        return ChatResponse.builder().answer("Service temporarily unavailable. Please try again in a moment.").citations(List.of()).faithful(null).build();
     }
 
     private List<Citation> toCitations(List<Document> docs) {

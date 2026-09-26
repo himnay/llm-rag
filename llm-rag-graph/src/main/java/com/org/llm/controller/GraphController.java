@@ -59,8 +59,8 @@ public class GraphController {
             @PathVariable String name,
             @RequestParam(defaultValue = "20") int limit,
             @RequestParam(defaultValue = "0") int offset) {
-        int cappedLimit = Math.min(limit, MAX_LIMIT);
-        return ResponseEntity.ok(employeeRepo.findByCompanyName(name, offset, cappedLimit));
+        int cappedLimit = clampLimit(limit);
+        return ResponseEntity.ok(employeeRepo.findByCompanyName(name, Math.max(0, offset), cappedLimit));
     }
 
     /**
@@ -82,8 +82,8 @@ public class GraphController {
             @PathVariable String name,
             @RequestParam(defaultValue = "20") int limit,
             @RequestParam(defaultValue = "0") int offset) {
-        int cappedLimit = Math.min(limit, MAX_LIMIT);
-        return ResponseEntity.ok(employeeRepo.findDirectReports(name, offset, cappedLimit));
+        int cappedLimit = clampLimit(limit);
+        return ResponseEntity.ok(employeeRepo.findDirectReports(name, Math.max(0, offset), cappedLimit));
     }
 
     /**
@@ -95,8 +95,8 @@ public class GraphController {
             @PathVariable String name,
             @RequestParam(defaultValue = "20") int limit,
             @RequestParam(defaultValue = "0") int offset) {
-        int cappedLimit = Math.min(limit, MAX_LIMIT);
-        return ResponseEntity.ok(employeeRepo.findByProjectName(name, offset, cappedLimit));
+        int cappedLimit = clampLimit(limit);
+        return ResponseEntity.ok(employeeRepo.findByProjectName(name, Math.max(0, offset), cappedLimit));
     }
 
     private static final int EXPORT_NODE_LIMIT = 2000;
@@ -107,7 +107,7 @@ public class GraphController {
     /**
      * Export the full graph in D3.js-compatible format for visualization.
      * Uses 2 Cypher queries (nodes + relationships) instead of 5 findAll() calls.
-     * {@code GET /api/graph/export?format=json}
+     * {@code GET /api/v1/graph/export?format=json}
      */
     @GetMapping("/export")
     public ResponseEntity<GraphExportDto> export(
@@ -128,7 +128,7 @@ public class GraphController {
 
         List<GraphLink> links = neo4jClient.query(
                         "MATCH (n)-[r]->(m)" +
-                        " WHERE (" + NODE_LABEL_FILTER.replace("n:", "n:") + ")" +
+                        " WHERE (" + NODE_LABEL_FILTER + ")" +
                         "   AND (m:Company OR m:Department OR m:Project OR m:Technology OR m:Employee OR m:Team)" +
                         " RETURN id(n) AS source, id(m) AS target, type(r) AS relType" +
                         " LIMIT " + EXPORT_REL_LIMIT)
@@ -143,6 +143,11 @@ public class GraphController {
                 .toList();
 
         return ResponseEntity.ok(new GraphExportDto(nodes, links));
+    }
+
+    /** 1..{@value #MAX_LIMIT}: a zero or negative limit would reach Cypher as an invalid LIMIT. */
+    private static int clampLimit(int limit) {
+        return Math.clamp(limit, 1, MAX_LIMIT);
     }
 
     private static Long toLong(Object value) {

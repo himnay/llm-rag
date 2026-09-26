@@ -12,7 +12,7 @@ components:
   schemas:
     RagRequest:
       type: object
-      description: Request body for POST /api/rag/query.
+      description: Request body for POST /api/v1/rag/query.
       required:
         - question
       properties:
@@ -60,7 +60,7 @@ components:
 
     RagResponse:
       type: object
-      description: Response body for POST /api/rag/query.
+      description: Response body for POST /api/v1/rag/query.
       required:
         - question
         - answer
@@ -96,7 +96,7 @@ components:
 
     GraphStats:
       type: object
-      description: Response body for GET /api/graph/stats.
+      description: Response body for GET /api/v1/graph/stats.
       required:
         - companies
         - departments
@@ -176,7 +176,7 @@ components:
     GraphExportDto:
       type: object
       description: >
-        D3.js-compatible graph export payload for GET /api/graph/export?format=json.
+        D3.js-compatible graph export payload for GET /api/v1/graph/export?format=json.
       required:
         - nodes
         - links

@@ -26,4 +26,23 @@ class AsyncConfig {
         executor.initialize();
         return executor;
     }
+
+    /**
+     * Runs whole async upload jobs. Deliberately not {@code ingestionExecutor}: every job fans its
+     * identity groups out to that pool and waits for them, so jobs occupying its threads would wait
+     * on work queued behind themselves. Bounded, so a burst of uploads is refused (503) rather than
+     * queued without limit.
+     */
+    @Bean("ingestionJobExecutor")
+    public ThreadPoolTaskExecutor ingestionJobExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(2);
+        executor.setQueueCapacity(16);
+        executor.setThreadNamePrefix("ingest-job-");
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(60);
+        executor.initialize();
+        return executor;
+    }
 }

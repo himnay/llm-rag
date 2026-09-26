@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.data.neo4j.core.Neo4jClient;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -41,13 +42,15 @@ class SecurityConfigAuthDisabledTest {
     private ProjectRepository projectRepo;
     @MockitoBean
     private TechnologyRepository techRepo;
+    @MockitoBean
+    private Neo4jClient neo4jClient;
 
     @Test
     @DisplayName("Unauthenticated request to /api/** is permitted when auth is disabled")
     void unauthenticatedRequestToApiIsPermitted() throws Exception {
         when(ragService.getStats()).thenReturn(new GraphStats(1L, 1L, 1L, 1L, 1L, 1L, 6L, 6L));
 
-        mockMvc.perform(get("/api/graph/stats"))
+        mockMvc.perform(get("/api/v1/graph/stats"))
                 .andExpect(status().isOk());
     }
 }

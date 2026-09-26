@@ -1,7 +1,5 @@
 .idea
-.mvn
 target
-**/.mvn
 **/.claude
 # .github holds dependabot/workflows and must be tracked
 **/target

@@ -53,7 +53,7 @@ Employee -[:WORKS_ON]-> Project <-[:WORKS_ON]- Employee -[:REPORTS_TO*]-> Eve
 
 ```mermaid
 flowchart TB
-    Req(["HTTP Request"]) --> RC["RagController\nPOST /api/rag/query"]
+    Req(["HTTP Request"]) --> RC["RagController\nPOST /api/v1/rag/query"]
     RC --> Svc["GraphRAGService\n(Facade — orchestrates the flow)"]
     Svc --> Ext["GraphContextExtractor"]
     Svc --> LLMSvc["AnthropicLLMService\nclaude-opus-4-8"]
@@ -61,7 +61,7 @@ flowchart TB
     subgraph EXT["GraphContextExtractor steps"]
         direction TB
         E1["1. Keyword extraction"]
-        E2["2. Full-text index search (APOC entitySearch)"]
+        E2["2. Full-text index search (entitySearch)"]
         E3["3. Entity traversal\n Employees+managers · Departments+teams · Projects+technologies"]
         E4["4. Multi-level Cypher paths\n Org hierarchy (4 hops) · Management chains\n Project↔technology paths · Cross-dept collaboration"]
         E5["5. Deduplicate & format"]
@@ -75,7 +75,7 @@ flowchart TB
     Gen --> Resp["RagResponse { question, answer, graphContext, entities, latencyMs }"]
 ```
 
-### <span style="color:hsl(166,80%,58%)">Query sequence (`POST /api/rag/query`)</span>
+### <span style="color:hsl(166,80%,58%)">Query sequence (`POST /api/v1/rag/query`)</span>
 
 ```mermaid
 sequenceDiagram
@@ -83,10 +83,10 @@ sequenceDiagram
     participant RC as RagController
     participant Svc as GraphRAGService
     participant Ext as GraphContextExtractor
-    participant Neo as Neo4j (APOC full-text + Cypher)
+    participant Neo as Neo4j (full-text index + Cypher)
     participant LLM as AnthropicLLMService
 
-    Client->>RC: POST /api/rag/query {"question": "..."}
+    Client->>RC: POST /api/v1/rag/query {"question": "..."}
     RC->>Svc: query(question)
     Svc->>Ext: extractContext(question)
     Ext->>Ext: keyword extraction (strip stop words, up to 8 terms)
@@ -185,7 +185,7 @@ flowchart TB
 |-------------|------------------------------------------------------------------|
 | Runtime     | Java 25                                                          |
 | Framework   | Spring Boot 4.1                                                  |
-| Graph DB    | Neo4j 5.x (Spring Data Neo4j)                                    |
+| Graph DB    | Neo4j 2026.x (Spring Data Neo4j)                                 |
 | LLM         | Anthropic Claude (claude-opus-4-8) via `anthropic-java` SDK 2.34 |
 | Build       | Maven                                                            |
 | Boilerplate | Lombok                                                           |
@@ -196,7 +196,7 @@ flowchart TB
 
 - Java 25
 - Maven 3.9+
-- Neo4j 5.x running locally (default: `bolt://localhost:7687`)
+- Neo4j 2026.x running locally (default: `bolt://localhost:7687`)
 - An [Anthropic API key](https://console.anthropic.com/)
 
 ---
@@ -212,8 +212,10 @@ docker run -d \
   --name neo4j \
   -p 7474:7474 -p 7687:7687 \
   -e NEO4J_AUTH=neo4j/password \
-  neo4j:5
+  neo4j:2026.09
 ```
+
+Or `docker compose up -d neo4j` from the repository root, which also enables APOC.
 
 Or use [Neo4j Desktop](https://neo4j.com/download/).
 
@@ -227,7 +229,7 @@ export NEO4J_PASSWORD=password       # default: password
 ### <span style="color:hsl(323,80%,58%)">3. Build and run</span>
 
 ```bash
-./mvnw spring-boot:run
+./mvnw -pl llm-rag-graph spring-boot:run   # from the llm-rag root
 ```
 
 - On first startup the application seeds the full TechCorp knowledge graph automatically (`app.graph.seed-data: true`)
@@ -241,7 +243,7 @@ export NEO4J_PASSWORD=password       # default: password
 ### <span style="color:hsl(238,80%,58%)">Query the RAG pipeline</span>
 
 ```
-POST /api/rag/query
+POST /api/v1/rag/query
 Content-Type: application/json
 
 {
@@ -256,21 +258,29 @@ Content-Type: application/json
   "question": "...",
   "answer": "Grace Liu (ML Engineer) leads Project Gamma...",
   "graphContext": "=== Graph Knowledge Context ===\n• Employee Grace Liu...",
-  "entities": ["Grace Liu", "Project Gamma", "Data Science"],
-  "latencyMs": 1240
+  "relevantEntities": ["Grace Liu", "Project Gamma", "Data Science"],
+  "citations": [
+    { "nodeType": "Employee", "nodeId": "42", "nodeName": "Grace Liu", "relationship": "WORKS_ON" }
+  ],
+  "groundedness": null,
+  "processingTimeMs": 1240,
+  "timestamp": "2026-09-26T12:00:00Z"
 }
 ```
 
+`groundedness` stays `null` unless `app.rag.evaluate-groundedness=true` (one extra Claude call).
+
 ### <span style="color:hsl(16,80%,58%)">Graph inspection endpoints</span>
 
-| Method | Path                                    | Description                        |
-|--------|-----------------------------------------|------------------------------------|
-| `GET`  | `/api/graph/stats`                      | Node and relationship counts       |
-| `GET`  | `/api/graph/companies/{name}/hierarchy` | Full company hierarchy             |
-| `GET`  | `/api/graph/companies/{name}/employees` | All employees in a company         |
-| `GET`  | `/api/graph/employees/{name}/context`   | Employee with projects and manager |
-| `GET`  | `/api/graph/employees/{name}/reports`   | Direct reports of an employee      |
-| `GET`  | `/api/graph/projects/{name}/team`       | Everyone working on a project      |
+| Method | Path                                       | Description                                        |
+|--------|--------------------------------------------|----------------------------------------------------|
+| `GET`  | `/api/v1/graph/stats`                      | Node and relationship counts                       |
+| `GET`  | `/api/v1/graph/companies/{name}/hierarchy` | Full company hierarchy                             |
+| `GET`  | `/api/v1/graph/companies/{name}/employees` | Employees in a company (`limit` 1-100, `offset`)   |
+| `GET`  | `/api/v1/graph/employees/{name}/context`   | Employee with projects and manager                 |
+| `GET`  | `/api/v1/graph/employees/{name}/reports`   | Direct reports (`limit` 1-100, `offset`)           |
+| `GET`  | `/api/v1/graph/projects/{name}/team`       | Everyone on a project (`limit` 1-100, `offset`)    |
+| `GET`  | `/api/v1/graph/export`                     | Whole graph as D3 `nodes` + `links` (capped)       |
 
 ### <span style="color:hsl(153,80%,58%)">Health check</span>
 
@@ -333,7 +343,7 @@ app:
 - Spring Data Neo4j repositories follow the **Repository** pattern, keeping Cypher queries isolated from service logic
 - There is a single LLM provider (`AnthropicLLMService`), so a Strategy interface for LLM providers is deliberately not
   introduced — adding one would be speculative abstraction
-- See the [Design patterns section](../llm-rag-pipeline/README.md#-design-patterns-gof) in `llm-rag-pipeline` for the
+- See the [Design patterns section](../llm-rag-pipeline/README.md#design-patterns) in `llm-rag-pipeline` for the
   full GoF pattern inventory used across the llm-rag modules and the reasoning about where patterns are deliberately not
   applied
 

@@ -2,6 +2,7 @@ package com.org.mongo;
 
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.BulkOperations;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -15,6 +16,7 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -72,9 +74,29 @@ public class ChunkDocumentRepository {
         return found.stream().collect(Collectors.toMap(ChunkDocument::getChunkId, Function.identity()));
     }
 
+    /**
+     * chunkId → SHA-256 of the stored content for every chunk of {@code identity}. This is what a
+     * re-ingest diffs against, so it reflects deletes immediately (unlike a TTL'd hash cache).
+     */
+    public Map<String, String> contentHashesByIdentity(String identity) {
+        Query query = Query.query(Criteria.where("identity").is(identity));
+        query.fields().include("content");
+        return mongoTemplate.find(query, ChunkDocument.class, COLLECTION).stream()
+                .collect(Collectors.toMap(ChunkDocument::getChunkId,
+                        doc -> DigestUtils.sha256Hex(Objects.toString(doc.getContent(), ""))));
+    }
+
     /** Deletes by identity. */
     public void deleteByIdentity(String identity) {
         mongoTemplate.remove(Query.query(Criteria.where("identity").is(identity)), COLLECTION);
+    }
+
+    /** Deletes the given chunkIds. */
+    public void deleteByIds(Collection<String> chunkIds) {
+        if (chunkIds.isEmpty()) {
+            return;
+        }
+        mongoTemplate.remove(Query.query(Criteria.where("_id").in(chunkIds)), COLLECTION);
     }
 
     /** Deletes all. */

@@ -8,13 +8,16 @@ A production-grade **Retrieval-Augmented Generation** backend built with Spring 
 - **Retrieval** — ranking the most relevant chunks
 - **Generation** — assembling a grounded LLM answer with citations, semantic caching, and prompt-injection defence
 
-> **Stack**: Spring Boot 4.1 · Spring AI 2.0.0 · Java 25 · OpenAI · OpenSearch · MongoDB · Redis · PostgreSQL 17
+> **Stack**: Spring Boot 4.1 · Spring AI 2.0.1 · Java 25 · OpenAI · OpenSearch 3.8 · MongoDB 8 · Redis 8 · PostgreSQL 18+
 
 Chunks are dual-written at ingestion: **OpenSearch** holds the vector + filter fields + `chunkId`
 (search index only), **MongoDB** holds the full chunk text + descriptive metadata keyed by
 `chunkId` (the system of record for content). Retrieval searches OpenSearch for `chunkId`s, then
-**hydrates** the real text from Mongo before reranking. **Redis** caches a content hash per chunk
-so re-ingesting unchanged content is skipped without a database round-trip.
+**hydrates** the real text from Mongo before reranking. Re-ingesting a source is incremental: its
+chunks are diffed against what Mongo holds for that source, so unchanged chunks are not re-embedded,
+edited ones are overwritten in place (`_id = chunkId`), and chunks the source no longer has are
+removed after the new ones are stored. **Redis** keeps a content hash per chunk for documents that
+have no stable identity.
 
 Where Spring AI ships a real building block, this project uses it instead of a hand-rolled
 equivalent: structured-output parsing (`.entity(...)`) instead of regex over free text for every
@@ -23,6 +26,13 @@ of custom prompt code, `RetrievalAugmentationAdvisor` for advisor-mode generatio
 `SafeGuardAdvisor` as an opt-in content-moderation gate. Custom code remains where Spring AI has no
 equivalent yet (keyword/hybrid search, HyDE/step-back transforms, the post-processing/rerank chain,
 Mongo chunk hydration).
+
+<p align="center">
+  <img src="../image/spring-ai-rag.jpg" alt="Spring AI RAG: offline ETL (reader, transformer, writer into a vector store) and runtime retrieval, augmentation and generation" width="820"/>
+</p>
+
+<p align="center"><sub>The two halves this module implements — offline ETL into the vector store, runtime retrieve → augment → generate.
+Diagram: <a href="https://docs.spring.io/spring-ai/reference/api/retrieval-augmented-generation.html">Spring AI reference docs</a>, Apache-2.0.</sub></p>
 
 ---
 
@@ -192,7 +202,7 @@ sequenceDiagram
     RS->>RS: toChunk() — chunkId carried in metadata
     RS->>Mongo: ChunkHydrationService.hydrate() findByIds(chunkIds)
     Mongo-->>RS: full text + metadata
-    Note over RS: replaces text with Mongo's copy;<br/>falls back to OpenSearch-carried text if Mongo misses
+    Note over RS: replaces text with Mongo's copy,<br/>falls back to OpenSearch-carried text if Mongo misses
     RS->>RS: BusinessRuleFilter → LengthFilter
     RS->>RS: NearDuplicateFilter (on hydrated text)
     RS->>RS: RerankingPostProc (cross-encoder|bi-encoder|llm-pw|llm-lw|bm25|rrf)
@@ -483,7 +493,7 @@ app:
       ttl: 30m
       similarity-threshold: 0.95
     chunk-dedup:
-      enabled: true           # skip writing a chunk whose content hash is already in Redis
+      enabled: true           # identity-less docs: skip a chunk whose content hash is already in Redis
       key-prefix: "chunkhash:"
       ttl: 720h               # 30 days; re-ingested chunk after this is re-embedded once
 ```
@@ -553,6 +563,18 @@ The passage is never returned to the user — only its embedding is used as the 
 
 ## <span style="color:hsl(332,80%,58%)">Chunking Strategies</span>
 
+Chunking is the *transform* step of Spring AI's ETL model: `DocumentReaderFactory` picks the
+reader (PDF, Markdown, Excel, JSON, plain text, Tika for anything else; database rows come from
+`DatabaseIngestionService`), a `ChunkingStrategy` (plus the optional
+`ChunkEnricher`) transforms the documents, and `ChunkVectorStoreService` is the writer that
+dual-writes Mongo and OpenSearch.
+
+<p align="center">
+  <img src="../image/spring-ai-etl-pipeline.jpg" alt="Spring AI ETL pipeline: source, DocumentReader, DocumentTransformer, DocumentWriter, store" width="820"/>
+</p>
+
+<p align="center"><sub>Diagram: <a href="https://docs.spring.io/spring-ai/reference/api/etl-pipeline.html">Spring AI ETL pipeline docs</a>, Apache-2.0.</sub></p>
+
 Six `ChunkingStrategy` implementations, selected via `app.chunking.strategy`:
 
 | Strategy                          | Config value | Split logic                                                                                                     | Ideal content                                            |
@@ -592,7 +614,7 @@ automatically when the circuit is open).
 ## <span style="color:hsl(247,80%,58%)">Spring AI Components Used</span>
 
 This project prefers a real Spring AI building block over a hand-rolled equivalent wherever one
-exists at the pinned version (`spring-ai 2.0.0`). Where it doesn't exist yet, the custom code stays.
+exists at the pinned version (`spring-ai 2.0.1`). Where it doesn't exist yet, the custom code stays.
 
 | Concern                      | Spring AI component used                                                                                        | Where                                                                                                                                                                                          |
 |------------------------------|-----------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -705,7 +727,14 @@ Response fields:
 - Validates against the **shared Keycloak instance** defined in `llm-gateway`'s `docker-compose.yml`
   (realm `llm-gateway`, started with `docker compose up -d keycloak` from the `llm-gateway` repo).
   This service's client id is `llm-rag-pipeline-client` (dev secret `llm-rag-pipeline-dev-secret`)
-- Get a token and call a protected route:
+- That Keycloak publishes **host port 8081** — the same port this app defaults to. With auth on,
+  start the app on another port so both can run:
+
+```bash
+SERVER_PORT=8085 API_AUTH_ENABLED=true ./mvnw -pl llm-rag-pipeline spring-boot:run
+```
+
+- Get a token from Keycloak (8081) and call a protected route on the app (8085):
 
 ```bash
 TOKEN=$(curl -s -X POST http://localhost:8081/realms/llm-gateway/protocol/openid-connect/token \
@@ -714,7 +743,7 @@ TOKEN=$(curl -s -X POST http://localhost:8081/realms/llm-gateway/protocol/openid
   -d 'client_secret=llm-rag-pipeline-dev-secret' \
   | jq -r .access_token)
 
-curl -s -X POST http://localhost:8081/api/v1/retrieve \
+curl -s -X POST http://localhost:8085/api/v1/retrieve \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" -d '{"query":"..."}'
 ```

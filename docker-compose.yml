@@ -17,7 +17,7 @@ services:
       timeout: 5s
       retries: 5
   opensearch:
-    image: opensearchproject/opensearch:2.17.1
+    image: opensearchproject/opensearch:3.8.0
     container_name: llm-rag-opensearch
     environment:
       - discovery.type=single-node
@@ -40,7 +40,7 @@ services:
       timeout: 5s
       retries: 10
   opensearch-dashboards: # http://localhost:5601 — inspect the nexacorp_index
-    image: opensearchproject/opensearch-dashboards:2.17.1
+    image: opensearchproject/opensearch-dashboards:3.8.0
     container_name: llm-rag-opensearch-dashboards
     environment:
       - 'OPENSEARCH_HOSTS=["http://opensearch:9200"]'
@@ -51,7 +51,7 @@ services:
       - opensearch
     restart: unless-stopped
   mongo:
-    image: mongo:7
+    image: mongo:8
     container_name: llm-rag-mongo
     ports:
       - "27017:27017"
@@ -75,7 +75,7 @@ services:
       - mongo
     restart: unless-stopped
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine
     container_name: llm-rag-redis
     ports:
       - "6379:6379"
@@ -100,7 +100,7 @@ services:
 
   # ── Neo4j (llm-rag-graph) ────────────────────────────────────────────────────
   neo4j:
-    image: neo4j:5
+    image: neo4j:2026.09
     container_name: neo4j
     ports:
       - "7474:7474"   # Neo4j Browser

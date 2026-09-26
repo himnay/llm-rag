@@ -43,7 +43,7 @@ class LifecycleController {
      * Poll {@code GET /upload/{jobId}/status} to track progress.
      */
     @PostMapping("/upload/async")
-    public ResponseEntity<Object> uploadAsync(@RequestParam("file") @SupportedDocument MultipartFile file) {
+    public ResponseEntity<Object> uploadAsync(@RequestParam("file") @SupportedDocument MultipartFile file) throws IOException {
         String jobId = ingestionJobService.submit(file);
         return ResponseEntity.accepted().body(Map.of("jobId", jobId, "status", "PENDING"));
     }

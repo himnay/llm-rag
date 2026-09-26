@@ -1,37 +1,66 @@
 package com.org.ingestion.job;
 
 import com.org.ingestion.FileIngestionService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Async;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.task.TaskRejectedException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 
 /**
  * Manages async file ingestion jobs. Callers submit a file, receive a {@code jobId}, and can
  * poll {@link #getJob(String)} for status — decoupling the HTTP response from the (potentially
  * slow) chunking + embedding + store pipeline.
+ *
+ * <p>The upload is copied to a temp file before {@link #submit} returns (the container deletes
+ * its multipart storage when the request ends) and processed on {@code ingestionJobExecutor}.
+ * This used to be an {@code @Async} method called from {@code submit} on the same object — a
+ * self-invocation that bypasses the proxy, so every "async" upload ran on the request thread.</p>
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class IngestionJobService {
 
+    /** Finished jobs stay pollable this long, then are dropped so the map can't grow forever. */
+    static final Duration RETENTION = Duration.ofHours(1);
+
     private final FileIngestionService fileIngestionService;
+    private final Executor jobExecutor;
     private final ConcurrentHashMap<String, IngestionJob> jobs = new ConcurrentHashMap<>();
+
+    public IngestionJobService(FileIngestionService fileIngestionService,
+                               @Qualifier("ingestionJobExecutor") Executor jobExecutor) {
+        this.fileIngestionService = fileIngestionService;
+        this.jobExecutor = jobExecutor;
+    }
 
     /**
      * Submit a file upload for async processing. Returns a jobId immediately.
+     *
+     * @throws TaskRejectedException when the job queue is full (mapped to 503)
      */
-    public String submit(MultipartFile file) {
+    public String submit(MultipartFile file) throws IOException {
+        evictFinishedJobs();
         String jobId = UUID.randomUUID().toString();
-        String fileName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "upload";
+        String fileName = FileIngestionService.safeFileName(file);
+        Path copy = FileIngestionService.copyToTempFile(file, fileName);
         jobs.put(jobId, IngestionJob.pending(jobId, fileName));
-        runAsync(jobId, file);
+        try {
+            jobExecutor.execute(() -> run(jobId, copy, fileName));
+        } catch (TaskRejectedException e) {
+            jobs.remove(jobId);
+            deleteQuietly(copy);
+            throw e;
+        }
         log.info("Async ingestion job {} submitted for file={}", jobId, fileName);
         return jobId;
     }
@@ -43,16 +72,30 @@ public class IngestionJobService {
         return Optional.ofNullable(jobs.get(jobId));
     }
 
-    @Async("ingestionExecutor")
-    void runAsync(String jobId, MultipartFile file) {
-        jobs.put(jobId, jobs.get(jobId).running());
+    private void run(String jobId, Path copy, String fileName) {
+        jobs.computeIfPresent(jobId, (id, job) -> job.running());
         try {
-            fileIngestionService.ingestUpload(file);
-            jobs.put(jobId, jobs.get(jobId).done());
+            fileIngestionService.ingestFile(copy, fileName);
+            jobs.computeIfPresent(jobId, (id, job) -> job.done());
             log.info("Async ingestion job {} completed", jobId);
         } catch (Exception e) {
-            jobs.put(jobId, jobs.get(jobId).failed(e.getMessage()));
+            jobs.computeIfPresent(jobId, (id, job) -> job.failed(e.getMessage()));
             log.error("Async ingestion job {} failed: {}", jobId, e.getMessage(), e);
+        } finally {
+            deleteQuietly(copy);
+        }
+    }
+
+    private void evictFinishedJobs() {
+        long cutoff = System.currentTimeMillis() - RETENTION.toMillis();
+        jobs.values().removeIf(job -> job.finishedAtMillis() > 0 && job.finishedAtMillis() < cutoff);
+    }
+
+    private static void deleteQuietly(Path path) {
+        try {
+            Files.deleteIfExists(path);
+        } catch (IOException e) {
+            log.warn("Could not delete temp upload {}: {}", path, e.getMessage());
         }
     }
 }

@@ -17,7 +17,7 @@ The RAG application itself runs on the **host** (port `8081`), so Prometheus scr
 
 ```bash
 export OPENAI_API_KEY=sk-...          # used only for embeddings (required at startup)
-./mvnw spring-boot:run
+./mvnw -pl llm-rag-pipeline spring-boot:run   # from the llm-rag root
 ```
 
 ## <span style="color:hsl(83,80%,58%)">3. Endpoints</span>

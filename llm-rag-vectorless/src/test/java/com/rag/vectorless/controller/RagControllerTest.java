@@ -6,6 +6,7 @@ import com.rag.vectorless.dto.ChatRequest;
 import com.rag.vectorless.eval.GenerationEvaluator;
 import com.rag.vectorless.rag.BM25Retriever;
 import com.rag.vectorless.rag.DocumentLoader;
+import com.rag.vectorless.rag.GroundedAnswerGenerator;
 import com.rag.vectorless.rag.PageIndexClient;
 import com.rag.vectorless.rag.PageIndexDocumentManager;
 import org.junit.jupiter.api.DisplayName;
@@ -14,6 +15,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.document.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -30,6 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest({RagController.class, GlobalExceptionHandler.class})
+@Import(GroundedAnswerGenerator.class)
 class RagControllerTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();

@@ -20,6 +20,7 @@ components:
         query:
           type: string
           minLength: 1
+          maxLength: 8000
           description: >
             Original validation: @NotBlank with no custom message (default Jakarta
             message "must not be blank" will be used by the generated bean validation).
@@ -28,10 +29,10 @@ components:
           format: int32
           nullable: true
           minimum: 1
-          exclusiveMinimum: true
+          maximum: 100
           description: >
-            Original validation: @Positive with no custom message (default Jakarta
-            message "must be greater than 0" will be used).
+            Number of chunks to ground the answer on (1-100). Capped because topK is
+            multiplied by the over-fetch factor before it reaches the k-NN query.
         conversationId:
           type: string
           nullable: true
@@ -66,6 +67,7 @@ components:
         query:
           type: string
           minLength: 1
+          maxLength: 8000
           description: >
             Original validation message "query must not be blank" is not representable
             in OpenAPI bean-validation mapping and is lost; the default Jakarta message
@@ -75,10 +77,10 @@ components:
           format: int32
           nullable: true
           minimum: 1
-          exclusiveMinimum: true
+          maximum: 100
           description: >
-            Original validation message "topK must be positive when provided" is lost;
-            the default Jakarta message will be used instead.
+            Number of chunks to return (1-100). Capped because topK is multiplied by
+            the over-fetch factor before it reaches the k-NN query.
 
     Citation:
       type: object

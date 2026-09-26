@@ -35,6 +35,7 @@ class AnthropicLLMServiceTest {
     void setUp() {
         service = new AnthropicLLMService(anthropicClient);
         ReflectionTestUtils.setField(service, "model", "claude-opus-4-8");
+        ReflectionTestUtils.setField(service, "groundednessModel", "claude-haiku-4-5");
         ReflectionTestUtils.setField(service, "maxTokens", 4096);
     }
 

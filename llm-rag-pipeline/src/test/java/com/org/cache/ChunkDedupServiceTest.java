@@ -2,13 +2,17 @@ package com.org.cache;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 
 import java.time.Duration;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -60,6 +64,22 @@ class ChunkDedupServiceTest {
 
         assertThat(result).isTrue();
         verify(redisTemplate, never()).opsForValue();
+    }
+
+    @Test
+    @DisplayName("clear() SCANs the key prefix and deletes the matching hashes")
+    @SuppressWarnings("unchecked")
+    void clearDeletesPrefixedKeys() {
+        Cursor<String> cursor = mock(Cursor.class);
+        when(cursor.hasNext()).thenReturn(true, true, false);
+        when(cursor.next()).thenReturn("chunkhash:a", "chunkhash:b");
+        when(redisTemplate.scan(any(ScanOptions.class))).thenReturn(cursor);
+        when(redisTemplate.delete(anyCollection())).thenReturn(2L);
+
+        newService(true).clear();
+
+        verify(redisTemplate).delete(List.of("chunkhash:a", "chunkhash:b"));
+        verify(cursor).close();
     }
 
     @Test

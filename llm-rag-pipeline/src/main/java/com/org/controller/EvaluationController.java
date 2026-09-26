@@ -4,8 +4,11 @@ import com.org.eval.EvaluationReport;
 import com.org.eval.GenerationEvaluationReport;
 import com.org.eval.GenerationEvaluator;
 import com.org.eval.RetrievalEvaluator;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.document.Document;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -30,6 +33,7 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/eval")
+@Validated
 class EvaluationController {
 
     private final RetrievalEvaluator retrievalEvaluator;
@@ -40,7 +44,7 @@ class EvaluationController {
      * precision) over the gold set, retrieving the top {@code k} chunks per query.
      */
     @PostMapping("/run")
-    public EvaluationReport run(@RequestParam(name = "k", defaultValue = "10") int k) throws IOException {
+    public EvaluationReport run(@RequestParam(name = "k", defaultValue = "10") @Min(1) @Max(100) int k) throws IOException {
         return retrievalEvaluator.evaluate(k);
     }
 

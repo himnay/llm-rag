@@ -1,6 +1,7 @@
 package com.org.lifecycle;
 
 import com.org.cache.ChunkDedupService;
+import com.org.chunking.ChunkIdGenerator;
 import com.org.chunking.ChunkingOrchestrator;
 import com.org.chunking.model.Chunk;
 import com.org.enrichment.ChunkEnricher;
@@ -98,6 +99,7 @@ public class KnowledgeLifecycleService {
         vectorStoreService.deleteAll();
         chunkDocumentRepository.deleteAll();
         ingestionLog.deleteAll();
+        chunkDedupService.clear(); // or identity-less sources would be skipped as "already present"
     }
 
     // ── pipeline: clean → (dedup) → chunk → store ───────────────────────────────
@@ -105,18 +107,25 @@ public class KnowledgeLifecycleService {
     /**
      * Cleans, deduplicates, chunks, enriches and stores documents grouped by identity.
      * Identity groups are processed in parallel on the ingestion executor.
-     * Unless {@code force} is set, unchanged sources are skipped and changed sources have their
-     * previous vectors replaced atomically (chunk first, then delete old).
+     *
+     * <p>Unless {@code force} is set, a source with a stable identity is diffed against the chunks
+     * Mongo holds for it: unchanged chunks are left alone (no re-embedding), new or edited chunks
+     * are stored — overwriting their previous vector, since {@code _id = chunkId} — and chunks the
+     * source no longer produces are deleted only <em>after</em> the store succeeded, so a failed
+     * write never leaves the source half-deleted.</p>
      */
     private void process(List<IngestedDocument> documents, boolean force) {
         Map<String, List<IngestedDocument>> byIdentity = groupByIdentity(documents);
 
         ConcurrentLinkedQueue<Chunk> chunkQueue = new ConcurrentLinkedQueue<>();
+        ConcurrentLinkedQueue<String> staleChunkIds = new ConcurrentLinkedQueue<>();
+        ConcurrentLinkedQueue<String> rewrittenChunkIds = new ConcurrentLinkedQueue<>();
         ConcurrentHashMap<String, Integer> countByIdentity = new ConcurrentHashMap<>();
 
         List<CompletableFuture<Void>> futures = byIdentity.entrySet().stream()
                 .map(entry -> CompletableFuture.runAsync(
-                        () -> processGroup(entry.getKey(), entry.getValue(), force, chunkQueue, countByIdentity),
+                        () -> processGroup(entry.getKey(), entry.getValue(), force, chunkQueue,
+                                staleChunkIds, rewrittenChunkIds, countByIdentity),
                         ingestionExecutor))
                 .collect(Collectors.toList());
 
@@ -130,6 +139,7 @@ public class KnowledgeLifecycleService {
 
         List<Chunk> chunksToStore = new ArrayList<>(chunkQueue);
         if (chunksToStore.isEmpty()) {
+            removeStale(staleChunkIds, rewrittenChunkIds);
             log.info("Nothing to store — all {} document(s) unchanged (chunk-level dedup)", documents.size());
             return;
         }
@@ -139,6 +149,7 @@ public class KnowledgeLifecycleService {
                 chunksToStore.stream().map(c -> Map.of("source", c.source(), "chunkIndex", c.chunkIndex(),
                         "metadata", c.metadata())).collect(Collectors.toList()));
         vectorStoreService.store(chunksToStore);
+        removeStale(staleChunkIds, rewrittenChunkIds);
 
         eventPublisher.publishEvent(new IngestionCompletedEvent(this, documents.size(), chunksToStore.size()));
         eventPublisher.publishEvent(new VectorsStoredEvent(this, chunksToStore.size(),
@@ -147,6 +158,8 @@ public class KnowledgeLifecycleService {
 
     private void processGroup(String key, List<IngestedDocument> group, boolean force,
                               ConcurrentLinkedQueue<Chunk> chunkQueue,
+                              ConcurrentLinkedQueue<String> staleChunkIds,
+                              ConcurrentLinkedQueue<String> rewrittenChunkIds,
                               ConcurrentHashMap<String, Integer> countByIdentity) {
         String identity = key.startsWith(ANON) ? null : key;
 
@@ -155,9 +168,32 @@ public class KnowledgeLifecycleService {
             allChunks.addAll(chunkingOrchestrator.chunk(document));
         }
 
-        List<Chunk> newChunks = force ? allChunks : allChunks.stream()
-                .filter(chunk -> chunkDedupService.isNewContent(chunk.content()))
-                .collect(Collectors.toList());
+        List<Chunk> newChunks;
+        if (identity == null) {
+            // No stable identity to diff against: fall back to the content-hash cache. Under force
+            // (ingest-all, index just wiped) every chunk is stored but still recorded in the cache.
+            newChunks = allChunks.stream()
+                    .filter(chunk -> chunkDedupService.isNewContent(chunk.content()) || force)
+                    .collect(Collectors.toList());
+        } else if (force) {
+            newChunks = allChunks; // ingest-all: the index was just wiped
+        } else {
+            Map<String, String> stored = chunkDocumentRepository.contentHashesByIdentity(identity);
+            Set<String> current = new HashSet<>();
+            newChunks = new ArrayList<>();
+            for (Chunk chunk : allChunks) {
+                String chunkId = ChunkIdGenerator.idFor(chunk);
+                current.add(chunkId);
+                String storedHash = stored.get(chunkId);
+                if (!ChunkDedupService.hashOf(chunk.content()).equals(storedHash)) {
+                    newChunks.add(chunk);
+                    if (storedHash != null) {
+                        rewrittenChunkIds.add(chunkId);
+                    }
+                }
+            }
+            stored.keySet().stream().filter(chunkId -> !current.contains(chunkId)).forEach(staleChunkIds::add);
+        }
 
         log.debug("Processing identity='{}' docCount={} chunked={} new={}",
                 identity, group.size(), allChunks.size(), newChunks.size());
@@ -167,15 +203,20 @@ public class KnowledgeLifecycleService {
                     identity, allChunks.size());
             return;
         }
-        // Chunk first — only delete the previous version once we have valid replacements.
-        if (!force && identity != null) {
-            vectorStoreService.deleteByIdentity(identity);
-            chunkDocumentRepository.deleteByIdentity(identity);
-        }
         chunkQueue.addAll(newChunks);
         if (identity != null) {
             countByIdentity.put(identity, newChunks.size());
         }
+    }
+
+    /** Removes chunks a re-ingested source no longer produces (runs after the store succeeded). */
+    private void removeStale(Collection<String> staleChunkIds, Collection<String> rewrittenChunkIds) {
+        if (staleChunkIds.isEmpty() && rewrittenChunkIds.isEmpty()) {
+            return;
+        }
+        vectorStoreService.deleteReplaced(List.copyOf(staleChunkIds), List.copyOf(rewrittenChunkIds));
+        chunkDocumentRepository.deleteByIds(List.copyOf(staleChunkIds));
+        log.info("Removed {} stale chunk(s) after re-ingest", staleChunkIds.size());
     }
 
     /**

@@ -8,6 +8,8 @@ import com.org.ingestion.db.UnknownIngestionTableException;
 import com.org.ingestion.reader.UnsupportedDocumentTypeException;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.task.TaskRejectedException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -110,6 +112,16 @@ public class GlobalExceptionHandler {
     /**
      * Concurrent lifecycle operation rejected (e.g. ingest-all already running).
      */
+    /**
+     * The async-upload queue is full: tell the client to come back later instead of a 500.
+     */
+    @ExceptionHandler(TaskRejectedException.class)
+    public ResponseEntity<ApiError> handleRejected(TaskRejectedException ex) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .header(HttpHeaders.RETRY_AFTER, "30")
+                .body(build(HttpStatus.SERVICE_UNAVAILABLE, "Busy", "Too many ingestion jobs in progress; retry later", null).getBody());
+    }
+
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ApiError> handleIllegalState(IllegalStateException ex) {
         return build(HttpStatus.CONFLICT, "Operation conflict", ex.getMessage(), null);

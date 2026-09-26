@@ -7,8 +7,8 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.MongoDBContainer;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.mongodb.MongoDBContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
@@ -34,11 +34,11 @@ import java.time.Duration;
 public abstract class IntegrationTest {
 
     @ServiceConnection
-    static final PostgreSQLContainer<?> POSTGRES =
-            new PostgreSQLContainer<>(DockerImageName.parse("postgres:18"));
+    static final PostgreSQLContainer POSTGRES =
+            new PostgreSQLContainer(DockerImageName.parse("postgres:18"));
 
     static final GenericContainer<?> OPENSEARCH =
-            new GenericContainer<>(DockerImageName.parse("opensearchproject/opensearch:2.17.1"))
+            new GenericContainer<>(DockerImageName.parse("opensearchproject/opensearch:3.8.0"))
                     .withExposedPorts(9200)
                     .withEnv("discovery.type", "single-node")
                     .withEnv("DISABLE_SECURITY_PLUGIN", "true")
@@ -48,10 +48,10 @@ public abstract class IntegrationTest {
                     .withStartupTimeout(Duration.ofMinutes(3));
 
     @ServiceConnection
-    static final MongoDBContainer MONGO = new MongoDBContainer(DockerImageName.parse("mongo:7"));
+    static final MongoDBContainer MONGO = new MongoDBContainer(DockerImageName.parse("mongo:8"));
 
     static final GenericContainer<?> REDIS =
-            new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
+            new GenericContainer<>(DockerImageName.parse("redis:8-alpine"))
                     .withExposedPorts(6379)
                     .waitingFor(Wait.forListeningPort());
 

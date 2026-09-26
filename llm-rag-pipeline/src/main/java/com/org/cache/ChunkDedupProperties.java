@@ -22,7 +22,8 @@ public class ChunkDedupProperties {
     /**
      * How long a content hash is remembered. A chunk re-ingested after this window is re-embedded
      * once and the TTL restarts — a deliberate trade-off favoring bounded Redis memory over
-     * permanent dedup state (dedup keys aren't cleared on source delete).
+     * permanent dedup state. Only identity-less documents use this cache; keys are cleared by a
+     * delete-all but not by a single-source delete (such sources have no identity to delete by).
      */
     private Duration ttl = Duration.ofDays(30);
 }

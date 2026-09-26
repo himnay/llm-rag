@@ -11,8 +11,10 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -29,8 +31,13 @@ public class PageIndexClient {
 
     public PageIndexClient(@Value("${rag.pageindex.api-key}") String apiKey) {
         this.apiKey = apiKey;
+        // Bounded timeouts: without them a stalled PageIndex connection pins a request thread forever.
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(Duration.ofSeconds(10));
+        requestFactory.setReadTimeout(Duration.ofSeconds(60));
         this.http = RestClient.builder()
                 .baseUrl(BASE_URL)
+                .requestFactory(requestFactory)
                 .defaultHeader("api_key", apiKey)
                 .build();
     }
