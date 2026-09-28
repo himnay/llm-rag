@@ -28,9 +28,9 @@ app:
     version: 0.0.1-SNAPSHOT
     description: Graph RAG pipeline — Neo4j relationships + Anthropic Claude
     author: Himansu Nayak
-    java-version: "21"
-    spring-boot-version: "4.1.0"
-    neo4j-version: "5.x"
+    java-version: "27"
+    spring-boot-version: "4.1.1"
+    neo4j-version: "2026.x"
     llm-model: claude-opus-4-8
     github: https://github.com/himansu/llm-rag-graph
   anthropic:

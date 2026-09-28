@@ -183,7 +183,7 @@ flowchart TB
 
 | Layer       | Technology                                                       |
 |-------------|------------------------------------------------------------------|
-| Runtime     | Java 25                                                          |
+| Runtime     | Java 27                                                          |
 | Framework   | Spring Boot 4.1                                                  |
 | Graph DB    | Neo4j 2026.x (Spring Data Neo4j)                                 |
 | LLM         | Anthropic Claude (claude-opus-4-8) via `anthropic-java` SDK 2.34 |
@@ -194,7 +194,7 @@ flowchart TB
 
 ## <span style="color:hsl(133,80%,58%)">Prerequisites</span>
 
-- Java 25
+- Java 27
 - Maven 3.9+
 - Neo4j 2026.x running locally (default: `bolt://localhost:7687`)
 - An [Anthropic API key](https://console.anthropic.com/)

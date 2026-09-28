@@ -113,7 +113,7 @@ flowchart TB
 
 Each subgraph above is a **separate Maven module and a separate Spring Boot process** — there is no
 shared runtime, no shared database, and no cross-module network call. The only things they share are
-the root aggregator POM, the corporate `super-pom` parent (Java 25, Spring Boot 4.1), and the general
+the root aggregator POM, the corporate `super-pom` parent (Java 27, Spring Boot 4.1), and the general
 shape of "retrieve, then generate."
 
 <a id="how-the-three-retrieval-strategies-compare-answering-the-same-question"></a>
@@ -355,16 +355,16 @@ and exactly how this project uses it.
 
 ---
 
-### <span style="color:hsl(40,80%,58%)">Java 25</span>
+### <span style="color:hsl(40,80%,58%)">Java 27</span>
 
-**What it is:** The latest release of the Java platform (GA June 2025, Azul Zulu build used here).
+**What it is:** The current feature release of the Java platform (GA September 2026).
 
-**How it's used here:** All three modules compile and run on Java 25. The project makes deliberate
+**How it's used here:** All three modules compile and run on Java 27. The project makes deliberate
 use of modern Java features: sealed records (`RetrievalResult`, `RagResponse`, `GraphContext`) replace
 verbose POJOs; text blocks clean up multi-line SQL and prompt strings throughout the codebase; and
 `llm-rag-pipeline`'s `LlmPointwiseReranker` uses `Executors.newVirtualThreadPerTaskExecutor()` to
 fire N parallel LLM grading calls with the cost of one round-trip rather than N sequential ones —
-the virtual-threads feature introduced in Java 21 and available here on Java 25.
+the virtual-threads feature introduced in Java 21 and available here on Java 27.
 
 ---
 

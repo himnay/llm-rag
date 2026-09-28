@@ -8,7 +8,7 @@ A production-grade **Retrieval-Augmented Generation** backend built with Spring 
 - **Retrieval** — ranking the most relevant chunks
 - **Generation** — assembling a grounded LLM answer with citations, semantic caching, and prompt-injection defence
 
-> **Stack**: Spring Boot 4.1 · Spring AI 2.0.1 · Java 25 · OpenAI · OpenSearch 3.8 · MongoDB 8 · Redis 8 · PostgreSQL 18+
+> **Stack**: Spring Boot 4.1 · Spring AI 2.0.1 · Java 27 · OpenAI · OpenSearch 3.8 · MongoDB 8 · Redis 8 · PostgreSQL 18+
 
 Chunks are dual-written at ingestion: **OpenSearch** holds the vector + filter fields + `chunkId`
 (search index only), **MongoDB** holds the full chunk text + descriptive metadata keyed by
@@ -657,7 +657,7 @@ project's dual-store architecture).
 
 ### <span style="color:hsl(300,80%,58%)">Prerequisites</span>
 
-- Java 25, Maven
+- Java 27, Maven
 - Docker & Docker Compose
 - An OpenAI API key (embeddings + generation)
 

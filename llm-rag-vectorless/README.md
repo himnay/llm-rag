@@ -213,7 +213,7 @@ rag:
 
 ## <span style="color:hsl(341,80%,58%)">Running Locally</span>
 
-**Prerequisites:** Java 25, Maven 3.9+, Anthropic API key.
+**Prerequisites:** Java 27, Maven 3.9+, Anthropic API key.
 
 ### <span style="color:hsl(119,80%,58%)">BM25 only</span>
 
